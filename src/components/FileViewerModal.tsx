@@ -19,6 +19,7 @@ import {
   Video as VideoIcon,
   Layers,
   History,
+  Edit2,
 } from 'lucide-react';
 import { FileItem } from '../types';
 import { api, formatBytes, formatDate } from '../services/api';
@@ -28,6 +29,7 @@ interface FileViewerModalProps {
   onClose: () => void;
   onShare: (file: FileItem) => void;
   onOpenVersions: (file: FileItem) => void;
+  onRename?: (file: FileItem) => void;
   onOpenAIAnalyze?: (file: FileItem) => void;
 }
 
@@ -36,6 +38,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   onClose,
   onShare,
   onOpenVersions,
+  onRename,
   onOpenAIAnalyze,
 }) => {
   if (!file) return null;
@@ -214,7 +217,18 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
             </div>
 
             <div className="min-w-0">
-              <h3 className="text-sm font-bold truncate max-w-xs md:max-w-md">{file.name}</h3>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm font-bold truncate max-w-xs md:max-w-md">{file.name}</h3>
+                {onRename && (
+                  <button
+                    onClick={() => onRename(file)}
+                    className="text-blue-100 hover:text-white p-1 rounded hover:bg-white/10 transition-colors cursor-pointer"
+                    title="Đổi tên tệp"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
               <p className="text-[11px] text-blue-100 truncate">
                 {formatBytes(file.size)} • Thư mục: {file.folderName} • v{file.versions?.length || 1}
               </p>
@@ -222,6 +236,17 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {onRename && (
+              <button
+                onClick={() => onRename(file)}
+                className="bg-white/20 hover:bg-white/30 text-white font-semibold text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Đổi tên tệp này"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Đổi tên</span>
+              </button>
+            )}
+
             <button
               onClick={handleDownload}
               className="bg-white/20 hover:bg-white/30 text-white font-semibold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"

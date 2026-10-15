@@ -135,6 +135,7 @@ const defaultFolders: FolderRecord[] = [
   { id: 'f_10', name: '10. POWERPOINT', code: '10', parentId: null, color: '#FF9F1C', createdAt: '2026-09-10T10:00:00Z', updatedAt: '2026-09-19T13:00:00Z' },
   { id: 'f_11', name: '11. HỒ SƠ CÁ NHÂN', code: '11', parentId: null, color: '#064AA8', createdAt: '2026-09-11T11:00:00Z', updatedAt: '2026-09-18T10:00:00Z' },
   { id: 'f_12', name: '12. TÀI LIỆU KHÁC', code: '12', parentId: null, color: '#64748B', createdAt: '2026-09-12T15:00:00Z', updatedAt: '2026-09-17T11:20:00Z' },
+  { id: 'f_sub_tnxh', name: '04. TỰ NHIÊN VÀ XÃ HỘI', code: '04-TNXH', parentId: 'f_03', color: '#8257E5', createdAt: '2026-09-02T08:30:00Z', updatedAt: '2026-09-26T14:20:00Z' },
 ];
 
 function seedInitialFiles(): FileRecord[] {
@@ -359,7 +360,12 @@ function getDB(): DatabaseSchema {
   }
   try {
     const content = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(content);
+    const parsed: DatabaseSchema = JSON.parse(content);
+    if (!parsed.files || parsed.files.length === 0) {
+      parsed.files = seedInitialFiles();
+      saveDB(parsed);
+    }
+    return parsed;
   } catch (err) {
     console.error('Error reading DB, re-initializing', err);
     const initialFiles = seedInitialFiles();
@@ -606,53 +612,175 @@ app.get('/api/files', (req, res) => {
     );
   }
 
-  // Sort descending by updatedDate
-  results.sort((a, b) => new Date(b.updatedDate).getTime() - new Date(a.updatedDate).getTime());
+  // Sorting: Default to natural sort by name ascending (Tuần 1 -> Tuần 35, where Tuần 35 is at the end)
+  const sortBy = req.query.sortBy as string | undefined;
+  const order = (req.query.order as string) || 'asc';
+
+  if (sortBy === 'date') {
+    results.sort((a, b) =>
+      order === 'desc'
+        ? new Date(b.updatedDate).getTime() - new Date(a.updatedDate).getTime()
+        : new Date(a.updatedDate).getTime() - new Date(b.updatedDate).getTime()
+    );
+  } else if (sortBy === 'size') {
+    results.sort((a, b) => (order === 'desc' ? (b.size || 0) - (a.size || 0) : (a.size || 0) - (b.size || 0)));
+  } else if (sortBy === 'date_desc') {
+    results.sort((a, b) => new Date(b.updatedDate).getTime() - new Date(a.updatedDate).getTime());
+  } else {
+    // Default: natural Vietnamese sort (e.g. TV TUẦN 1 -> TV TUẦN 35 at the bottom)
+    results.sort((a, b) => {
+      const cmp = a.name.localeCompare(b.name, 'vi', { numeric: true, sensitivity: 'base' });
+      return order === 'desc' ? -cmp : cmp;
+    });
+  }
 
   res.json({ success: true, files: results });
 });
 
+// Reorder file (move to start or move to end)
+app.post('/api/files/:id/reorder', (req, res) => {
+  const { id } = req.params;
+  const { position } = req.body;
+  const db = getDB();
+  const idx = db.files.findIndex((f) => f.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: 'Không tìm thấy tệp' });
+
+  const targetFile = db.files.splice(idx, 1)[0];
+  if (position === 'start') {
+    db.files.unshift(targetFile);
+  } else {
+    db.files.push(targetFile);
+  }
+  targetFile.updatedDate = new Date().toISOString();
+  saveDB(db);
+  res.json({ success: true, message: position === 'end' ? 'Đã chuyển tệp xuống cuối cùng' : 'Đã chuyển tệp lên đầu tiên', file: targetFile });
+});
+
 // 5. File Upload (Supports multi-file)
 app.post('/api/upload', upload.array('files', 20), (req, res) => {
-  const uploadedFiles = req.files as Express.Multer.File[];
-  const folderId = req.body.folderId || 'f_01';
+  try {
+    const uploadedFiles = req.files as Express.Multer.File[];
+    const folderId = req.body.folderId || 'f_01';
 
-  if (!uploadedFiles || uploadedFiles.length === 0) {
-    return res.status(400).json({ success: false, message: 'Không có tệp nào được tải lên' });
-  }
-
-  const db = getDB();
-  const targetFolder = db.folders.find((f) => f.id === folderId) || db.folders[0];
-
-  const addedFiles: FileRecord[] = [];
-
-  for (const file of uploadedFiles) {
-    const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
-    const category = categorizeFile(file.originalname);
-
-    let previewContent = '';
-    // If text / markdown / csv / json, read content
-    if (['txt', 'md', 'csv', 'json'].includes(ext)) {
-      try {
-        previewContent = fs.readFileSync(file.path, 'utf-8').slice(0, 5000);
-      } catch (err) {
-        console.error(err);
-      }
-    } else {
-      previewContent = `Tài liệu: ${file.originalname}\nĐịnh dạng: ${ext.toUpperCase()}\nKích thước: ${(file.size / (1024 * 1024)).toFixed(2)} MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.`;
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+      return res.status(400).json({ success: false, message: 'Không có tệp nào được tải lên' });
     }
 
+    const db = getDB();
+    const targetFolder = db.folders.find((f) => f.id === folderId) || db.folders[0];
+
+    const addedFiles: FileRecord[] = [];
+
+    for (const file of uploadedFiles) {
+      let cleanOriginalName = file.originalname;
+      try {
+        cleanOriginalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+      } catch (e) {}
+
+      const ext = path.extname(cleanOriginalName).toLowerCase().replace('.', '');
+      const category = categorizeFile(cleanOriginalName);
+
+      let previewContent = '';
+      if (['txt', 'md', 'csv', 'json'].includes(ext)) {
+        try {
+          previewContent = fs.readFileSync(file.path, 'utf-8').slice(0, 5000);
+        } catch (err) {
+          console.error(err);
+        }
+      } else {
+        previewContent = `Tài liệu: ${cleanOriginalName}\nĐịnh dạng: ${ext.toUpperCase()}\nKích thước: ${(file.size / (1024 * 1024)).toFixed(2)} MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.`;
+      }
+
+      const newFile: FileRecord = {
+        id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        name: cleanOriginalName,
+        originalName: cleanOriginalName,
+        mimeType: file.mimetype || 'application/octet-stream',
+        extension: ext,
+        category,
+        size: file.size,
+        folderId: targetFolder.id,
+        folderName: targetFolder.name,
+        filename: file.filename,
+        uploadDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+        isFavorite: false,
+        isDeleted: false,
+        versions: [
+          {
+            version: 1,
+            name: cleanOriginalName,
+            size: file.size,
+            uploadDate: new Date().toISOString().split('T')[0],
+            updatedBy: db.user.fullName,
+            filename: file.filename,
+          },
+        ],
+        previewContent,
+      };
+
+      db.files.unshift(newFile);
+      addedFiles.push(newFile);
+    }
+
+    saveDB(db);
+    res.json({
+      success: true,
+      message: `Đã tải lên thành công ${addedFiles.length} tệp`,
+      files: addedFiles,
+    });
+  } catch (err: any) {
+    console.error('Lỗi tải tệp /api/upload:', err);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi tải tệp: ' + err.message });
+  }
+});
+
+// 5b. Resilient Direct Upload via JSON / Base64 (100% reliable across proxies)
+app.post('/api/upload-json', (req, res) => {
+  try {
+    const { name, size, mimeType, folderId, base64Content } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Thiếu tên tệp' });
+    }
+
+    const db = getDB();
+    const targetFolder = db.folders.find((f) => f.id === folderId) || db.folders[0];
+
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(name).toLowerCase().replace('.', '');
+    const physicalFilename = `${uniqueSuffix}.${ext || 'dat'}`;
+    const filePath = path.join(UPLOADS_DIR, physicalFilename);
+
+    let previewContent = '';
+    if (base64Content) {
+      const buffer = Buffer.from(base64Content.replace(/^data:.*?;base64,/, ''), 'base64');
+      fs.writeFileSync(filePath, buffer);
+
+      if (['txt', 'md', 'csv', 'json'].includes(ext)) {
+        try {
+          previewContent = buffer.toString('utf-8').slice(0, 5000);
+        } catch (e) {}
+      }
+    } else {
+      fs.writeFileSync(filePath, Buffer.from(`Tài liệu: ${name}\nThầy Từ Văn Gọn - Trường TH Phường An Xuyên`));
+    }
+
+    if (!previewContent) {
+      previewContent = `Tài liệu: ${name}\nĐịnh dạng: ${ext.toUpperCase()}\nKích thước: ${(size ? size / (1024 * 1024) : 0).toFixed(2)} MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.`;
+    }
+
+    const category = categorizeFile(name);
     const newFile: FileRecord = {
       id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      name: file.originalname,
-      originalName: file.originalname,
-      mimeType: file.mimetype || 'application/octet-stream',
+      name,
+      originalName: name,
+      mimeType: mimeType || 'application/octet-stream',
       extension: ext,
       category,
-      size: file.size,
+      size: size || (fs.existsSync(filePath) ? fs.statSync(filePath).size : 0),
       folderId: targetFolder.id,
       folderName: targetFolder.name,
-      filename: file.filename,
+      filename: physicalFilename,
       uploadDate: new Date().toISOString(),
       updatedDate: new Date().toISOString(),
       isFavorite: false,
@@ -660,26 +788,28 @@ app.post('/api/upload', upload.array('files', 20), (req, res) => {
       versions: [
         {
           version: 1,
-          name: file.originalname,
-          size: file.size,
+          name,
+          size: size || 0,
           uploadDate: new Date().toISOString().split('T')[0],
           updatedBy: db.user.fullName,
-          filename: file.filename,
+          filename: physicalFilename,
         },
       ],
       previewContent,
     };
 
     db.files.unshift(newFile);
-    addedFiles.push(newFile);
-  }
+    saveDB(db);
 
-  saveDB(db);
-  res.json({
-    success: true,
-    message: `Đã tải lên thành công ${addedFiles.length} tệp`,
-    files: addedFiles,
-  });
+    res.json({
+      success: true,
+      message: 'Tải lên tệp thành công',
+      files: [newFile],
+    });
+  } catch (err: any) {
+    console.error('Lỗi tải tệp /api/upload-json:', err);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lưu tệp: ' + err.message });
+  }
 });
 
 // 6. File Details, Update, Delete & Restore

@@ -11,6 +11,7 @@ import {
   Settings,
   HardDrive,
   UploadCloud,
+  FolderUp,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ interface SidebarProps {
   onSelectTab: (tab: ViewTab) => void;
   stats: StatsData | null;
   onOpenUpload: () => void;
+  onOpenUploadFolder?: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isMobileOpen: boolean;
@@ -33,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   stats,
   onOpenUpload,
+  onOpenUploadFolder,
   isCollapsed,
   onToggleCollapse,
   isMobileOpen,
@@ -72,17 +75,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {/* Top Section */}
         <div className="p-3">
-          {/* Quick Upload Button */}
-          <button
-            onClick={() => {
-              onOpenUpload();
-              if (isMobileOpen) onCloseMobile();
-            }}
-            className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-2.5 px-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 mb-4 group cursor-pointer"
-          >
-            <UploadCloud className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" />
-            {!isCollapsed && <span className="text-sm font-medium tracking-wide">Tải tài liệu lên</span>}
-          </button>
+          {/* Quick Upload Buttons */}
+          <div className="space-y-1.5 mb-4">
+            <button
+              onClick={() => {
+                onOpenUpload();
+                if (isMobileOpen) onCloseMobile();
+              }}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-2 px-2.5 rounded-xl shadow-md transition-all group cursor-pointer"
+              title="Tải tệp lên"
+            >
+              <UploadCloud className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" />
+              {!isCollapsed && <span className="text-xs font-bold tracking-wide">Tải tệp lên</span>}
+            </button>
+
+            {onOpenUploadFolder && (
+              <button
+                onClick={() => {
+                  onOpenUploadFolder();
+                  if (isMobileOpen) onCloseMobile();
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-2 px-2.5 rounded-xl shadow-md transition-all group cursor-pointer"
+                title="Tải thư mục lên"
+              >
+                <FolderUp className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" />
+                {!isCollapsed && <span className="text-xs font-bold tracking-wide">Tải thư mục lên</span>}
+              </button>
+            )}
+          </div>
 
           {/* Navigation Menu */}
           <nav className="space-y-1">

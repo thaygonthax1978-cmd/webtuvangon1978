@@ -108,4 +108,6 @@ export interface UploadQueueItem {
   progress: number;
   status: 'pending' | 'uploading' | 'completed' | 'error' | 'paused';
   errorMessage?: string;
+  targetFolderId?: string;
+  relativePath?: string;
 }

@@ -144,6 +144,14 @@ export const api = {
     await fetch('/api/trash/empty', { method: 'DELETE' });
   },
 
+  async reorderFile(id: string, position: 'start' | 'end'): Promise<void> {
+    await fetch(`/api/files/${id}/reorder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ position }),
+    });
+  },
+
   async uploadNewVersion(fileId: string, file: File): Promise<FileItem> {
     const formData = new FormData();
     formData.append('file', file);
@@ -206,4 +214,50 @@ export function formatDate(dateStr: string): string {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   return `${day}/${month}/${year}`;
+}
+
+export interface HierarchicalFolderOption {
+  id: string;
+  name: string;
+  depth: number;
+  label: string;
+  folder: FolderItem;
+}
+
+export function buildFolderTreeOptions(folderList: FolderItem[]): HierarchicalFolderOption[] {
+  const result: HierarchicalFolderOption[] = [];
+
+  const addChildren = (parentId: string | null, depth: number) => {
+    const children = folderList.filter((f) => (f.parentId || null) === parentId);
+    children.sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true }));
+
+    for (const child of children) {
+      const indent = depth === 0 ? '' : '—'.repeat(depth) + ' ↳ ';
+      result.push({
+        id: child.id,
+        name: child.name,
+        depth,
+        label: `${indent}${child.name}`,
+        folder: child,
+      });
+      addChildren(child.id, depth + 1);
+    }
+  };
+
+  addChildren(null, 0);
+
+  const addedIds = new Set(result.map((r) => r.id));
+  const orphans = folderList.filter((f) => !addedIds.has(f.id));
+  orphans.sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true }));
+  for (const orphan of orphans) {
+    result.push({
+      id: orphan.id,
+      name: orphan.name,
+      depth: 0,
+      label: orphan.name,
+      folder: orphan,
+    });
+  }
+
+  return result;
 }

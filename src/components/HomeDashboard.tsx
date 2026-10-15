@@ -16,6 +16,7 @@ import {
   Sparkles,
   UploadCloud,
   File,
+  Edit2,
 } from 'lucide-react';
 import { StatsData, FileItem } from '../types';
 import { formatBytes, formatDate } from '../services/api';
@@ -27,6 +28,7 @@ interface HomeDashboardProps {
   onDownloadFile: (file: FileItem) => void;
   onShareFile: (file: FileItem) => void;
   onDeleteFile: (file: FileItem) => void;
+  onRenameFile?: (file: FileItem) => void;
   onOpenUpload: () => void;
   onGoToTab: (tab: any) => void;
 }
@@ -38,6 +40,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   onDownloadFile,
   onShareFile,
   onDeleteFile,
+  onRenameFile,
   onOpenUpload,
   onGoToTab,
 }) => {
@@ -418,13 +421,28 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                         <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
                           <File className="w-4 h-4 text-blue-600" />
                         </div>
-                        <div>
-                          <p
-                            onClick={() => onOpenFile(file)}
-                            className="font-semibold text-slate-900 hover:text-blue-600 cursor-pointer truncate max-w-xs md:max-w-md"
-                          >
-                            {file.name}
-                          </p>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 group">
+                            <p
+                              onClick={() => onOpenFile(file)}
+                              className="font-semibold text-slate-900 hover:text-blue-600 cursor-pointer truncate max-w-xs md:max-w-md"
+                              title={file.name}
+                            >
+                              {file.name}
+                            </p>
+                            {onRenameFile && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRenameFile(file);
+                                }}
+                                className="opacity-70 group-hover:opacity-100 p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-all cursor-pointer shrink-0"
+                                title="Sửa tên tệp này"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-400">
                             Phiên bản: v{file.versions?.length || 1}
                           </span>
@@ -442,30 +460,39 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {onRenameFile && (
+                          <button
+                            onClick={() => onRenameFile(file)}
+                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                            title="Đổi tên tệp"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => onOpenFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           title="Xem trước tài liệu"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onDownloadFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
                           title="Tải xuống"
                         >
                           <Download className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onShareFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           title="Chia sẻ"
                         >
                           <Share2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onDeleteFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                           title="Chuyển vào thùng rác"
                         >
                           <Trash2 className="w-4 h-4" />

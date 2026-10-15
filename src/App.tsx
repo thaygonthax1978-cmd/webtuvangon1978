@@ -7,7 +7,7 @@ import {
   ViewTab,
   SharedConfig,
 } from './types';
-import { api, formatBytes, formatDate } from './services/api';
+import { api, formatBytes, formatDate, buildFolderTreeOptions } from './services/api';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { HomeDashboard } from './components/HomeDashboard';
@@ -25,6 +25,8 @@ import { MobileDeviceSimulator } from './components/MobileDeviceSimulator';
 import {
   FileText,
   Folder,
+  FolderPlus,
+  ChevronRight,
   Eye,
   Download,
   Share2,
@@ -35,6 +37,8 @@ import {
   UploadCloud,
   ArrowUpDown,
   Filter,
+  Edit2,
+  FolderUp,
 } from 'lucide-react';
 
 export default function App() {
@@ -61,6 +65,24 @@ export default function App() {
   const [activeShareFile, setActiveShareFile] = useState<FileItem | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadTargetFolderId, setUploadTargetFolderId] = useState<string | undefined>(undefined);
+  const [uploadMode, setUploadMode] = useState<'file' | 'folder'>('file');
+
+  // Create Folder Modal State
+  const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
+  const [createFolderParentId, setCreateFolderParentId] = useState<string | null>(null);
+  const [newFolderNameInput, setNewFolderNameInput] = useState('');
+  const [newFolderColorInput, setNewFolderColorInput] = useState('#8257E5');
+
+  // Rename Folder Modal State
+  const [renameFolderTarget, setRenameFolderTarget] = useState<FolderItem | null>(null);
+  const [renameFolderNameInput, setRenameFolderNameInput] = useState('');
+  const [renameFolderColorInput, setRenameFolderColorInput] = useState('#0866E8');
+  const [renameFolderParentIdInput, setRenameFolderParentIdInput] = useState<string | null>(null);
+
+  // Rename File Modal State
+  const [renameFileTarget, setRenameFileTarget] = useState<FileItem | null>(null);
+  const [renameFileNameInput, setRenameFileNameInput] = useState('');
+  const [renameFileFolderIdInput, setRenameFileFolderIdInput] = useState<string>('');
 
   // Search keyword from Header or My Files
   const [searchQuery, setSearchQuery] = useState('');
@@ -164,8 +186,9 @@ export default function App() {
     }
   };
 
-  const handleOpenUpload = (targetFolderId?: string) => {
+  const handleOpenUpload = (targetFolderId?: string, mode: 'file' | 'folder' = 'file') => {
     setUploadTargetFolderId(targetFolderId);
+    setUploadMode(mode);
     setIsUploadModalOpen(true);
   };
 
@@ -174,9 +197,36 @@ export default function App() {
     loadData();
   };
 
-  const handleCreateFolder = async (name: string, color?: string) => {
+  const handleOpenCreateFolderModal = (parentId?: string | null) => {
+    setCreateFolderParentId(parentId ?? null);
+    setNewFolderNameInput('');
+    setNewFolderColorInput('#8257E5');
+    setIsCreateFolderModalOpen(true);
+  };
+
+  const handleCreateFolderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFolderNameInput.trim()) return;
     try {
-      await api.createFolder(name, null, color);
+      await api.createFolder(newFolderNameInput.trim(), createFolderParentId, newFolderColorInput);
+      const parent = folders.find((f) => f.id === createFolderParentId);
+      showToast(
+        parent
+          ? `Đã tạo thư mục con "${newFolderNameInput.trim()}" trong ${parent.name}!`
+          : `Đã tạo thư mục "${newFolderNameInput.trim()}" thành công!`
+      );
+      setIsCreateFolderModalOpen(false);
+      setNewFolderNameInput('');
+      loadData();
+    } catch (err) {
+      console.error(err);
+      showToast('Không thể tạo thư mục, vui lòng thử lại');
+    }
+  };
+
+  const handleCreateFolder = async (name: string, color?: string, parentId?: string | null) => {
+    try {
+      await api.createFolder(name, parentId ?? null, color);
       showToast(`Đã tạo thư mục "${name}" thành công!`);
       loadData();
     } catch (err) {
@@ -184,13 +234,70 @@ export default function App() {
     }
   };
 
-  const handleRenameFolder = async (folderId: string, newName: string) => {
+  const handleRenameFolder = async (folderId: string, newName: string, color?: string, parentId?: string | null) => {
     try {
-      await api.updateFolder(folderId, { name: newName });
-      showToast(`Đã cập nhật tên thư mục thành "${newName}"`);
+      await api.updateFolder(folderId, { name: newName, color, parentId });
+      showToast(`Đã cập nhật thư mục thành "${newName}"`);
       loadData();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleOpenRenameFolderModal = (folder: FolderItem) => {
+    setRenameFolderTarget(folder);
+    setRenameFolderNameInput(folder.name);
+    setRenameFolderColorInput(folder.color || '#0866E8');
+    setRenameFolderParentIdInput(folder.parentId || null);
+  };
+
+  const handleSaveRenameFolder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renameFolderTarget || !renameFolderNameInput.trim()) return;
+    try {
+      await api.updateFolder(renameFolderTarget.id, {
+        name: renameFolderNameInput.trim(),
+        color: renameFolderColorInput,
+        parentId: renameFolderParentIdInput,
+      });
+      showToast(`Đã cập nhật thư mục thành "${renameFolderNameInput.trim()}" thành công!`);
+      setRenameFolderTarget(null);
+      loadData();
+    } catch (err) {
+      console.error(err);
+      showToast('Không thể đổi tên thư mục, vui lòng thử lại');
+    }
+  };
+
+  const handleOpenRenameFileModal = (file: FileItem) => {
+    setRenameFileTarget(file);
+    setRenameFileNameInput(file.name);
+    setRenameFileFolderIdInput(file.folderId || (folders[0]?.id || ''));
+  };
+
+  const handleSaveRenameFile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renameFileTarget || !renameFileNameInput.trim()) return;
+    let finalName = renameFileNameInput.trim();
+    const ext = renameFileTarget.extension ? `.${renameFileTarget.extension}` : '';
+    if (ext && !finalName.includes('.')) {
+      finalName = `${finalName}${ext}`;
+    }
+
+    try {
+      const updated = await api.updateFile(renameFileTarget.id, {
+        name: finalName,
+        folderId: renameFileFolderIdInput || undefined,
+      });
+      showToast(`Đã đổi tên tệp thành "${finalName}" thành công!`);
+      setRenameFileTarget(null);
+      if (activeViewerFile && activeViewerFile.id === renameFileTarget.id) {
+        setActiveViewerFile(updated);
+      }
+      loadData();
+    } catch (err) {
+      console.error(err);
+      showToast('Không thể đổi tên tệp, vui lòng thử lại');
     }
   };
 
@@ -231,6 +338,7 @@ export default function App() {
             onDownloadFile={handleDownloadFile}
             onShareFile={handleShareFile}
             onDeleteFile={handleDeleteFile}
+            onRenameFile={handleOpenRenameFileModal}
             onOpenUpload={() => handleOpenUpload()}
             onGoToTab={(tab) => setCurrentTab(tab)}
           />
@@ -258,49 +366,213 @@ export default function App() {
 
         const currentFolderObj = folders.find((f) => f.id === selectedFolderId);
 
+        // Build breadcrumb trail for subfolders
+        const breadcrumbs: FolderItem[] = [];
+        if (selectedFolderId) {
+          let curr = currentFolderObj;
+          while (curr) {
+            breadcrumbs.unshift(curr);
+            curr = curr.parentId ? folders.find((f) => f.id === curr?.parentId) : undefined;
+          }
+        }
+
+        // Subfolders under this current folder
+        const subfoldersInCurrent = selectedFolderId
+          ? folders.filter((f) => f.parentId === selectedFolderId)
+          : [];
+
         return (
           <div className="space-y-5">
             {/* Folder / Category header bar */}
             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-3">
               <div>
+                {/* Breadcrumbs trail */}
+                {selectedFolderId && breadcrumbs.length > 0 && (
+                  <nav className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mb-1.5 flex-wrap">
+                    <button
+                      onClick={() => setSelectedFolderId(null)}
+                      className="hover:text-blue-600 transition-colors cursor-pointer flex items-center gap-1"
+                    >
+                      <span>📁 Tất cả thư mục</span>
+                    </button>
+                    {breadcrumbs.map((b, idx) => (
+                      <React.Fragment key={b.id}>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        <button
+                          onClick={() => setSelectedFolderId(b.id)}
+                          className={`hover:text-blue-600 transition-colors cursor-pointer ${
+                            idx === breadcrumbs.length - 1 ? 'font-bold text-slate-900' : ''
+                          }`}
+                        >
+                          {b.name}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </nav>
+                )}
+
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-slate-900">
-                    {isFavoritesView
-                      ? 'Tài liệu yêu thích'
-                      : selectedFolderId
-                      ? `Thư mục: ${currentFolderObj?.name || 'Tài liệu'}`
-                      : 'Tất cả tài liệu của Thầy Gọn'}
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    {selectedFolderId && (
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-xs"
+                        style={{
+                          backgroundColor: `${currentFolderObj?.color || '#0866E8'}20`,
+                          color: currentFolderObj?.color || '#0866E8',
+                        }}
+                      >
+                        <Folder className="w-4 h-4 fill-current" />
+                      </div>
+                    )}
+                    <span>
+                      {isFavoritesView
+                        ? 'Tài liệu yêu thích'
+                        : selectedFolderId
+                        ? `Thư mục: ${currentFolderObj?.name || 'Tài liệu'}`
+                        : 'Tất cả tài liệu của Thầy Gọn'}
+                    </span>
                   </h2>
+
+                  {/* Nút Đổi tên thư mục nhanh bên cạnh tiêu đề */}
+                  {selectedFolderId && currentFolderObj && (
+                    <button
+                      onClick={() => handleOpenRenameFolderModal(currentFolderObj)}
+                      className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                      title={`Đổi tên thư mục "${currentFolderObj.name}"`}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  )}
+
                   <span className="text-xs bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded-full">
                     {displayedFiles.length} tệp
                   </span>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 mt-0.5">
                   {isFavoritesView
                     ? 'Danh sách tài liệu giảng dạy ưu tiên đánh dấu sao'
+                    : selectedFolderId
+                    ? `Đang xem tài liệu trong thư mục ${currentFolderObj?.name} (Mã: ${currentFolderObj?.code || '03'})`
                     : 'Hệ thống tài liệu lưu trữ trên đám mây Trường TH Phường An Xuyên'}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2.5">
-                {selectedFolderId && (
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Nút Đổi tên thư mục hiện tại */}
+                {selectedFolderId && currentFolderObj && (
                   <button
-                    onClick={() => setSelectedFolderId(null)}
-                    className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl transition-colors cursor-pointer"
+                    onClick={() => handleOpenRenameFolderModal(currentFolderObj)}
+                    className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    title={`Đổi tên thư mục ${currentFolderObj.name}`}
                   >
-                    ← Tất cả thư mục
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Đổi tên thư mục</span>
                   </button>
                 )}
 
+                {/* 1. Nút Tạo thư mục mới / thư mục con */}
                 <button
-                  onClick={() => handleOpenUpload(selectedFolderId || undefined)}
-                  className="bg-[#0866E8] hover:bg-[#064AA8] text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  onClick={() => handleOpenCreateFolderModal(selectedFolderId)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  title={selectedFolderId ? `Tạo thư mục con trong ${currentFolderObj?.name}` : 'Tạo thư mục mới'}
+                >
+                  <FolderPlus className="w-4 h-4" />
+                  <span>{selectedFolderId ? '+ Tạo thư mục con' : '+ Tạo thư mục mới'}</span>
+                </button>
+
+                {/* 2. Nút Tải tệp lên thư mục này */}
+                <button
+                  onClick={() => handleOpenUpload(selectedFolderId || undefined, 'file')}
+                  className="bg-[#0866E8] hover:bg-[#064AA8] text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  title={selectedFolderId ? `Tải tệp vào thư mục ${currentFolderObj?.name}` : 'Tải tệp lên'}
                 >
                   <UploadCloud className="w-4 h-4" />
-                  <span>Tải lên thư mục này</span>
+                  <span>{selectedFolderId ? 'Tải tệp lên thư mục này' : 'Tải tệp lên'}</span>
                 </button>
+
+                {/* 3. Nút Tải thư mục lên */}
+                <button
+                  onClick={() => handleOpenUpload(selectedFolderId || undefined, 'folder')}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  title={selectedFolderId ? `Tải cả thư mục từ máy tính vào ${currentFolderObj?.name}` : 'Tải cả thư mục từ máy tính lên'}
+                >
+                  <FolderUp className="w-4 h-4" />
+                  <span>Tải thư mục lên</span>
+                </button>
+
+                {/* 3. Nút quay lại */}
+                {selectedFolderId && (
+                  <button
+                    onClick={() => {
+                      if (currentFolderObj?.parentId) {
+                        setSelectedFolderId(currentFolderObj.parentId);
+                      } else {
+                        setSelectedFolderId(null);
+                      }
+                    }}
+                    className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl transition-colors cursor-pointer"
+                  >
+                    ← Quay lại
+                  </button>
+                )}
               </div>
             </div>
+
+            {/* Subfolders Section within the selected folder */}
+            {selectedFolderId && subfoldersInCurrent.length > 0 && (
+              <div className="bg-white p-4 md:p-5 rounded-2xl shadow-xs border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Folder className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-xs md:text-sm font-bold text-slate-900">
+                    Thư mục con trong {currentFolderObj?.name} ({subfoldersInCurrent.length})
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {subfoldersInCurrent.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-blue-50/60 hover:border-blue-300 transition-all cursor-pointer group flex items-center justify-between gap-2.5 relative"
+                    >
+                      <div
+                        onClick={() => setSelectedFolderId(sub.id)}
+                        className="flex items-center gap-2.5 min-w-0 flex-1"
+                      >
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-xs"
+                          style={{
+                            backgroundColor: `${sub.color || '#8257E5'}20`,
+                            color: sub.color || '#8257E5',
+                          }}
+                        >
+                          <Folder className="w-4 h-4 fill-current" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-slate-800 group-hover:text-blue-600 truncate">
+                            {sub.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {sub.fileCount ?? 0} tệp
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Nút Đổi tên thư mục con */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenRenameFolderModal(sub);
+                        }}
+                        className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-100/60 rounded cursor-pointer shrink-0"
+                        title={`Đổi tên "${sub.name}"`}
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Quick search & filter table */}
             <FileSearch
@@ -309,6 +581,20 @@ export default function App() {
               onDownloadFile={handleDownloadFile}
               onShareFile={handleShareFile}
               onDeleteFile={handleDeleteFile}
+              onRenameFile={handleOpenRenameFileModal}
+              onOpenUpload={() => handleOpenUpload(selectedFolderId || undefined, 'file')}
+              onOpenUploadFolder={() => handleOpenUpload(selectedFolderId || undefined, 'folder')}
+              currentFolderName={currentFolderObj?.name}
+              onMoveToEnd={async (file) => {
+                try {
+                  await api.reorderFile(file.id, 'end');
+                  showToast(`Đã chuyển "${file.name}" xuống cuối cùng thành công!`);
+                  loadData();
+                } catch (e) {
+                  console.error(e);
+                  showToast('Không thể chuyển vị trí tệp');
+                }
+              }}
             />
           </div>
         );
@@ -321,7 +607,8 @@ export default function App() {
             onCreateFolder={handleCreateFolder}
             onRenameFolder={handleRenameFolder}
             onDeleteFolder={handleDeleteFolder}
-            onOpenUpload={handleOpenUpload}
+            onOpenUpload={(targetFolderId) => handleOpenUpload(targetFolderId, 'file')}
+            onOpenUploadFolder={(targetFolderId) => handleOpenUpload(targetFolderId, 'folder')}
           />
         );
 
@@ -462,7 +749,7 @@ export default function App() {
             }
           }}
           stats={stats}
-          onOpenUpload={() => handleOpenUpload()}
+          onOpenUpload={() => handleOpenUpload(selectedFolderId || undefined)}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isMobileOpen={isMobileSidebarOpen}
@@ -520,6 +807,7 @@ export default function App() {
             setActiveViewerFile(null);
             setActiveVersionFile(file);
           }}
+          onRename={handleOpenRenameFileModal}
           onOpenAIAnalyze={handleOpenAIAnalyzeFromFile}
         />
       )}
@@ -561,6 +849,341 @@ export default function App() {
             handleOpenUpload();
           }}
         />
+      )}
+
+      {/* Modal: Tạo thư mục mới / Thư mục con */}
+      {isCreateFolderModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 animate-in zoom-in-95 relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setIsCreateFolderModalOpen(false)}
+              className="absolute top-5 right-5 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-xs"
+                style={{
+                  backgroundColor: `${newFolderColorInput}20`,
+                  color: newFolderColorInput,
+                }}
+              >
+                <FolderPlus className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base md:text-lg font-bold text-slate-900">
+                  {createFolderParentId
+                    ? `Tạo thư mục con trong ${folders.find((f) => f.id === createFolderParentId)?.name || 'thư mục'}`
+                    : 'Tạo thư mục mới'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Phân loại tài liệu giảng dạy và hồ sơ sư phạm khoa học
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleCreateFolderSubmit} className="space-y-4">
+              {/* Parent folder selector */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Vị trí lưu thư mục:
+                </label>
+                <select
+                  value={createFolderParentId || 'root'}
+                  onChange={(e) => setCreateFolderParentId(e.target.value === 'root' ? null : e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 bg-slate-50 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="root">📁 Thư mục gốc (Cấp cao nhất ngoài màn hình chính)</option>
+                  {buildFolderTreeOptions(folders).map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.depth === 0 ? `📂 ${opt.name}` : opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Folder name input */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Tên thư mục *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newFolderNameInput}
+                  onChange={(e) => setNewFolderNameInput(e.target.value)}
+                  placeholder="Ví dụ: Tuần 1 - 4 hoặc Môn Toán lớp 1..."
+                  className="w-full px-3.5 py-2.5 text-xs md:text-sm rounded-xl border border-slate-300 text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
+                  autoFocus
+                />
+              </div>
+
+              {/* Quick suggestions chips tailored for primary school teachers */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">
+                  Gợi ý tên nhanh (bấm để điền):
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Tuần 1 - 4',
+                    'Tuần 5 - 8',
+                    'Tuần 9 - 12',
+                    'Môn Toán lớp 1',
+                    'Môn Tiếng Việt lớp 1',
+                    'Môn TN&XH 1',
+                    'Học kỳ I',
+                    'Học kỳ II',
+                    'Giáo án STEM',
+                    'Phiếu bài tập',
+                  ].map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setNewFolderNameInput(tag)}
+                      className="px-2.5 py-1 text-[11px] rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium border border-blue-200 transition-colors cursor-pointer"
+                    >
+                      + {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Color picker */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Màu sắc nhận diện thư mục
+                </label>
+                <div className="flex items-center gap-2">
+                  {['#8257E5', '#0866E8', '#16B875', '#FF9F1C', '#F04444', '#064AA8', '#38BDF8', '#64748B'].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setNewFolderColorInput(c)}
+                      className={`w-7 h-7 rounded-full border-2 transition-transform cursor-pointer ${
+                        newFolderColorInput === c ? 'scale-125 border-slate-900 shadow-md' : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateFolderModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <FolderPlus className="w-4 h-4" />
+                  <span>Tạo thư mục ngay</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Đổi tên thư mục */}
+      {renameFolderTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 relative">
+            <button
+              onClick={() => setRenameFolderTarget(null)}
+              className="absolute top-5 right-5 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs"
+                style={{
+                  backgroundColor: `${renameFolderColorInput}20`,
+                  color: renameFolderColorInput,
+                }}
+              >
+                <Edit2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Đổi tên thư mục</h3>
+                <p className="text-xs text-slate-500">
+                  Cập nhật tên cho thư mục <span className="font-semibold text-slate-800">"{renameFolderTarget.name}"</span>
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveRenameFolder} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Vị trí lưu (Thư mục cha):
+                </label>
+                <select
+                  value={renameFolderParentIdInput || 'root'}
+                  onChange={(e) => setRenameFolderParentIdInput(e.target.value === 'root' ? null : e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 bg-slate-50 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="root">📁 Thư mục gốc (Cấp cao nhất ngoài màn hình)</option>
+                  {buildFolderTreeOptions(folders)
+                    .filter((opt) => opt.id !== renameFolderTarget.id)
+                    .map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.depth === 0 ? `📂 ${opt.name}` : opt.label}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Tên thư mục *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={renameFolderNameInput}
+                  onChange={(e) => setRenameFolderNameInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-xs md:text-sm rounded-xl border border-slate-300 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Màu sắc thư mục
+                </label>
+                <div className="flex items-center gap-2">
+                  {['#8257E5', '#0866E8', '#16B875', '#FF9F1C', '#F04444', '#064AA8', '#38BDF8', '#64748B'].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setRenameFolderColorInput(c)}
+                      className={`w-7 h-7 rounded-full border-2 transition-transform cursor-pointer ${
+                        renameFolderColorInput === c ? 'scale-125 border-slate-900 shadow-md' : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setRenameFolderTarget(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  <span>Lưu thay đổi</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Đổi tên tệp tài liệu */}
+      {renameFileTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 animate-in zoom-in-95 relative">
+            <button
+              onClick={() => setRenameFileTarget(null)}
+              className="absolute top-5 right-5 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-xs shrink-0">
+                <Edit2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Đổi tên tệp tài liệu</h3>
+                <p className="text-xs text-slate-500">
+                  Chỉnh sửa tên hiển thị hoặc di chuyển vị trí lưu trữ cho tệp của Thầy
+                </p>
+              </div>
+            </div>
+
+            {/* Current file badge info */}
+            <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200/80 mb-4 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="font-semibold text-slate-700 truncate max-w-xs">{renameFileTarget.name}</span>
+              </div>
+              <span className="text-[11px] font-medium text-slate-500 shrink-0">
+                {formatBytes(renameFileTarget.size)}
+              </span>
+            </div>
+
+            <form onSubmit={handleSaveRenameFile} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Tên tệp mới *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={renameFileNameInput}
+                  onChange={(e) => setRenameFileNameInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-xs md:text-sm rounded-xl border border-slate-300 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
+                  placeholder="Ví dụ: TV TUẦN 1.docx"
+                  autoFocus
+                />
+                <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                  💡 Thầy có thể giữ nguyên đuôi mở rộng (ví dụ <span className="font-mono bg-slate-100 text-amber-700 px-1 py-0.5 rounded font-bold">.{renameFileTarget.extension || 'docx'}</span>) để hệ thống nhận diện chính xác định dạng tệp.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Thư mục lưu trữ:
+                </label>
+                <select
+                  value={renameFileFolderIdInput}
+                  onChange={(e) => setRenameFileFolderIdInput(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 bg-slate-50 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  {buildFolderTreeOptions(folders).map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.depth === 0 ? `📂 ${opt.name}` : opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setRenameFileTarget(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  <span>Lưu tên mới</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

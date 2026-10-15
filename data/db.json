@@ -16,75 +16,75 @@
   "folders": [
     {
       "id": "f_01",
-      "name": "01. GIÁO DỤC",
+      "name": "03. GIÁO ÁN ĐẠO ĐỨC 1",
       "code": "01",
       "parentId": null,
       "color": "#0866E8",
       "createdAt": "2026-09-01T08:00:00Z",
-      "updatedAt": "2026-09-28T09:30:00Z"
+      "updatedAt": "2026-10-15T07:26:13.679Z"
     },
     {
       "id": "f_02",
-      "name": "02. LỚP 1C",
+      "name": "04. GIÁO ÁN TỰ NHIÊN VÀ XÃ HỘI 1",
       "code": "02",
       "parentId": null,
       "color": "#16B875",
       "createdAt": "2026-09-01T08:15:00Z",
-      "updatedAt": "2026-09-27T10:00:00Z"
+      "updatedAt": "2026-10-15T07:26:44.994Z"
     },
     {
       "id": "f_03",
-      "name": "03. GIÁO ÁN",
+      "name": "01. GIÁO ÁN TIẾNG VIỆT 1",
       "code": "03",
       "parentId": null,
       "color": "#8257E5",
       "createdAt": "2026-09-02T08:00:00Z",
-      "updatedAt": "2026-09-26T14:20:00Z"
+      "updatedAt": "2026-10-15T07:25:21.976Z"
     },
     {
       "id": "f_04",
-      "name": "04. TÀI LIỆU AI",
+      "name": "05. GIÁO ÁN HOẠT ĐỘNG TRẢI NGHIỆM 1",
       "code": "04",
       "parentId": null,
       "color": "#0866E8",
       "createdAt": "2026-09-05T09:00:00Z",
-      "updatedAt": "2026-09-25T11:15:00Z"
+      "updatedAt": "2026-10-15T07:27:13.076Z"
     },
     {
       "id": "f_05",
-      "name": "05. HÌNH ẢNH",
+      "name": "11. HÌNH ẢNH",
       "code": "05",
       "parentId": null,
       "color": "#FF9F1C",
       "createdAt": "2026-09-05T10:30:00Z",
-      "updatedAt": "2026-09-24T16:00:00Z"
+      "updatedAt": "2026-10-15T07:28:10.042Z"
     },
     {
       "id": "f_06",
-      "name": "06. VIDEO",
+      "name": "10. VIDEO",
       "code": "06",
       "parentId": null,
       "color": "#F04444",
       "createdAt": "2026-09-06T11:00:00Z",
-      "updatedAt": "2026-09-23T15:45:00Z"
+      "updatedAt": "2026-10-15T07:29:32.218Z"
     },
     {
       "id": "f_07",
-      "name": "07. WORD",
+      "name": "06. WORD",
       "code": "07",
       "parentId": null,
       "color": "#0866E8",
       "createdAt": "2026-09-07T13:00:00Z",
-      "updatedAt": "2026-09-22T08:30:00Z"
+      "updatedAt": "2026-10-15T07:28:45.624Z"
     },
     {
       "id": "f_08",
-      "name": "08. EXCEL",
+      "name": "07. EXCEL",
       "code": "08",
       "parentId": null,
       "color": "#16B875",
       "createdAt": "2026-09-08T14:00:00Z",
-      "updatedAt": "2026-09-21T09:00:00Z"
+      "updatedAt": "2026-10-15T07:28:52.056Z"
     },
     {
       "id": "f_09",
@@ -97,93 +97,968 @@
     },
     {
       "id": "f_10",
-      "name": "10. POWERPOINT",
+      "name": "08. POWERPOINT",
       "code": "10",
       "parentId": null,
       "color": "#FF9F1C",
       "createdAt": "2026-09-10T10:00:00Z",
-      "updatedAt": "2026-09-19T13:00:00Z"
+      "updatedAt": "2026-10-15T07:29:13.881Z"
     },
     {
-      "id": "f_11",
-      "name": "11. HỒ SƠ CÁ NHÂN",
-      "code": "11",
+      "id": "f_1792049102744",
+      "name": "02. GIÁO ÁN TOÁN 1",
+      "code": "13",
       "parentId": null,
-      "color": "#064AA8",
-      "createdAt": "2026-09-11T11:00:00Z",
-      "updatedAt": "2026-09-18T10:00:00Z"
-    },
-    {
-      "id": "f_12",
-      "name": "12. TÀI LIỆU KHÁC",
-      "code": "12",
-      "parentId": null,
-      "color": "#64748B",
-      "createdAt": "2026-09-12T15:00:00Z",
-      "updatedAt": "2026-09-17T11:20:00Z"
+      "color": "#0866E8",
+      "createdAt": "2026-10-15T07:25:02.744Z",
+      "updatedAt": "2026-10-15T07:25:02.744Z"
     }
   ],
   "files": [
     {
-      "id": "file_01",
-      "name": "Giáo án Toán lớp 1 - Tuần 5.docx",
-      "originalName": "Giáo án Toán lớp 1 - Tuần 5.docx",
+      "id": "file_1792049421927_njhm9",
+      "name": "TV TUẦN 1.docx",
+      "originalName": "TV TUẦN 1.docx",
       "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "extension": "docx",
       "category": "word",
-      "size": 2516582.4,
+      "size": 1728151,
       "folderId": "f_03",
-      "folderName": "03. GIÁO ÁN",
-      "filename": "giao_an_toan_lop_1_tuan_5.docx",
-      "uploadDate": "2026-09-28T08:15:00Z",
-      "updatedDate": "2026-09-28T08:15:00Z",
-      "isFavorite": true,
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049421926-497345463.docx",
+      "uploadDate": "2026-10-15T07:30:00Z",
+      "updatedDate": "2026-10-15T07:30:00Z",
+      "isFavorite": false,
       "isDeleted": false,
       "versions": [
         {
-          "version": 4,
-          "name": "Giáo án Toán lớp 1 - Tuần 5 (v4).docx",
-          "size": 2516582.4,
-          "uploadDate": "2026-09-28",
-          "updatedBy": "Từ Văn Gọn",
-          "filename": "giao_an_toan_lop_1_tuan_5.docx"
-        },
-        {
-          "version": 3,
-          "name": "Giáo án Toán lớp 1 - Tuần 5 (v3).docx",
-          "size": 2202009.6,
-          "uploadDate": "2026-09-25",
-          "updatedBy": "Từ Văn Gọn",
-          "filename": "giao_an_toan_lop_1_tuan_5_v3.docx"
-        },
-        {
-          "version": 2,
-          "name": "Giáo án Toán lớp 1 - Tuần 5 (v2).docx",
-          "size": 1887436.8,
-          "uploadDate": "2026-09-20",
-          "updatedBy": "Từ Văn Gọn",
-          "filename": "giao_an_toan_lop_1_tuan_5_v2.docx"
-        },
-        {
           "version": 1,
-          "name": "Giáo án Toán lớp 1 - Tuần 5 (v1).docx",
-          "size": 1677721.6,
-          "uploadDate": "2026-09-15",
-          "updatedBy": "Từ Văn Gọn",
-          "filename": "giao_an_toan_lop_1_tuan_5_v1.docx"
+          "name": "TV TUẦN 1.docx",
+          "size": 1728151,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049421926-497345463.docx"
         }
       ],
-      "shareConfig": {
-        "isShared": true,
-        "shareUrl": "https://khotailieu.thaygon.vn/s/abc123xyz",
-        "sharedWithEmails": [
-          "toantieuhoctaynam@gmail.com"
-        ],
-        "accessRole": "viewer",
-        "hasPassword": true,
-        "expiresInDays": 7
-      },
-      "previewContent": "GIÁO ÁN MÔN TOÁN LỚP 1 - TUẦN 5\nBÀI HỌC: PHÉP CỘNG TRONG PHẠM VI 10 (TIẾT 1)\nGiáo viên thực hiện: Thầy Từ Văn Gọn\nĐơn vị: Trường Tiểu học Phường An Xuyên, TP. Cà Mau\nI. YÊU CẦU CẦN ĐẠT:\n1. Năng lực toán học:\n- Nhận biết ý nghĩa thực tế của phép cộng thông qua việc gộp hai nhóm đối tượng.\n- Thực hiện đúng các phép tính cộng trong phạm vi 10 bằng trực quan hình ảnh que tính, hình khối.\n2. Phẩm chất: Chăm chỉ, hào hứng tương tác trong giờ học, tinh thần hợp tác nhóm.\nII. ĐỒ DÙNG DẠY HỌC:\n- Bộ đồ dùng Toán 1, màn chiếu máy tính, tranh minh họa các chú ếch trên lá sen.\nIII. CÁC HOẠT ĐỘNG DẠY HỌC CHỦ YẾU:\n1. Khởi động (5 phút): Hát bài \"Một con vịt xòe ra hai cái cánh\", đố vui số đếm.\n2. Khám phá (15 phút): Cho học sinh quan sát trên cành có 3 con chim, thêm 2 con chim bay tới. Hỏi có tất cả bao nhiêu con chim? Hướng dẫn hình thành phép tính 3 + 2 = 5."
+      "previewContent": "Tài liệu: TV TUẦN 1.docx\nĐịnh dạng: DOCX\nKích thước: 1.65 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049422647_1e2at",
+      "name": "TV TUẦN 2.docx",
+      "originalName": "TV TUẦN 2.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1918116,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049422646-522111579.docx",
+      "uploadDate": "2026-10-15T07:30:05Z",
+      "updatedDate": "2026-10-15T07:30:05Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 2.docx",
+          "size": 1918116,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049422646-522111579.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 2.docx\nĐịnh dạng: DOCX\nKích thước: 1.83 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049423470_eqhmi",
+      "name": "TV TUẦN 3.docx",
+      "originalName": "TV TUẦN 3.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 2302332,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049423467-67938759.docx",
+      "uploadDate": "2026-10-15T07:30:10Z",
+      "updatedDate": "2026-10-15T07:30:10Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 3.docx",
+          "size": 2302332,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049423467-67938759.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 3.docx\nĐịnh dạng: DOCX\nKích thước: 2.20 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049424285_nlvd3",
+      "name": "TV TUẦN 4.docx",
+      "originalName": "TV TUẦN 4.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 2373845,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049424283-756049242.docx",
+      "uploadDate": "2026-10-15T07:30:15Z",
+      "updatedDate": "2026-10-15T07:30:15Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 4.docx",
+          "size": 2373845,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049424283-756049242.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 4.docx\nĐịnh dạng: DOCX\nKích thước: 2.26 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049424952_jf37u",
+      "name": "TV TUẦN 5.docx",
+      "originalName": "TV TUẦN 5.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 2526101,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049424949-980607941.docx",
+      "uploadDate": "2026-10-15T07:30:20Z",
+      "updatedDate": "2026-10-15T07:30:20Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 5.docx",
+          "size": 2526101,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049424949-980607941.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 5.docx\nĐịnh dạng: DOCX\nKích thước: 2.41 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049425571_0r3gk",
+      "name": "TV TUẦN 6.docx",
+      "originalName": "TV TUẦN 6.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1760307,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049425570-254591607.docx",
+      "uploadDate": "2026-10-15T07:30:25Z",
+      "updatedDate": "2026-10-15T07:30:25Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 6.docx",
+          "size": 1760307,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049425570-254591607.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 6.docx\nĐịnh dạng: DOCX\nKích thước: 1.68 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049426100_y6ohe",
+      "name": "TV TUẦN 7.docx",
+      "originalName": "TV TUẦN 7.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1552274,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049426099-673408378.docx",
+      "uploadDate": "2026-10-15T07:30:30Z",
+      "updatedDate": "2026-10-15T07:30:30Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 7.docx",
+          "size": 1552274,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049426099-673408378.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 7.docx\nĐịnh dạng: DOCX\nKích thước: 1.48 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049426665_dfv9h",
+      "name": "TV TUẦN 8.docx",
+      "originalName": "TV TUẦN 8.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1844195,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049426661-329077368.docx",
+      "uploadDate": "2026-10-15T07:30:35Z",
+      "updatedDate": "2026-10-15T07:30:35Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 8.docx",
+          "size": 1844195,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049426661-329077368.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 8.docx\nĐịnh dạng: DOCX\nKích thước: 1.76 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049427247_b4feh",
+      "name": "TV TUẦN 9.docx",
+      "originalName": "TV TUẦN 9.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1717315,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049427246-945200083.docx",
+      "uploadDate": "2026-10-15T07:30:40Z",
+      "updatedDate": "2026-10-15T07:30:40Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 9.docx",
+          "size": 1717315,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049427246-945200083.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 9.docx\nĐịnh dạng: DOCX\nKích thước: 1.64 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049427784_13pct",
+      "name": "TV TUẦN 10.docx",
+      "originalName": "TV TUẦN 10.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1742654,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049427783-579907079.docx",
+      "uploadDate": "2026-10-15T07:30:45Z",
+      "updatedDate": "2026-10-15T07:30:45Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 10.docx",
+          "size": 1742654,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049427783-579907079.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 10.docx\nĐịnh dạng: DOCX\nKích thước: 1.66 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049428344_oai4u",
+      "name": "TV TUẦN 11.docx",
+      "originalName": "TV TUẦN 11.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1777980,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049428343-413252351.docx",
+      "uploadDate": "2026-10-15T07:30:50Z",
+      "updatedDate": "2026-10-15T07:30:50Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 11.docx",
+          "size": 1777980,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049428343-413252351.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 11.docx\nĐịnh dạng: DOCX\nKích thước: 1.70 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049428892_9rrt6",
+      "name": "TV TUẦN 12.docx",
+      "originalName": "TV TUẦN 12.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1758315,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049428890-20297259.docx",
+      "uploadDate": "2026-10-15T07:30:55Z",
+      "updatedDate": "2026-10-15T07:30:55Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 12.docx",
+          "size": 1758315,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049428890-20297259.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 12.docx\nĐịnh dạng: DOCX\nKích thước: 1.68 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049429441_cyvbm",
+      "name": "TV TUẦN 13.docx",
+      "originalName": "TV TUẦN 13.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1856104,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049429440-964589442.docx",
+      "uploadDate": "2026-10-15T07:31:00Z",
+      "updatedDate": "2026-10-15T07:31:00Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 13.docx",
+          "size": 1856104,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049429440-964589442.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 13.docx\nĐịnh dạng: DOCX\nKích thước: 1.77 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049430022_qd2xs",
+      "name": "TV TUẦN 14.docx",
+      "originalName": "TV TUẦN 14.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1816848,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049430021-405752993.docx",
+      "uploadDate": "2026-10-15T07:31:05Z",
+      "updatedDate": "2026-10-15T07:31:05Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 14.docx",
+          "size": 1816848,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049430021-405752993.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 14.docx\nĐịnh dạng: DOCX\nKích thước: 1.73 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049430559_uoxml",
+      "name": "TV TUẦN 15.docx",
+      "originalName": "TV TUẦN 15.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1420998,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049430558-116981835.docx",
+      "uploadDate": "2026-10-15T07:31:10Z",
+      "updatedDate": "2026-10-15T07:31:10Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 15.docx",
+          "size": 1420998,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049430558-116981835.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 15.docx\nĐịnh dạng: DOCX\nKích thước: 1.36 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049431093_3rk4j",
+      "name": "TV TUẦN 16.docx",
+      "originalName": "TV TUẦN 16.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1498359,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049431092-205758446.docx",
+      "uploadDate": "2026-10-15T07:31:15Z",
+      "updatedDate": "2026-10-15T07:31:15Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 16.docx",
+          "size": 1498359,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049431092-205758446.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 16.docx\nĐịnh dạng: DOCX\nKích thước: 1.43 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049431675_6kda1",
+      "name": "TV TUẦN 17.docx",
+      "originalName": "TV TUẦN 17.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1729610,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049431674-549861984.docx",
+      "uploadDate": "2026-10-15T07:31:20Z",
+      "updatedDate": "2026-10-15T07:31:20Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 17.docx",
+          "size": 1729610,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049431674-549861984.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 17.docx\nĐịnh dạng: DOCX\nKích thước: 1.65 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049432132_1l48j",
+      "name": "TV TUẦN 18.docx",
+      "originalName": "TV TUẦN 18.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1105709,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049432132-459099632.docx",
+      "uploadDate": "2026-10-15T07:31:25Z",
+      "updatedDate": "2026-10-15T07:31:25Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 18.docx",
+          "size": 1105709,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049432132-459099632.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 18.docx\nĐịnh dạng: DOCX\nKích thước: 1.05 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049432468_vud55",
+      "name": "TV TUẦN 19.docx",
+      "originalName": "TV TUẦN 19.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 484758,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049432468-561906808.docx",
+      "uploadDate": "2026-10-15T07:31:30Z",
+      "updatedDate": "2026-10-15T07:31:30Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 19.docx",
+          "size": 484758,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049432468-561906808.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 19.docx\nĐịnh dạng: DOCX\nKích thước: 0.46 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049432895_l2e0i",
+      "name": "TV TUẦN 20.docx",
+      "originalName": "TV TUẦN 20.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 711066,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049432894-742942909.docx",
+      "uploadDate": "2026-10-15T07:31:35Z",
+      "updatedDate": "2026-10-15T07:31:35Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 20.docx",
+          "size": 711066,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049432894-742942909.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 20.docx\nĐịnh dạng: DOCX\nKích thước: 0.68 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049433340_dvhlh",
+      "name": "TV TUẦN 21.docx",
+      "originalName": "TV TUẦN 21.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 767839,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049433339-235262643.docx",
+      "uploadDate": "2026-10-15T07:31:40Z",
+      "updatedDate": "2026-10-15T07:31:40Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 21.docx",
+          "size": 767839,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049433339-235262643.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 21.docx\nĐịnh dạng: DOCX\nKích thước: 0.73 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049433922_iedfs",
+      "name": "TV TUẦN 22.docx",
+      "originalName": "TV TUẦN 22.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1419846,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049433921-55572190.docx",
+      "uploadDate": "2026-10-15T07:31:45Z",
+      "updatedDate": "2026-10-15T07:31:45Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 22.docx",
+          "size": 1419846,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049433921-55572190.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 22.docx\nĐịnh dạng: DOCX\nKích thước: 1.35 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049434469_g2xsu",
+      "name": "TV TUẦN 23.docx",
+      "originalName": "TV TUẦN 23.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1449203,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049434469-46243254.docx",
+      "uploadDate": "2026-10-15T07:31:50Z",
+      "updatedDate": "2026-10-15T07:31:50Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 23.docx",
+          "size": 1449203,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049434469-46243254.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 23.docx\nĐịnh dạng: DOCX\nKích thước: 1.38 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049434888_5je7p",
+      "name": "TV TUẦN 24.docx",
+      "originalName": "TV TUẦN 24.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 696283,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049434887-425993094.docx",
+      "uploadDate": "2026-10-15T07:31:55Z",
+      "updatedDate": "2026-10-15T07:31:55Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 24.docx",
+          "size": 696283,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049434887-425993094.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 24.docx\nĐịnh dạng: DOCX\nKích thước: 0.66 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049435303_pxe27",
+      "name": "TV TUẦN 25.docx",
+      "originalName": "TV TUẦN 25.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 919890,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049435302-691878078.docx",
+      "uploadDate": "2026-10-15T07:32:00Z",
+      "updatedDate": "2026-10-15T07:32:00Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 25.docx",
+          "size": 919890,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049435302-691878078.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 25.docx\nĐịnh dạng: DOCX\nKích thước: 0.88 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049435639_4lug8",
+      "name": "TV TUẦN 26.docx",
+      "originalName": "TV TUẦN 26.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 330121,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049435638-574704719.docx",
+      "uploadDate": "2026-10-15T07:32:05Z",
+      "updatedDate": "2026-10-15T07:32:05Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 26.docx",
+          "size": 330121,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049435638-574704719.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 26.docx\nĐịnh dạng: DOCX\nKích thước: 0.31 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049436148_4yrnu",
+      "name": "TV TUẦN 27.docx",
+      "originalName": "TV TUẦN 27.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1468484,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049436147-669361364.docx",
+      "uploadDate": "2026-10-15T07:32:10Z",
+      "updatedDate": "2026-10-15T07:32:10Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 27.docx",
+          "size": 1468484,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049436147-669361364.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 27.docx\nĐịnh dạng: DOCX\nKích thước: 1.40 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049436711_2woxa",
+      "name": "TV TUẦN 28.docx",
+      "originalName": "TV TUẦN 28.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1941079,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049436710-373846274.docx",
+      "uploadDate": "2026-10-15T07:32:15Z",
+      "updatedDate": "2026-10-15T07:32:15Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 28.docx",
+          "size": 1941079,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049436710-373846274.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 28.docx\nĐịnh dạng: DOCX\nKích thước: 1.85 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049437256_6fqdd",
+      "name": "TV TUẦN 29.docx",
+      "originalName": "TV TUẦN 29.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1493718,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049437254-67075394.docx",
+      "uploadDate": "2026-10-15T07:32:20Z",
+      "updatedDate": "2026-10-15T07:32:20Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 29.docx",
+          "size": 1493718,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049437254-67075394.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 29.docx\nĐịnh dạng: DOCX\nKích thước: 1.42 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049437933_atzrd",
+      "name": "TV TUẦN 30.docx",
+      "originalName": "TV TUẦN 30.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 2407860,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049437932-944580174.docx",
+      "uploadDate": "2026-10-15T07:32:25Z",
+      "updatedDate": "2026-10-15T07:32:25Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 30.docx",
+          "size": 2407860,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049437932-944580174.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 30.docx\nĐịnh dạng: DOCX\nKích thước: 2.30 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049438454_ijvmh",
+      "name": "TV TUẦN 31.docx",
+      "originalName": "TV TUẦN 31.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1786367,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049438453-994607956.docx",
+      "uploadDate": "2026-10-15T07:32:30Z",
+      "updatedDate": "2026-10-15T07:32:30Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 31.docx",
+          "size": 1786367,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049438453-994607956.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 31.docx\nĐịnh dạng: DOCX\nKích thước: 1.70 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049439008_husn9",
+      "name": "TV TUẦN 32.docx",
+      "originalName": "TV TUẦN 32.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1984076,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049439006-718389605.docx",
+      "uploadDate": "2026-10-15T07:32:35Z",
+      "updatedDate": "2026-10-15T07:32:35Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 32.docx",
+          "size": 1984076,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049439006-718389605.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 32.docx\nĐịnh dạng: DOCX\nKích thước: 1.89 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049439466_xfg4e",
+      "name": "TV TUẦN 33.docx",
+      "originalName": "TV TUẦN 33.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1062633,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049439465-980625057.docx",
+      "uploadDate": "2026-10-15T07:32:40Z",
+      "updatedDate": "2026-10-15T07:32:40Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 33.docx",
+          "size": 1062633,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049439465-980625057.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 33.docx\nĐịnh dạng: DOCX\nKích thước: 1.01 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049440019_df2yg",
+      "name": "TV TUẦN 34.docx",
+      "originalName": "TV TUẦN 34.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1540702,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049440018-115688091.docx",
+      "uploadDate": "2026-10-15T07:32:45Z",
+      "updatedDate": "2026-10-15T07:32:45Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 34.docx",
+          "size": 1540702,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049440018-115688091.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 34.docx\nĐịnh dạng: DOCX\nKích thước: 1.47 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
+    },
+    {
+      "id": "file_1792049440549_ckl9w",
+      "name": "TV TUẦN 35.docx",
+      "originalName": "TV TUẦN 35.docx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "extension": "docx",
+      "category": "word",
+      "size": 1581330,
+      "folderId": "f_03",
+      "folderName": "01. GIÁO ÁN TIẾNG VIỆT 1",
+      "filename": "1792049440548-743207453.docx",
+      "uploadDate": "2026-10-15T07:32:50Z",
+      "updatedDate": "2026-10-15T07:32:50Z",
+      "isFavorite": false,
+      "isDeleted": false,
+      "versions": [
+        {
+          "version": 1,
+          "name": "TV TUẦN 35.docx",
+          "size": 1581330,
+          "uploadDate": "2026-10-15",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1792049440548-743207453.docx"
+        }
+      ],
+      "previewContent": "Tài liệu: TV TUẦN 35.docx\nĐịnh dạng: DOCX\nKích thước: 1.51 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau."
     },
     {
       "id": "file_02",
@@ -194,12 +1069,12 @@
       "category": "powerpoint",
       "size": 13107200,
       "folderId": "f_02",
-      "folderName": "02. LỚP 1C",
+      "folderName": "04. GIÁO ÁN TỰ NHIÊN VÀ XÃ HỘI 1",
       "filename": "bai_giang_tieng_viet_lop_1c.pptx",
       "uploadDate": "2026-09-27T09:20:00Z",
       "updatedDate": "2026-09-27T09:20:00Z",
       "isFavorite": true,
-      "isDeleted": false,
+      "isDeleted": true,
       "versions": [
         {
           "version": 1,
@@ -210,7 +1085,8 @@
           "filename": "bai_giang_tieng_viet_lop_1c.pptx"
         }
       ],
-      "previewContent": "BÀI GIẢNG ĐIỆN TỬ TIẾNG VIỆT 1 - BỘ SÁCH CÁNH DIỀU / CHÂN TRỜI SÁNG TẠO\nLỚP 1C - TH PHƯỜNG AN XUYÊN - THẦY TỪ VĂN GỌN\nSlide 1: Tiêu đề bài học: ÂM A - CHỮ A\nSlide 2: Khởi động với bài hát Chữ cái vui nhộn\nSlide 3: Quan sát tranh và nhận biết: Bức tranh vẽ cảnh buổi sáng có con gà gáy o o, bạn nhỏ chào mẹ đi học.\nSlide 4: Luyện đọc âm A. Chữ A in hoa, chữ a in thường.\nSlide 5: Trò chơi tìm đồ vật có tiếng chứa âm a trong lớp học."
+      "previewContent": "BÀI GIẢNG ĐIỆN TỬ TIẾNG VIỆT 1 - BỘ SÁCH CÁNH DIỀU / CHÂN TRỜI SÁNG TẠO\nLỚP 1C - TH PHƯỜNG AN XUYÊN - THẦY TỪ VĂN GỌN.",
+      "deletedAt": "2026-10-15T07:33:14.500Z"
     },
     {
       "id": "file_03",
@@ -221,12 +1097,12 @@
       "category": "pdf",
       "size": 3984588.8,
       "folderId": "f_01",
-      "folderName": "01. GIÁO DỤC",
+      "folderName": "03. GIÁO ÁN ĐẠO ĐỨC 1",
       "filename": "thong_tu_27_bgddt.pdf",
       "uploadDate": "2026-09-26T14:00:00Z",
       "updatedDate": "2026-09-26T14:00:00Z",
       "isFavorite": true,
-      "isDeleted": false,
+      "isDeleted": true,
       "versions": [
         {
           "version": 1,
@@ -237,34 +1113,8 @@
           "filename": "thong_tu_27_bgddt.pdf"
         }
       ],
-      "previewContent": "BỘ GIÁO DỤC VÀ ĐÀO TẠO\nSố: 27/2020/TT-BGDĐT\nCỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM\nĐộc lập - Tự do - Hạnh phúc\n\nQUY ĐỊNH ĐÁNH GIÁ HỌC SINH TIỂU HỌC\n\nChương I: NHỮNG QUY ĐỊNH CHUNG\nĐiều 1. Phạm vi điều chỉnh và đối tượng áp dụng\n1. Thông tư này quy định đánh giá học sinh tiểu học bao gồm: tổ chức đánh giá; sử dụng kết quả đánh giá; hồ sơ đánh giá và trách nhiệm của cơ quan, tổ chức, cá nhân.\n2. Thông tư này áp dụng đối với trường tiểu học, trường phổ thông có nhiều cấp học trong đó có cấp tiểu học.\n\nĐiều 5. Nội dung đánh giá\n1. Đánh giá quá trình học tập, sự tiến bộ và kết quả học tập của học sinh đáp ứng yêu cầu cần đạt và biểu hiện cụ thể về các thành phần năng lực của từng môn học, hoạt động giáo dục theo chương trình giáo dục phổ thông cấp tiểu học.\n2. Đánh giá sự hình thành và phát triển phẩm chất, năng lực của học sinh:\na) Phẩm chất chủ yếu: yêu nước, nhân ái, chăm chỉ, trung thực, trách nhiệm.\nb) Năng lực cốt lõi: Năng lực chung (tự chủ và tự học, giao tiếp và hợp tác, giải quyết vấn đề và sáng tạo); Năng lực đặc thù."
-    },
-    {
-      "id": "file_04",
-      "name": "Hình ảnh hoạt động lớp 1C.zip",
-      "originalName": "Hinh_anh_hoat_dong_lop_1C.zip",
-      "mimeType": "application/zip",
-      "extension": "zip",
-      "category": "zip",
-      "size": 26843545.6,
-      "folderId": "f_05",
-      "folderName": "05. HÌNH ẢNH",
-      "filename": "hinh_anh_hoat_dong_lop_1c.zip",
-      "uploadDate": "2026-09-25T16:30:00Z",
-      "updatedDate": "2026-09-25T16:30:00Z",
-      "isFavorite": false,
-      "isDeleted": false,
-      "versions": [
-        {
-          "version": 1,
-          "name": "Hình ảnh hoạt động lớp 1C.zip",
-          "size": 26843545.6,
-          "uploadDate": "2026-09-25",
-          "updatedBy": "Từ Văn Gọn",
-          "filename": "hinh_anh_hoat_dong_lop_1c.zip"
-        }
-      ],
-      "previewContent": "Gói nén gồm 45 hình ảnh chất lượng cao chụp các hoạt động:\n- Lễ Khai giảng năm học mới Trường Tiểu học Phường An Xuyên\n- Giờ sinh hoạt lớp 1C\n- Hoạt động trải nghiệm làm chậu hoa tái chế tại sân trường\n- Buổi nhận xét đánh giá giữa học kì 1"
+      "previewContent": "BỘ GIÁO DỤC VÀ ĐÀO TẠO - THÔNG TƯ 27/2020/TT-BGDĐT QUY ĐỊNH ĐÁNH GIÁ HỌC SINH TIỂU HỌC.",
+      "deletedAt": "2026-10-15T07:33:25.207Z"
     },
     {
       "id": "file_05",
@@ -275,12 +1125,12 @@
       "category": "excel",
       "size": 1258291.2,
       "folderId": "f_02",
-      "folderName": "02. LỚP 1C",
+      "folderName": "04. GIÁO ÁN TỰ NHIÊN VÀ XÃ HỘI 1",
       "filename": "danh_sach_hoc_sinh_lop_1c.xlsx",
       "uploadDate": "2026-09-24T11:00:00Z",
       "updatedDate": "2026-09-24T11:00:00Z",
       "isFavorite": true,
-      "isDeleted": false,
+      "isDeleted": true,
       "versions": [
         {
           "version": 1,
@@ -291,116 +1141,8 @@
           "filename": "danh_sach_hoc_sinh_lop_1c.xlsx"
         }
       ],
-      "previewContent": "TRƯỜNG TIỂU HỌC PHƯỜNG AN XUYÊN - NĂM HỌC 2026-2027\nDANH SÁCH HỌC SINH LỚP 1C (Chủ nhiệm: Thầy Từ Văn Gọn)\nSĩ số: 32 học sinh (Nam: 17, Nữ: 15)\n1. Nguyễn Hoàng An - Nam - 12/03/2020 - Phường An Xuyên, Cà Mau\n2. Trần Bảo Châu - Nữ - 05/05/2020 - Ấp 1, Xã An Xuyên, Cà Mau\n3. Lê Minh Đăng - Nam - 22/08/2020 - Phường An Xuyên, Cà Mau\n4. Phạm Quỳnh Giang - Nữ - 14/01/2020 - TP. Cà Mau\n5. Võ Văn Hưng - Nam - 03/09/2020 - Phường An Xuyên, Cà Mau\n6. Huỳnh Ngọc Mai - Nữ - 19/11/2020 - Phường An Xuyên, Cà Mau\n...\n(Đã cập nhật BHYT, thông tin phụ huynh và sổ liên lạc điện tử)"
-    },
-    {
-      "id": "file_06",
-      "name": "Video tiết dạy mẫu môn Toán.mp4",
-      "originalName": "Video_tiet_day_mau_mon_toan.mp4",
-      "mimeType": "video/mp4",
-      "extension": "mp4",
-      "category": "video",
-      "size": 471859200,
-      "folderId": "f_06",
-      "folderName": "06. VIDEO",
-      "filename": "video_tiet_day_mau.mp4",
-      "uploadDate": "2026-09-23T15:00:00Z",
-      "updatedDate": "2026-09-23T15:00:00Z",
-      "isFavorite": false,
-      "isDeleted": true,
-      "deletedAt": "2026-09-29T10:15:00Z",
-      "versions": [
-        {
-          "version": 1,
-          "name": "Video tiết dạy mẫu môn Toán.mp4",
-          "size": 471859200,
-          "uploadDate": "2026-09-23",
-          "updatedBy": "Từ Văn Gọn",
-          "filename": "video_tiet_day_mau.mp4"
-        }
-      ],
-      "previewContent": "Video bài giảng thực nghiệm môn Toán 1 - Dạy học tích hợp STEM và phương pháp dạy học tích cực."
-    },
-    {
-      "id": "file_07",
-      "name": "Ma trận đề kiểm tra Toán 1.xlsx",
-      "originalName": "Ma_tran_de_kiem_tra_Toan_1.xlsx",
-      "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "extension": "xlsx",
-      "category": "excel",
-      "size": 1258291.2,
-      "folderId": "f_03",
-      "folderName": "03. GIÁO ÁN",
-      "filename": "ma_tran_de_kiem_tra_toan_1.xlsx",
-      "uploadDate": "2026-09-10T09:00:00Z",
-      "updatedDate": "2026-09-10T09:00:00Z",
-      "isFavorite": false,
-      "isDeleted": false,
-      "versions": [
-        {
-          "version": 1,
-          "name": "Ma trận đề kiểm tra Toán 1.xlsx",
-          "size": 1258291.2,
-          "uploadDate": "2026-09-10",
-          "updatedBy": "Từ Văn Gọn",
-          "filename": "ma_tran_de_kiem_tra_toan_1.xlsx"
-        }
-      ],
-      "previewContent": "BẢNG MA TRẬN ĐỀ KIỂM TRA ĐỊNH KỲ MÔN TOÁN LỚP 1\nTheo Thông tư 27/2020/TT-BGDĐT\n- Mức 1 (Nhận biết): 40%\n- Mức 2 (Thông hiểu): 30%\n- Mức 3 (Vận dụng): 30%"
-    },
-    {
-      "id": "file_08",
-      "name": "Đề kiểm tra Toán lớp 1 - HK1.docx",
-      "originalName": "De_kiem_tra_Toan_lop_1_HK1.docx",
-      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "extension": "docx",
-      "category": "word",
-      "size": 1887436.8,
-      "folderId": "f_03",
-      "folderName": "03. GIÁO ÁN",
-      "filename": "de_kiem_tra_toan_lop_1_hk1.docx",
-      "uploadDate": "2026-09-18T14:30:00Z",
-      "updatedDate": "2026-09-18T14:30:00Z",
-      "isFavorite": false,
-      "isDeleted": false,
-      "versions": [
-        {
-          "version": 1,
-          "name": "Đề kiểm tra Toán lớp 1 - HK1.docx",
-          "size": 1887436.8,
-          "uploadDate": "2026-09-18",
-          "updatedBy": "Từ Văn Gọn",
-          "filename": "de_kiem_tra_toan_lop_1_hk1.docx"
-        }
-      ],
-      "previewContent": "TRƯỜNG TIỂU HỌC PHƯỜNG AN XUYÊN\nĐỀ KIỂM TRA ĐỊNH KỲ CUỐI HỌC KỲ I - NĂM HỌC 2026-2027\nMÔN: TOÁN - LỚP 1\nThời gian làm bài: 40 phút\nHọ và tên học sinh: ....................................... Lớp 1C\nĐiểm số: ........... Lời nhận xét của Thầy Gọn: ............................\nPhần 1: Trắc nghiệm khách quan\nCâu 1: Số lớn nhất có một chữ số là số nào?"
-    },
-    {
-      "id": "file_09",
-      "name": "Ảnh thẻ hồ sơ viên chức Thầy Gọn.jpg",
-      "originalName": "Anh_the_ho_so_vien_chuc.jpg",
-      "mimeType": "image/jpeg",
-      "extension": "jpg",
-      "category": "image",
-      "size": 1572864,
-      "folderId": "f_11",
-      "folderName": "11. HỒ SƠ CÁ NHÂN",
-      "filename": "anh_the_thay_gon.jpg",
-      "uploadDate": "2026-09-15T10:00:00Z",
-      "updatedDate": "2026-09-15T10:00:00Z",
-      "isFavorite": true,
-      "isDeleted": false,
-      "versions": [
-        {
-          "version": 1,
-          "name": "Ảnh thẻ hồ sơ viên chức Thầy Gọn.jpg",
-          "size": 1572864,
-          "uploadDate": "2026-09-15",
-          "updatedBy": "Từ Văn Gọn",
-          "filename": "anh_the_thay_gon.jpg"
-        }
-      ],
-      "previewContent": "https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80"
+      "previewContent": "TRƯỜNG TIỂU HỌC PHƯỜNG AN XUYÊN - NĂM HỌC 2026-2027\nDANH SÁCH HỌC SINH LỚP 1C (Chủ nhiệm: Thầy Từ Văn Gọn).",
+      "deletedAt": "2026-10-15T07:33:16.889Z"
     }
   ]
 }

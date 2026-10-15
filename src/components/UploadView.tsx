@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   UploadCloud,
   File,
@@ -11,54 +11,59 @@ import {
   Folder,
   AlertCircle,
   ShieldCheck,
+  FolderUp,
 } from 'lucide-react';
 import { FolderItem, UploadQueueItem, FileItem } from '../types';
-import { formatBytes } from '../services/api';
+import { api, formatBytes, buildFolderTreeOptions } from '../services/api';
 
 interface UploadViewProps {
   folders: FolderItem[];
   defaultFolderId?: string;
+  defaultMode?: 'file' | 'folder';
   onUploadSuccess: (files: FileItem[]) => void;
+  onFoldersCreated?: () => void;
   onClose?: () => void;
 }
 
 export const UploadView: React.FC<UploadViewProps> = ({
   folders,
   defaultFolderId,
+  defaultMode = 'file',
   onUploadSuccess,
+  onFoldersCreated,
   onClose,
 }) => {
-  const [selectedFolderId, setSelectedFolderId] = useState(defaultFolderId || (folders[0]?.id || 'f_01'));
+  const [selectedFolderId, setSelectedFolderId] = useState(
+    defaultFolderId || (folders[0]?.id || 'f_01')
+  );
+  const [uploadMode, setUploadMode] = useState<'file' | 'folder'>(defaultMode);
+  const [isCreatingFolders, setIsCreatingFolders] = useState(false);
+  const [folderCreationStatus, setFolderCreationStatus] = useState<string>('');
+
+  useEffect(() => {
+    if (defaultFolderId) {
+      setSelectedFolderId(defaultFolderId);
+    }
+  }, [defaultFolderId]);
+
+  useEffect(() => {
+    if (defaultMode) {
+      setUploadMode(defaultMode);
+    }
+  }, [defaultMode]);
+
+  const folderOptions = useMemo(() => buildFolderTreeOptions(folders), [folders]);
+  const currentTargetFolder = useMemo(
+    () => folders.find((f) => f.id === selectedFolderId),
+    [folders, selectedFolderId]
+  );
+
   const [isDragging, setIsDragging] = useState(false);
-  const [queue, setQueue] = useState<UploadQueueItem[]>([
-    // Provide realistic upload queue demo matching the screenshot (3 items) if empty
-    {
-      id: 'demo_1',
-      file: new (window as any).File(['demo'], 'Giáo án Toán lớp 1.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }),
-      name: 'Giáo án Toán lớp 1.docx',
-      size: 2.4 * 1024 * 1024,
-      progress: 100,
-      status: 'completed',
-    },
-    {
-      id: 'demo_2',
-      file: new (window as any).File(['demo'], 'Bài giảng.pptx', { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }),
-      name: 'Bài giảng.pptx',
-      size: 12.5 * 1024 * 1024,
-      progress: 65,
-      status: 'uploading',
-    },
-    {
-      id: 'demo_3',
-      file: new (window as any).File(['demo'], 'Video tiết dạy.mp4', { type: 'video/mp4' }),
-      name: 'Video tiết dạy.mp4',
-      size: 450 * 1024 * 1024,
-      progress: 28,
-      status: 'uploading',
-    },
-  ]);
+  const [queue, setQueue] = useState<UploadQueueItem[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -69,9 +74,67 @@ export const UploadView: React.FC<UploadViewProps> = ({
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+
+    // Support dropping folder items
+    const items = e.dataTransfer.items;
+    if (items && items.length > 0 && (items[0] as any).webkitGetAsEntry) {
+      const extractedFiles: File[] = [];
+
+      const traverseEntry = async (entry: any, pathStr = ''): Promise<void> => {
+        if (entry.isFile) {
+          return new Promise<void>((resolve) => {
+            entry.file((file: File) => {
+              const rel = pathStr ? `${pathStr}/${file.name}` : file.name;
+              Object.defineProperty(file, 'webkitRelativePath', {
+                value: rel,
+                writable: true,
+              });
+              extractedFiles.push(file);
+              resolve();
+            });
+          });
+        } else if (entry.isDirectory) {
+          const dirReader = entry.createReader();
+          const readEntries = (): Promise<any[]> => {
+            return new Promise((resolve) => {
+              dirReader.readEntries((entries: any[]) => resolve(entries));
+            });
+          };
+
+          let dirEntries = await readEntries();
+          while (dirEntries.length > 0) {
+            for (const subEntry of dirEntries) {
+              await traverseEntry(subEntry, pathStr ? `${pathStr}/${entry.name}` : entry.name);
+            }
+            dirEntries = await readEntries();
+          }
+        }
+      };
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const entry = (item as any).webkitGetAsEntry();
+        if (entry) {
+          await traverseEntry(entry);
+        }
+      }
+
+      if (extractedFiles.length > 0) {
+        const hasFolderStructure = extractedFiles.some(
+          (f) => (f as any).webkitRelativePath && (f as any).webkitRelativePath.includes('/')
+        );
+        if (hasFolderStructure) {
+          await addFolderFilesToQueue(extractedFiles);
+        } else {
+          addFilesToQueue(extractedFiles);
+        }
+        return;
+      }
+    }
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       addFilesToQueue(Array.from(e.dataTransfer.files));
     }
@@ -80,6 +143,15 @@ export const UploadView: React.FC<UploadViewProps> = ({
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       addFilesToQueue(Array.from(e.target.files));
+      e.target.value = '';
+    }
+  };
+
+  const handleFolderInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      await addFolderFilesToQueue(files);
+      e.target.value = '';
     }
   };
 
@@ -91,66 +163,229 @@ export const UploadView: React.FC<UploadViewProps> = ({
       size: file.size,
       progress: 0,
       status: 'pending',
+      targetFolderId: selectedFolderId,
     }));
 
     setQueue((prev) => [...prev, ...newItems]);
-    // Automatically start uploading the new items
-    uploadItems(newItems);
+    uploadSequential(newItems, selectedFolderId);
   };
 
-  const uploadItems = async (items: UploadQueueItem[]) => {
-    for (const item of items) {
-      // Set status to uploading
-      setQueue((prev) =>
-        prev.map((q) => (q.id === item.id ? { ...q, status: 'uploading', progress: 10 } : q))
+  // Logic to parse folder structure, create missing folders on server, and queue files
+  const addFolderFilesToQueue = async (files: File[]) => {
+    try {
+      setIsCreatingFolders(true);
+      setFolderCreationStatus('Đang đọc cấu trúc thư mục...');
+
+      const folderPathToId: Record<string, string> = {
+        '': selectedFolderId,
+      };
+
+      let newlyCreated = false;
+      const allFolderPaths = new Set<string>();
+
+      files.forEach((file) => {
+        const relPath = (file as any).webkitRelativePath || file.name;
+        const parts = relPath.split('/');
+        parts.pop(); // remove filename
+        let current = '';
+        for (const part of parts) {
+          current = current ? `${current}/${part}` : part;
+          allFolderPaths.add(current);
+        }
+      });
+
+      // Sort paths by depth (shallowest first)
+      const sortedPaths = Array.from(allFolderPaths).sort(
+        (a, b) => a.split('/').length - b.split('/').length
       );
 
-      const formData = new FormData();
-      formData.append('files', item.file);
-      formData.append('folderId', selectedFolderId);
+      let currentFolders = [...folders];
 
-      try {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/upload');
+      for (const pathStr of sortedPaths) {
+        const parts = pathStr.split('/');
+        const folderName = parts[parts.length - 1];
+        const parentPath = parts.slice(0, parts.length - 1).join('/');
+        const parentId = folderPathToId[parentPath] || selectedFolderId;
 
-        xhr.upload.onprogress = (evt) => {
+        const existing = currentFolders.find(
+          (f) =>
+            f.name.trim().toLowerCase() === folderName.trim().toLowerCase() &&
+            (f.parentId || null) === (parentId || null)
+        );
+
+        if (existing) {
+          folderPathToId[pathStr] = existing.id;
+        } else {
+          setFolderCreationStatus(`Đang tạo thư mục "${folderName}" trên hệ thống...`);
+          try {
+            const created = await api.createFolder(folderName, parentId, '#0866E8');
+            folderPathToId[pathStr] = created.id;
+            currentFolders.push(created);
+            newlyCreated = true;
+          } catch (err) {
+            console.error('Lỗi tạo thư mục:', err);
+            folderPathToId[pathStr] = parentId;
+          }
+        }
+      }
+
+      if (newlyCreated && onFoldersCreated) {
+        onFoldersCreated();
+      }
+
+      const newItems: UploadQueueItem[] = files.map((file) => {
+        const relPath = (file as any).webkitRelativePath || file.name;
+        const parts = relPath.split('/');
+        parts.pop();
+        const folderPath = parts.join('/');
+        const targetFolder = folderPathToId[folderPath] || selectedFolderId;
+
+        return {
+          id: `queue_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          file,
+          name: file.name,
+          size: file.size,
+          progress: 0,
+          status: 'pending',
+          targetFolderId: targetFolder,
+          relativePath: relPath,
+        };
+      });
+
+      setQueue((prev) => [...prev, ...newItems]);
+      uploadSequential(newItems, selectedFolderId);
+    } catch (err) {
+      console.error('Lỗi xử lý thư mục tải lên:', err);
+      // Fallback: upload directly to selectedFolderId
+      addFilesToQueue(files);
+    } finally {
+      setIsCreatingFolders(false);
+      setFolderCreationStatus('');
+    }
+  };
+
+  const uploadSingleItem = (item: UploadQueueItem, targetFolderId: string): Promise<FileItem[]> => {
+    return new Promise((resolve, reject) => {
+      setQueue((prev) =>
+        prev.map((q) => (q.id === item.id ? { ...q, status: 'uploading', progress: 15, errorMessage: undefined } : q))
+      );
+
+      // Strategy 1: For files <= 40MB, read as DataURL and send via /api/upload-json (100% reliable across Cloud proxies, preserves UTF-8)
+      if (item.file && item.size <= 40 * 1024 * 1024) {
+        const reader = new FileReader();
+
+        reader.onprogress = (evt) => {
           if (evt.lengthComputable) {
-            const pct = Math.round((evt.loaded / evt.total) * 100);
+            const pct = Math.min(85, Math.round((evt.loaded / evt.total) * 75) + 10);
             setQueue((prev) =>
               prev.map((q) => (q.id === item.id ? { ...q, progress: pct } : q))
             );
           }
         };
 
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const data = JSON.parse(xhr.responseText);
+        reader.onload = async () => {
+          setQueue((prev) =>
+            prev.map((q) => (q.id === item.id ? { ...q, progress: 90 } : q))
+          );
+
+          try {
+            const base64Content = reader.result as string;
+            const res = await fetch('/api/upload-json', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: item.name,
+                size: item.size,
+                mimeType: item.file.type || 'application/octet-stream',
+                folderId: targetFolderId,
+                base64Content,
+              }),
+            });
+
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              throw new Error(errData.message || `Lỗi máy chủ (${res.status})`);
+            }
+
+            const data = await res.json();
             setQueue((prev) =>
               prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
             );
-            if (data.files) {
-              onUploadSuccess(data.files);
-            }
-          } else {
-            setQueue((prev) =>
-              prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: 'Lỗi tải lên' } : q))
-            );
+            resolve(data.files || []);
+          } catch (err: any) {
+            console.warn('JSON upload failed, falling back to FormData:', err);
+            // Fallback to FormData multipart upload
+            uploadViaFormData(item, targetFolderId, resolve, reject);
           }
         };
 
-        xhr.onerror = () => {
-          setQueue((prev) =>
-            prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: 'Lỗi kết nối' } : q))
-          );
+        reader.onerror = () => {
+          uploadViaFormData(item, targetFolderId, resolve, reject);
         };
 
-        xhr.send(formData);
-      } catch (err) {
+        reader.readAsDataURL(item.file);
+      } else {
+        // Files > 40MB: Stream via FormData directly
+        uploadViaFormData(item, targetFolderId, resolve, reject);
+      }
+    });
+  };
+
+  const uploadViaFormData = (
+    item: UploadQueueItem,
+    targetFolderId: string,
+    resolve: (files: FileItem[]) => void,
+    reject: (err: any) => void
+  ) => {
+    const formData = new FormData();
+    formData.append('files', item.file);
+    formData.append('folderId', targetFolderId);
+
+    fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || (res.status === 413 ? 'Tệp vượt quá giới hạn 32MB' : 'Lỗi tải tệp'));
+        }
+        return res.json();
+      })
+      .then((data) => {
         setQueue((prev) =>
-          prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: 'Không thể tải tệp' } : q))
+          prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
         );
+        resolve(data.files || []);
+      })
+      .catch((err: any) => {
+        const errorMsg = err.message || 'Lỗi đường truyền mạng';
+        setQueue((prev) =>
+          prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: errorMsg } : q))
+        );
+        reject(err);
+      });
+  };
+
+  const uploadSequential = async (items: UploadQueueItem[], targetFolderId: string) => {
+    setIsUploading(true);
+    for (const item of items) {
+      try {
+        const destFolderId = item.targetFolderId || targetFolderId;
+        const uploadedFiles = await uploadSingleItem(item, destFolderId);
+        if (uploadedFiles && uploadedFiles.length > 0) {
+          onUploadSuccess(uploadedFiles);
+        }
+      } catch (err) {
+        console.error('Upload error for item:', item.name, err);
+        // Continue uploading remaining files even if one fails
       }
     }
+    setIsUploading(false);
+  };
+
+  const handleRetryItem = (item: UploadQueueItem) => {
+    uploadSequential([item], selectedFolderId);
   };
 
   const removeItem = (id: string) => {
@@ -176,7 +411,7 @@ export const UploadView: React.FC<UploadViewProps> = ({
         </div>
 
         {/* Target Folder Selector */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="font-semibold text-slate-700 flex items-center gap-1">
             <Folder className="w-3.5 h-3.5 text-amber-500" />
             Lưu vào thư mục:
@@ -184,26 +419,83 @@ export const UploadView: React.FC<UploadViewProps> = ({
           <select
             value={selectedFolderId}
             onChange={(e) => setSelectedFolderId(e.target.value)}
-            className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-sm text-xs cursor-pointer"
           >
-            {folders.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
+            {folderOptions.map((opt) => (
+              <option
+                key={opt.id}
+                value={opt.id}
+                className={opt.depth === 0 ? 'font-bold text-slate-900 bg-slate-100' : 'text-slate-700'}
+              >
+                {opt.depth === 0 ? `📁 ${opt.label}` : opt.label}
               </option>
             ))}
           </select>
+
+          {currentTargetFolder && (
+            <span className="text-[11px] px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-medium">
+              Đang chọn: <strong>{currentTargetFolder.name}</strong>
+            </span>
+          )}
         </div>
       </div>
+
+      {/* Toggle Mode: Tải tệp lên vs Tải thư mục lên */}
+      <div className="flex items-center justify-center">
+        <div className="bg-slate-100 p-1 rounded-2xl flex items-center gap-1 border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setUploadMode('file')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              uploadMode === 'file'
+                ? 'bg-[#0866E8] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <UploadCloud className="w-4 h-4" />
+            <span>Tải tệp lên</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setUploadMode('folder')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              uploadMode === 'folder'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <FolderUp className="w-4 h-4" />
+            <span>Tải thư mục lên</span>
+          </button>
+        </div>
+      </div>
+
+      {isCreatingFolders && (
+        <div className="bg-indigo-50 border border-indigo-200 text-indigo-800 px-4 py-3 rounded-2xl flex items-center gap-3 animate-pulse text-xs font-bold">
+          <RotateCw className="w-4 h-4 animate-spin text-indigo-600 shrink-0" />
+          <span>{folderCreationStatus || 'Đang tạo thư mục trên hệ thống...'}</span>
+        </div>
+      )}
 
       {/* Main Drag & Drop Zone */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => {
+          if (uploadMode === 'folder') {
+            folderInputRef.current?.click();
+          } else {
+            fileInputRef.current?.click();
+          }
+        }}
         className={`border-2 border-dashed rounded-3xl p-8 md:p-12 text-center transition-all cursor-pointer relative ${
           isDragging
-            ? 'border-blue-600 bg-blue-50 scale-[1.01]'
+            ? uploadMode === 'folder'
+              ? 'border-indigo-600 bg-indigo-50 scale-[1.01]'
+              : 'border-blue-600 bg-blue-50 scale-[1.01]'
+            : uploadMode === 'folder'
+            ? 'border-indigo-300 bg-gradient-to-b from-indigo-50/60 to-white hover:border-indigo-500 hover:shadow-md'
             : 'border-blue-300 bg-gradient-to-b from-[#EAF4FF] to-white hover:border-blue-500 hover:shadow-md'
         }`}
       >
@@ -214,31 +506,74 @@ export const UploadView: React.FC<UploadViewProps> = ({
           multiple
           className="hidden"
         />
+        <input
+          type="file"
+          ref={folderInputRef}
+          onChange={handleFolderInputChange}
+          multiple
+          {...({ webkitdirectory: '', directory: '' } as any)}
+          className="hidden"
+        />
 
         <div className="max-w-md mx-auto space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-3xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform">
-            <UploadCloud className="w-10 h-10 animate-bounce" />
+          <div
+            className={`w-20 h-20 mx-auto rounded-3xl text-white flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform ${
+              uploadMode === 'folder'
+                ? 'bg-indigo-600 shadow-indigo-500/30'
+                : 'bg-blue-600 shadow-blue-500/30'
+            }`}
+          >
+            {uploadMode === 'folder' ? (
+              <FolderUp className="w-10 h-10 animate-bounce" />
+            ) : (
+              <UploadCloud className="w-10 h-10 animate-bounce" />
+            )}
           </div>
 
           <div>
             <h3 className="text-base md:text-lg font-bold text-slate-900 mb-1">
-              Kéo thả tệp vào đây
+              {uploadMode === 'folder'
+                ? 'Kéo thả thư mục vào đây hoặc bấm để chọn'
+                : 'Kéo thả tệp vào đây hoặc bấm để chọn'}
             </h3>
             <p className="text-xs text-slate-500">
-              hoặc nhấn nút bên dưới để chọn tệp từ máy tính, laptop hoặc điện thoại
+              {uploadMode === 'folder'
+                ? 'Chọn cả thư mục từ máy tính — Hệ thống sẽ tự động tạo thư mục và tải toàn bộ tệp bên trong lên'
+                : 'hoặc nhấn nút bên dưới để chọn tệp từ máy tính, laptop hoặc điện thoại'}
             </p>
           </div>
 
-          <button
-            type="button"
-            className="bg-[#0866E8] hover:bg-[#064AA8] text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md transition-all inline-flex items-center gap-2"
-          >
-            <span>📁 Chọn tệp từ máy tính</span>
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="bg-[#0866E8] hover:bg-[#064AA8] text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all inline-flex items-center gap-2 cursor-pointer"
+            >
+              <UploadCloud className="w-4 h-4" />
+              <span>Chọn tệp từ máy tính</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                folderInputRef.current?.click();
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md transition-all inline-flex items-center gap-2 cursor-pointer"
+            >
+              <FolderUp className="w-4 h-4" />
+              <span>Chọn cả thư mục từ máy tính</span>
+            </button>
+          </div>
 
           <div className="pt-2 text-[11px] text-slate-500 space-y-1">
             <p className="font-medium text-slate-600">
-              Hỗ trợ: PDF, Word, Excel, PowerPoint, Ảnh, Video, ZIP, TXT, MD...
+              {uploadMode === 'folder'
+                ? '📁 Hỗ trợ tải thư mục chứa nhiều tệp Word, PowerPoint, PDF, hình ảnh cùng lúc'
+                : 'Hỗ trợ: PDF, Word, Excel, PowerPoint, Ảnh, Video, ZIP, TXT, MD...'}
             </p>
             <p className="text-slate-400">Dung lượng tối đa mỗi tệp: 2 GB • Tự động mã hóa an toàn</p>
           </div>
@@ -257,12 +592,17 @@ export const UploadView: React.FC<UploadViewProps> = ({
                 Đã xong {queue.filter((q) => q.status === 'completed').length} tệp
               </span>
             )}
+            {isUploading && (
+              <span className="text-[11px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold animate-pulse">
+                Đang xử lý tải lên...
+              </span>
+            )}
           </div>
 
           {queue.length > 0 && (
             <button
               onClick={clearCompleted}
-              className="text-xs text-slate-500 hover:text-rose-600 font-semibold flex items-center gap-1"
+              className="text-xs text-slate-500 hover:text-rose-600 font-semibold flex items-center gap-1 cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Xóa tệp đã hoàn thành
@@ -284,16 +624,24 @@ export const UploadView: React.FC<UploadViewProps> = ({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-bold text-slate-800 truncate pr-2">
-                      {item.name}
-                    </p>
+                    <div className="min-w-0 pr-2">
+                      <p className="text-xs font-bold text-slate-800 truncate">
+                        {item.name}
+                      </p>
+                      {item.relativePath && item.relativePath.includes('/') && (
+                        <p className="text-[10px] text-indigo-600 font-medium flex items-center gap-1 truncate">
+                          <Folder className="w-3 h-3 shrink-0" />
+                          <span>Thư mục: {item.relativePath}</span>
+                        </p>
+                      )}
+                    </div>
                     <span className="text-[11px] text-slate-500 font-medium shrink-0">
                       {formatBytes(item.size)}
                     </span>
                   </div>
 
                   {/* Progress bar */}
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex items-center">
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex items-center mb-1">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${
                         item.status === 'completed'
@@ -305,6 +653,13 @@ export const UploadView: React.FC<UploadViewProps> = ({
                       style={{ width: `${item.progress}%` }}
                     />
                   </div>
+
+                  {item.status === 'error' && item.errorMessage && (
+                    <p className="text-[11px] text-rose-600 font-medium flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>{item.errorMessage}</span>
+                    </p>
+                  )}
                 </div>
 
                 {/* Progress Status and Action Button */}
@@ -324,11 +679,27 @@ export const UploadView: React.FC<UploadViewProps> = ({
                   {item.status === 'completed' ? (
                     <CheckCircle className="w-5 h-5 text-emerald-500" />
                   ) : item.status === 'error' ? (
-                    <XCircle className="w-5 h-5 text-rose-500" />
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleRetryItem(item)}
+                        className="p-1 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded text-[11px] font-semibold flex items-center gap-0.5 cursor-pointer"
+                        title="Thử tải lại tệp này"
+                      >
+                        <RotateCw className="w-3.5 h-3.5" />
+                        <span>Thử lại</span>
+                      </button>
+                      <button
+                        onClick={() => removeItem(item.id)}
+                        className="p-1 text-slate-400 hover:text-rose-500 rounded cursor-pointer"
+                        title="Xóa tệp lỗi"
+                      >
+                        <XCircle className="w-4 h-4 text-rose-500" />
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="p-1 text-slate-400 hover:text-rose-500 rounded"
+                      className="p-1 text-slate-400 hover:text-rose-500 rounded cursor-pointer"
                       title="Hủy tải lên"
                     >
                       <XCircle className="w-4 h-4" />
