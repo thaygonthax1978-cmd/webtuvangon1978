@@ -1,0 +1,6 @@
+{
+  "name": "Kho Dữ Liệu Cá Nhân – Thầy Gọn",
+  "description": "Kho Dữ Liệu Cá Nhân của Thầy Từ Văn Gọn - Giáo viên Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau. Quản lý, lưu trữ đám mây, chia sẻ và AI trợ lý.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
