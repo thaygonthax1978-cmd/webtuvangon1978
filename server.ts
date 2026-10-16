@@ -130,219 +130,410 @@ const initialUser: UserProfile = {
 };
 
 const defaultFolders: FolderRecord[] = [
-  { id: 'f_01', name: '01. GIÁO DỤC', code: '01', parentId: null, color: '#0866E8', createdAt: '2026-09-01T08:00:00Z', updatedAt: '2026-09-28T09:30:00Z' },
-  { id: 'f_02', name: '02. LỚP 1C', code: '02', parentId: null, color: '#16B875', createdAt: '2026-09-01T08:15:00Z', updatedAt: '2026-09-27T10:00:00Z' },
-  { id: 'f_03', name: '03. GIÁO ÁN', code: '03', parentId: null, color: '#8257E5', createdAt: '2026-09-02T08:00:00Z', updatedAt: '2026-09-26T14:20:00Z' },
-  { id: 'f_04', name: '04. TÀI LIỆU AI', code: '04', parentId: null, color: '#0866E8', createdAt: '2026-09-05T09:00:00Z', updatedAt: '2026-09-25T11:15:00Z' },
-  { id: 'f_05', name: '05. HÌNH ẢNH', code: '05', parentId: null, color: '#FF9F1C', createdAt: '2026-09-05T10:30:00Z', updatedAt: '2026-09-24T16:00:00Z' },
-  { id: 'f_06', name: '06. VIDEO', code: '06', parentId: null, color: '#F04444', createdAt: '2026-09-06T11:00:00Z', updatedAt: '2026-09-23T15:45:00Z' },
-  { id: 'f_07', name: '07. WORD', code: '07', parentId: null, color: '#0866E8', createdAt: '2026-09-07T13:00:00Z', updatedAt: '2026-09-22T08:30:00Z' },
-  { id: 'f_08', name: '08. EXCEL', code: '08', parentId: null, color: '#16B875', createdAt: '2026-09-08T14:00:00Z', updatedAt: '2026-09-21T09:00:00Z' },
-  { id: 'f_09', name: '09. PDF', code: '09', parentId: null, color: '#F04444', createdAt: '2026-09-09T08:00:00Z', updatedAt: '2026-09-20T17:10:00Z' },
-  { id: 'f_10', name: '10. POWERPOINT', code: '10', parentId: null, color: '#FF9F1C', createdAt: '2026-09-10T10:00:00Z', updatedAt: '2026-09-19T13:00:00Z' },
-  { id: 'f_11', name: '11. HỒ SƠ CÁ NHÂN', code: '11', parentId: null, color: '#064AA8', createdAt: '2026-09-11T11:00:00Z', updatedAt: '2026-09-18T10:00:00Z' },
-  { id: 'f_12', name: '12. TÀI LIỆU KHÁC', code: '12', parentId: null, color: '#64748B', createdAt: '2026-09-12T15:00:00Z', updatedAt: '2026-09-17T11:20:00Z' },
-  { id: 'f_sub_tnxh', name: '04. TỰ NHIÊN VÀ XÃ HỘI', code: '04-TNXH', parentId: 'f_03', color: '#8257E5', createdAt: '2026-09-02T08:30:00Z', updatedAt: '2026-09-26T14:20:00Z' },
+  {
+    id: 'f_04',
+    name: '01. GIÁO ÁN CÁC LỚP',
+    code: '04',
+    parentId: null,
+    color: '#0866E8',
+    createdAt: '2026-09-05T09:00:00Z',
+    updatedAt: '2026-10-16T07:17:34.496Z',
+  },
+  {
+    id: 'f_1792136674742',
+    name: 'LỚP 1',
+    code: '02',
+    parentId: 'f_04',
+    color: '#8257E5',
+    createdAt: '2026-10-16T07:44:34.742Z',
+    updatedAt: '2026-10-16T07:44:34.742Z',
+  },
+  {
+    id: 'f_1792136682204',
+    name: 'LỚP 2',
+    code: '03',
+    parentId: 'f_04',
+    color: '#8257E5',
+    createdAt: '2026-10-16T07:44:42.204Z',
+    updatedAt: '2026-10-16T07:44:42.204Z',
+  },
+  {
+    id: 'f_1792136688926',
+    name: 'LỚP 3',
+    code: '04',
+    parentId: 'f_04',
+    color: '#8257E5',
+    createdAt: '2026-10-16T07:44:48.926Z',
+    updatedAt: '2026-10-16T07:44:48.926Z',
+  },
+  {
+    id: 'f_1792136694456',
+    name: 'LỚP 4',
+    code: '05',
+    parentId: 'f_04',
+    color: '#8257E5',
+    createdAt: '2026-10-16T07:44:54.456Z',
+    updatedAt: '2026-10-16T07:44:54.456Z',
+  },
+  {
+    id: 'f_1792136720609',
+    name: 'LỚP 5',
+    code: '06',
+    parentId: 'f_04',
+    color: '#8257E5',
+    createdAt: '2026-10-16T07:45:20.609Z',
+    updatedAt: '2026-10-16T07:45:20.609Z',
+  },
+  {
+    id: 'f_1792136755685',
+    name: 'TIẾNG VIỆT',
+    code: '07',
+    parentId: 'f_1792136674742',
+    color: '#8257E5',
+    createdAt: '2026-10-16T07:45:55.685Z',
+    updatedAt: '2026-10-16T07:47:30.455Z',
+  },
+  {
+    id: 'f_1792136833788',
+    name: 'TOÁN',
+    code: '08',
+    parentId: 'f_1792136674742',
+    color: '#8257E5',
+    createdAt: '2026-10-16T07:47:13.788Z',
+    updatedAt: '2026-10-16T07:47:27.071Z',
+  },
+  {
+    id: 'f_1792136843359',
+    name: 'ĐẠO ĐỨC',
+    code: '09',
+    parentId: 'f_1792136674742',
+    color: '#8257E5',
+    createdAt: '2026-10-16T07:47:23.359Z',
+    updatedAt: '2026-10-16T07:47:23.359Z',
+  },
+  {
+    id: 'f_1792136866375',
+    name: 'TỰ NHIÊN VÀ XÃ HỘI',
+    code: '10',
+    parentId: 'f_1792136674742',
+    color: '#8257E5',
+    createdAt: '2026-10-16T07:47:46.375Z',
+    updatedAt: '2026-10-16T07:47:46.375Z',
+  },
+  {
+    id: 'f_1792136874703',
+    name: 'HOẠT ĐỘNG TRẢI NGHIỆM',
+    code: '11',
+    parentId: 'f_1792136674742',
+    color: '#8257E5',
+    createdAt: '2026-10-16T07:47:54.704Z',
+    updatedAt: '2026-10-16T07:47:54.704Z',
+  },
 ];
 
 function seedInitialFiles(): FileRecord[] {
-  // Create sample physical files on disk for realistic download and preview
-  const sampleFiles = [
+  const sampleFiles: FileRecord[] = [
     {
-      id: 'file_01',
-      name: 'Giáo án Toán lớp 1 - Tuần 5.docx',
-      originalName: 'Giáo án Toán lớp 1 - Tuần 5.docx',
+      id: 'file_1792141493684_gq72s',
+      name: 'HĐTN TUẦN 2.docx',
+      originalName: 'HĐTN TUẦN 2.docx',
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       extension: 'docx',
-      category: 'word' as const,
-      size: 2.4 * 1024 * 1024,
-      folderId: 'f_03',
-      folderName: '03. GIÁO ÁN',
-      filename: 'giao_an_toan_lop_1_tuan_5.docx',
-      uploadDate: '2026-09-28T08:15:00Z',
-      updatedDate: '2026-09-28T08:15:00Z',
-      isFavorite: true,
-      isDeleted: false,
-      versions: [
-        { version: 4, name: 'Giáo án Toán lớp 1 - Tuần 5 (v4).docx', size: 2.4 * 1024 * 1024, uploadDate: '2026-09-28', updatedBy: 'Từ Văn Gọn', filename: 'giao_an_toan_lop_1_tuan_5.docx' },
-        { version: 3, name: 'Giáo án Toán lớp 1 - Tuần 5 (v3).docx', size: 2.1 * 1024 * 1024, uploadDate: '2026-09-25', updatedBy: 'Từ Văn Gọn', filename: 'giao_an_toan_lop_1_tuan_5_v3.docx' },
-        { version: 2, name: 'Giáo án Toán lớp 1 - Tuần 5 (v2).docx', size: 1.8 * 1024 * 1024, uploadDate: '2026-09-20', updatedBy: 'Từ Văn Gọn', filename: 'giao_an_toan_lop_1_tuan_5_v2.docx' },
-        { version: 1, name: 'Giáo án Toán lớp 1 - Tuần 5 (v1).docx', size: 1.6 * 1024 * 1024, uploadDate: '2026-09-15', updatedBy: 'Từ Văn Gọn', filename: 'giao_an_toan_lop_1_tuan_5_v1.docx' },
-      ],
-      shareConfig: {
-        isShared: true,
-        shareUrl: 'https://khotailieu.thaygon.vn/s/abc123xyz',
-        sharedWithEmails: ['toantieuhoctaynam@gmail.com'],
-        accessRole: 'viewer' as const,
-        hasPassword: true,
-        expiresInDays: 7,
-      },
-      previewContent: 'GIÁO ÁN MÔN TOÁN LỚP 1 - TUẦN 5\nBÀI HỌC: PHÉP CỘNG TRONG PHẠM VI 10 (TIẾT 1)\nGiáo viên thực hiện: Thầy Từ Văn Gọn\nĐơn vị: Trường Tiểu học Phường An Xuyên, TP. Cà Mau\nI. YÊU CẦU CẦN ĐẠT:\n1. Năng lực toán học:\n- Nhận biết ý nghĩa thực tế của phép cộng thông qua việc gộp hai nhóm đối tượng.\n- Thực hiện đúng các phép tính cộng trong phạm vi 10 bằng trực quan hình ảnh que tính, hình khối.\n2. Phẩm chất: Chăm chỉ, hào hứng tương tác trong giờ học, tinh thần hợp tác nhóm.\nII. ĐỒ DÙNG DẠY HỌC:\n- Bộ đồ dùng Toán 1, màn chiếu máy tính, tranh minh họa các chú ếch trên lá sen.\nIII. CÁC HOẠT ĐỘNG DẠY HỌC CHỦ YẾU:\n1. Khởi động (5 phút): Hát bài "Một con vịt xòe ra hai cái cánh", đố vui số đếm.\n2. Khám phá (15 phút): Cho học sinh quan sát trên cành có 3 con chim, thêm 2 con chim bay tới. Hỏi có tất cả bao nhiêu con chim? Hướng dẫn hình thành phép tính 3 + 2 = 5.',
-    },
-    {
-      id: 'file_02',
-      name: 'Bài giảng điện tử Tiếng Việt.pptx',
-      originalName: 'Bài giảng điện tử Tiếng Việt.pptx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      extension: 'pptx',
-      category: 'powerpoint' as const,
-      size: 12.5 * 1024 * 1024,
-      folderId: 'f_02',
-      folderName: '02. LỚP 1C',
-      filename: 'bai_giang_tieng_viet_lop_1c.pptx',
-      uploadDate: '2026-09-27T09:20:00Z',
-      updatedDate: '2026-09-27T09:20:00Z',
-      isFavorite: true,
-      isDeleted: false,
-      versions: [
-        { version: 1, name: 'Bài giảng điện tử Tiếng Việt.pptx', size: 12.5 * 1024 * 1024, uploadDate: '2026-09-27', updatedBy: 'Từ Văn Gọn', filename: 'bai_giang_tieng_viet_lop_1c.pptx' },
-      ],
-      previewContent: 'BÀI GIẢNG ĐIỆN TỬ TIẾNG VIỆT 1 - BỘ SÁCH CÁNH DIỀU / CHÂN TRỜI SÁNG TẠO\nLỚP 1C - TH PHƯỜNG AN XUYÊN - THẦY TỪ VĂN GỌN\nSlide 1: Tiêu đề bài học: ÂM A - CHỮ A\nSlide 2: Khởi động với bài hát Chữ cái vui nhộn\nSlide 3: Quan sát tranh và nhận biết: Bức tranh vẽ cảnh buổi sáng có con gà gáy o o, bạn nhỏ chào mẹ đi học.\nSlide 4: Luyện đọc âm A. Chữ A in hoa, chữ a in thường.\nSlide 5: Trò chơi tìm đồ vật có tiếng chứa âm a trong lớp học.',
-    },
-    {
-      id: 'file_03',
-      name: 'Thông tư 27.pdf',
-      originalName: 'Thông tư 27-2020-TT-BGDDT.pdf',
-      mimeType: 'application/pdf',
-      extension: 'pdf',
-      category: 'pdf' as const,
-      size: 3.8 * 1024 * 1024,
-      folderId: 'f_01',
-      folderName: '01. GIÁO DỤC',
-      filename: 'thong_tu_27_bgddt.pdf',
-      uploadDate: '2026-09-26T14:00:00Z',
-      updatedDate: '2026-09-26T14:00:00Z',
-      isFavorite: true,
-      isDeleted: false,
-      versions: [
-        { version: 1, name: 'Thông tư 27.pdf', size: 3.8 * 1024 * 1024, uploadDate: '2026-09-26', updatedBy: 'Từ Văn Gọn', filename: 'thong_tu_27_bgddt.pdf' },
-      ],
-      previewContent: 'BỘ GIÁO DỤC VÀ ĐÀO TẠO\nSố: 27/2020/TT-BGDĐT\nCỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM\nĐộc lập - Tự do - Hạnh phúc\n\nQUY ĐỊNH ĐÁNH GIÁ HỌC SINH TIỂU HỌC\n\nChương I: NHỮNG QUY ĐỊNH CHUNG\nĐiều 1. Phạm vi điều chỉnh và đối tượng áp dụng\n1. Thông tư này quy định đánh giá học sinh tiểu học bao gồm: tổ chức đánh giá; sử dụng kết quả đánh giá; hồ sơ đánh giá và trách nhiệm của cơ quan, tổ chức, cá nhân.\n2. Thông tư này áp dụng đối với trường tiểu học, trường phổ thông có nhiều cấp học trong đó có cấp tiểu học.\n\nĐiều 5. Nội dung đánh giá\n1. Đánh giá quá trình học tập, sự tiến bộ và kết quả học tập của học sinh đáp ứng yêu cầu cần đạt và biểu hiện cụ thể về các thành phần năng lực của từng môn học, hoạt động giáo dục theo chương trình giáo dục phổ thông cấp tiểu học.\n2. Đánh giá sự hình thành và phát triển phẩm chất, năng lực của học sinh:\na) Phẩm chất chủ yếu: yêu nước, nhân ái, chăm chỉ, trung thực, trách nhiệm.\nb) Năng lực cốt lõi: Năng lực chung (tự chủ và tự học, giao tiếp và hợp tác, giải quyết vấn đề và sáng tạo); Năng lực đặc thù.',
-    },
-    {
-      id: 'file_04',
-      name: 'Hình ảnh hoạt động lớp 1C.zip',
-      originalName: 'Hinh_anh_hoat_dong_lop_1C.zip',
-      mimeType: 'application/zip',
-      extension: 'zip',
-      category: 'zip' as const,
-      size: 25.6 * 1024 * 1024,
-      folderId: 'f_05',
-      folderName: '05. HÌNH ẢNH',
-      filename: 'hinh_anh_hoat_dong_lop_1c.zip',
-      uploadDate: '2026-09-25T16:30:00Z',
-      updatedDate: '2026-09-25T16:30:00Z',
+      category: 'word',
+      size: 368593,
+      folderId: 'f_1792136874703',
+      folderName: 'HOẠT ĐỘNG TRẢI NGHIỆM',
+      filename: '1792141493683-863214162.docx',
+      uploadDate: '2026-10-16T09:04:53.684Z',
+      updatedDate: '2026-10-16T09:04:53.684Z',
       isFavorite: false,
       isDeleted: false,
       versions: [
-        { version: 1, name: 'Hình ảnh hoạt động lớp 1C.zip', size: 25.6 * 1024 * 1024, uploadDate: '2026-09-25', updatedBy: 'Từ Văn Gọn', filename: 'hinh_anh_hoat_dong_lop_1c.zip' },
+        {
+          version: 1,
+          name: 'HĐTN TUẦN 2.docx',
+          size: 368593,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792141493683-863214162.docx',
+        },
       ],
-      previewContent: 'Gói nén gồm 45 hình ảnh chất lượng cao chụp các hoạt động:\n- Lễ Khai giảng năm học mới Trường Tiểu học Phường An Xuyên\n- Giờ sinh hoạt lớp 1C\n- Hoạt động trải nghiệm làm chậu hoa tái chế tại sân trường\n- Buổi nhận xét đánh giá giữa học kì 1',
+      previewContent: 'Tài liệu: HĐTN TUẦN 2.docx\nĐịnh dạng: DOCX\nKích thước: 0.35 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
     },
     {
-      id: 'file_05',
-      name: 'Danh sách học sinh lớp 1C.xlsx',
-      originalName: 'Danh_sach_hoc_sinh_lop_1C.xlsx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      extension: 'xlsx',
-      category: 'excel' as const,
-      size: 1.2 * 1024 * 1024,
-      folderId: 'f_02',
-      folderName: '02. LỚP 1C',
-      filename: 'danh_sach_hoc_sinh_lop_1c.xlsx',
-      uploadDate: '2026-09-24T11:00:00Z',
-      updatedDate: '2026-09-24T11:00:00Z',
-      isFavorite: true,
+      id: 'file_1792141483069_2o3bh',
+      name: 'TNXH TUẦN 2.docx',
+      originalName: 'TNXH TUẦN 2.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      extension: 'docx',
+      category: 'word',
+      size: 856628,
+      folderId: 'f_1792136866375',
+      folderName: 'TỰ NHIÊN VÀ XÃ HỘI',
+      filename: '1792141483068-955081297.docx',
+      uploadDate: '2026-10-16T09:04:43.069Z',
+      updatedDate: '2026-10-16T09:04:43.069Z',
+      isFavorite: false,
       isDeleted: false,
       versions: [
-        { version: 1, name: 'Danh sách học sinh lớp 1C.xlsx', size: 1.2 * 1024 * 1024, uploadDate: '2026-09-24', updatedBy: 'Từ Văn Gọn', filename: 'danh_sach_hoc_sinh_lop_1c.xlsx' },
+        {
+          version: 1,
+          name: 'TNXH TUẦN 2.docx',
+          size: 856628,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792141483068-955081297.docx',
+        },
       ],
-      previewContent: 'TRƯỜNG TIỂU HỌC PHƯỜNG AN XUYÊN - NĂM HỌC 2026-2027\nDANH SÁCH HỌC SINH LỚP 1C (Chủ nhiệm: Thầy Từ Văn Gọn)\nSĩ số: 32 học sinh (Nam: 17, Nữ: 15)\n1. Nguyễn Hoàng An - Nam - 12/03/2020 - Phường An Xuyên, Cà Mau\n2. Trần Bảo Châu - Nữ - 05/05/2020 - Ấp 1, Xã An Xuyên, Cà Mau\n3. Lê Minh Đăng - Nam - 22/08/2020 - Phường An Xuyên, Cà Mau\n4. Phạm Quỳnh Giang - Nữ - 14/01/2020 - TP. Cà Mau\n5. Võ Văn Hưng - Nam - 03/09/2020 - Phường An Xuyên, Cà Mau\n6. Huỳnh Ngọc Mai - Nữ - 19/11/2020 - Phường An Xuyên, Cà Mau\n...\n(Đã cập nhật BHYT, thông tin phụ huynh và sổ liên lạc điện tử)',
+      previewContent: 'Tài liệu: TNXH TUẦN 2.docx\nĐịnh dạng: DOCX\nKích thước: 0.82 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
     },
     {
-      id: 'file_06',
-      name: 'Video tiết dạy mẫu môn Toán.mp4',
-      originalName: 'Video_tiet_day_mau_mon_toan.mp4',
-      mimeType: 'video/mp4',
-      extension: 'mp4',
-      category: 'video' as const,
-      size: 450 * 1024 * 1024,
-      folderId: 'f_06',
-      folderName: '06. VIDEO',
-      filename: 'video_tiet_day_mau.mp4',
-      uploadDate: '2026-09-23T15:00:00Z',
-      updatedDate: '2026-09-23T15:00:00Z',
+      id: 'file_1792141467817_sy12j',
+      name: 'ĐẠO ĐỨC TUẦN 2.docx',
+      originalName: 'ĐẠO ĐỨC TUẦN 2.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      extension: 'docx',
+      category: 'word',
+      size: 1540502,
+      folderId: 'f_1792136843359',
+      folderName: 'ĐẠO ĐỨC',
+      filename: '1792141467815-634987161.docx',
+      uploadDate: '2026-10-16T09:04:27.817Z',
+      updatedDate: '2026-10-16T09:04:27.817Z',
+      isFavorite: false,
+      isDeleted: false,
+      versions: [
+        {
+          version: 1,
+          name: 'ĐẠO ĐỨC TUẦN 2.docx',
+          size: 1540502,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792141467815-634987161.docx',
+        },
+      ],
+      previewContent: 'Tài liệu: ĐẠO ĐỨC TUẦN 2.docx\nĐịnh dạng: DOCX\nKích thước: 1.47 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
+    },
+    {
+      id: 'file_1792141450887_pq6co',
+      name: 'TOÁN TUẦN 2.docx',
+      originalName: 'TOÁN TUẦN 2.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      extension: 'docx',
+      category: 'word',
+      size: 12434541,
+      folderId: 'f_1792136833788',
+      folderName: 'TOÁN',
+      filename: '1792141450844-454700370.docx',
+      uploadDate: '2026-10-16T09:04:10.887Z',
+      updatedDate: '2026-10-16T09:04:10.887Z',
+      isFavorite: false,
+      isDeleted: false,
+      versions: [
+        {
+          version: 1,
+          name: 'TOÁN TUẦN 2.docx',
+          size: 12434541,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792141450844-454700370.docx',
+        },
+      ],
+      previewContent: 'Tài liệu: TOÁN TUẦN 2.docx\nĐịnh dạng: DOCX\nKích thước: 11.86 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
+    },
+    {
+      id: 'file_1792141426726_iajp0',
+      name: 'TV TUẦN 2.docx',
+      originalName: 'TV TUẦN 2.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      extension: 'docx',
+      category: 'word',
+      size: 1918116,
+      folderId: 'f_1792136755685',
+      folderName: 'TIẾNG VIỆT',
+      filename: '1792141426723-860286402.docx',
+      uploadDate: '2026-10-16T09:03:46.726Z',
+      updatedDate: '2026-10-16T09:03:46.726Z',
+      isFavorite: false,
+      isDeleted: false,
+      versions: [
+        {
+          version: 1,
+          name: 'TV TUẦN 2.docx',
+          size: 1918116,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792141426723-860286402.docx',
+        },
+      ],
+      previewContent: 'Tài liệu: TV TUẦN 2.docx\nĐịnh dạng: DOCX\nKích thước: 1.83 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
+    },
+    {
+      id: 'file_1792141405422_ca42h',
+      name: 'TV TUẦN 1.docx',
+      originalName: 'TV TUẦN 1.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      extension: 'docx',
+      category: 'word',
+      size: 1728151,
+      folderId: 'f_1792136755685',
+      folderName: 'TIẾNG VIỆT',
+      filename: '1792141405419-935678625.docx',
+      uploadDate: '2026-10-16T09:03:25.422Z',
+      updatedDate: '2026-10-16T09:03:25.422Z',
+      isFavorite: false,
+      isDeleted: false,
+      versions: [
+        {
+          version: 1,
+          name: 'TV TUẦN 1.docx',
+          size: 1728151,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792141405419-935678625.docx',
+        },
+      ],
+      previewContent: 'Tài liệu: TV TUẦN 1.docx\nĐịnh dạng: DOCX\nKích thước: 1.65 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
+    },
+    {
+      id: 'file_1792136919534_v18a2',
+      name: 'HĐTN TUẦN 1.docx',
+      originalName: 'HĐTN TUẦN 1.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      extension: 'docx',
+      category: 'word',
+      size: 840439,
+      folderId: 'f_1792136874703',
+      folderName: 'HOẠT ĐỘNG TRẢI NGHIỆM',
+      filename: '1792136919533-408359090.docx',
+      uploadDate: '2026-10-16T07:48:39.534Z',
+      updatedDate: '2026-10-16T07:48:39.534Z',
+      isFavorite: false,
+      isDeleted: false,
+      versions: [
+        {
+          version: 1,
+          name: 'HĐTN TUẦN 1.docx',
+          size: 840439,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792136919533-408359090.docx',
+        },
+      ],
+      previewContent: 'Tài liệu: HĐTN TUẦN 1.docx\nĐịnh dạng: DOCX\nKích thước: 0.80 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
+    },
+    {
+      id: 'file_1792136909738_bkxjo',
+      name: 'TNXH TUẦN 1.docx',
+      originalName: 'TNXH TUẦN 1.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      extension: 'docx',
+      category: 'word',
+      size: 573509,
+      folderId: 'f_1792136866375',
+      folderName: 'TỰ NHIÊN VÀ XÃ HỘI',
+      filename: '1792136909738-412497441.docx',
+      uploadDate: '2026-10-16T07:48:29.738Z',
+      updatedDate: '2026-10-16T07:48:29.738Z',
+      isFavorite: false,
+      isDeleted: false,
+      versions: [
+        {
+          version: 1,
+          name: 'TNXH TUẦN 1.docx',
+          size: 573509,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792136909738-412497441.docx',
+        },
+      ],
+      previewContent: 'Tài liệu: TNXH TUẦN 1.docx\nĐịnh dạng: DOCX\nKích thước: 0.55 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
+    },
+    {
+      id: 'file_1792136899003_2oz7s',
+      name: 'ĐẠO ĐỨC TUẦN 1.docx',
+      originalName: 'ĐẠO ĐỨC TUẦN 1.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      extension: 'docx',
+      category: 'word',
+      size: 1496953,
+      folderId: 'f_1792136843359',
+      folderName: 'ĐẠO ĐỨC',
+      filename: '1792136899002-179801982.docx',
+      uploadDate: '2026-10-16T07:48:19.003Z',
+      updatedDate: '2026-10-16T07:48:19.003Z',
+      isFavorite: false,
+      isDeleted: false,
+      versions: [
+        {
+          version: 1,
+          name: 'ĐẠO ĐỨC TUẦN 1.docx',
+          size: 1496953,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792136899002-179801982.docx',
+        },
+      ],
+      previewContent: 'Tài liệu: ĐẠO ĐỨC TUẦN 1.docx\nĐịnh dạng: DOCX\nKích thước: 1.43 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
+    },
+    {
+      id: 'file_1792136886697_4jp4r',
+      name: 'TOÁN TUẦN 1.docx',
+      originalName: 'TOÁN TUẦN 1.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      extension: 'docx',
+      category: 'word',
+      size: 6812855,
+      folderId: 'f_1792136833788',
+      folderName: 'TOÁN',
+      filename: '1792136886679-350314422.docx',
+      uploadDate: '2026-10-16T07:48:06.697Z',
+      updatedDate: '2026-10-16T07:48:06.697Z',
+      isFavorite: false,
+      isDeleted: false,
+      versions: [
+        {
+          version: 1,
+          name: 'TOÁN TUẦN 1.docx',
+          size: 6812855,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792136886679-350314422.docx',
+        },
+      ],
+      previewContent: 'Tài liệu: TOÁN TUẦN 1.docx\nĐịnh dạng: DOCX\nKích thước: 6.50 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
+    },
+    {
+      id: 'file_1792136795091_1g9hf',
+      name: 'TV TUẦN 1.docx',
+      originalName: 'TV TUẦN 1.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      extension: 'docx',
+      category: 'word',
+      size: 1728151,
+      folderId: 'f_1792136755685',
+      folderName: 'TIẾNG VIỆT',
+      filename: '1792136795089-61064879.docx',
+      uploadDate: '2026-10-16T07:46:35.091Z',
+      updatedDate: '2026-10-16T07:46:35.092Z',
       isFavorite: false,
       isDeleted: true,
-      deletedAt: '2026-09-29T10:15:00Z',
+      deletedAt: '2026-10-16T09:03:38.675Z',
       versions: [
-        { version: 1, name: 'Video tiết dạy mẫu môn Toán.mp4', size: 450 * 1024 * 1024, uploadDate: '2026-09-23', updatedBy: 'Từ Văn Gọn', filename: 'video_tiet_day_mau.mp4' },
+        {
+          version: 1,
+          name: 'TV TUẦN 1.docx',
+          size: 1728151,
+          uploadDate: '2026-10-16',
+          updatedBy: 'TỪ VĂN GỌN',
+          filename: '1792136795089-61064879.docx',
+        },
       ],
-      previewContent: 'Video bài giảng thực nghiệm môn Toán 1 - Dạy học tích hợp STEM và phương pháp dạy học tích cực.',
-    },
-    {
-      id: 'file_07',
-      name: 'Ma trận đề kiểm tra Toán 1.xlsx',
-      originalName: 'Ma_tran_de_kiem_tra_Toan_1.xlsx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      extension: 'xlsx',
-      category: 'excel' as const,
-      size: 1.2 * 1024 * 1024,
-      folderId: 'f_03',
-      folderName: '03. GIÁO ÁN',
-      filename: 'ma_tran_de_kiem_tra_toan_1.xlsx',
-      uploadDate: '2026-09-10T09:00:00Z',
-      updatedDate: '2026-09-10T09:00:00Z',
-      isFavorite: false,
-      isDeleted: false,
-      versions: [
-        { version: 1, name: 'Ma trận đề kiểm tra Toán 1.xlsx', size: 1.2 * 1024 * 1024, uploadDate: '2026-09-10', updatedBy: 'Từ Văn Gọn', filename: 'ma_tran_de_kiem_tra_toan_1.xlsx' },
-      ],
-      previewContent: 'BẢNG MA TRẬN ĐỀ KIỂM TRA ĐỊNH KỲ MÔN TOÁN LỚP 1\nTheo Thông tư 27/2020/TT-BGDĐT\n- Mức 1 (Nhận biết): 40%\n- Mức 2 (Thông hiểu): 30%\n- Mức 3 (Vận dụng): 30%',
-    },
-    {
-      id: 'file_08',
-      name: 'Đề kiểm tra Toán lớp 1 - HK1.docx',
-      originalName: 'De_kiem_tra_Toan_lop_1_HK1.docx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      extension: 'docx',
-      category: 'word' as const,
-      size: 1.8 * 1024 * 1024,
-      folderId: 'f_03',
-      folderName: '03. GIÁO ÁN',
-      filename: 'de_kiem_tra_toan_lop_1_hk1.docx',
-      uploadDate: '2026-09-18T14:30:00Z',
-      updatedDate: '2026-09-18T14:30:00Z',
-      isFavorite: false,
-      isDeleted: false,
-      versions: [
-        { version: 1, name: 'Đề kiểm tra Toán lớp 1 - HK1.docx', size: 1.8 * 1024 * 1024, uploadDate: '2026-09-18', updatedBy: 'Từ Văn Gọn', filename: 'de_kiem_tra_toan_lop_1_hk1.docx' },
-      ],
-      previewContent: 'TRƯỜNG TIỂU HỌC PHƯỜNG AN XUYÊN\nĐỀ KIỂM TRA ĐỊNH KỲ CUỐI HỌC KỲ I - NĂM HỌC 2026-2027\nMÔN: TOÁN - LỚP 1\nThời gian làm bài: 40 phút\nHọ và tên học sinh: ....................................... Lớp 1C\nĐiểm số: ........... Lời nhận xét của Thầy Gọn: ............................\nPhần 1: Trắc nghiệm khách quan\nCâu 1: Số lớn nhất có một chữ số là số nào?',
-    },
-    {
-      id: 'file_09',
-      name: 'Ảnh thẻ hồ sơ viên chức Thầy Gọn.jpg',
-      originalName: 'Anh_the_ho_so_vien_chuc.jpg',
-      mimeType: 'image/jpeg',
-      extension: 'jpg',
-      category: 'image' as const,
-      size: 1.5 * 1024 * 1024,
-      folderId: 'f_11',
-      folderName: '11. HỒ SƠ CÁ NHÂN',
-      filename: 'anh_the_thay_gon.jpg',
-      uploadDate: '2026-09-15T10:00:00Z',
-      updatedDate: '2026-09-15T10:00:00Z',
-      isFavorite: true,
-      isDeleted: false,
-      versions: [
-        { version: 1, name: 'Ảnh thẻ hồ sơ viên chức Thầy Gọn.jpg', size: 1.5 * 1024 * 1024, uploadDate: '2026-09-15', updatedBy: 'Từ Văn Gọn', filename: 'anh_the_thay_gon.jpg' },
-      ],
-      previewContent: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80',
+      previewContent: 'Tài liệu: TV TUẦN 1.docx\nĐịnh dạng: DOCX\nKích thước: 1.65 MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.',
     },
   ];
 
-  // Write physical file representations in uploads directory
+  // Write physical file representations in uploads directory if missing
   sampleFiles.forEach((file) => {
     const filePath = path.join(UPLOADS_DIR, file.filename);
     if (!fs.existsSync(filePath)) {
@@ -368,8 +559,16 @@ function getDB(): DatabaseSchema {
   try {
     const content = fs.readFileSync(DB_FILE, 'utf-8');
     const parsed: DatabaseSchema = JSON.parse(content);
+    let changed = false;
+    if (!parsed.folders || parsed.folders.length === 0) {
+      parsed.folders = defaultFolders;
+      changed = true;
+    }
     if (!parsed.files || parsed.files.length === 0) {
       parsed.files = seedInitialFiles();
+      changed = true;
+    }
+    if (changed) {
       saveDB(parsed);
     }
     return parsed;
@@ -622,6 +821,22 @@ app.post('/api/supabase/sync', async (_req, res) => {
   }
 });
 
+// Restore database with lesson plans and all folders
+app.post('/api/database/restore', (_req, res) => {
+  const db: DatabaseSchema = {
+    user: initialUser,
+    folders: defaultFolders,
+    files: seedInitialFiles(),
+  };
+  saveDB(db);
+  res.json({
+    success: true,
+    message: 'Đã khôi phục toàn bộ hệ thống thư mục và tài liệu giáo án của Thầy Gọn!',
+    folders: db.folders,
+    files: db.files,
+  });
+});
+
 // 1. User Profile & Settings
 app.get('/api/user', (_req, res) => {
   const db = getDB();
@@ -704,13 +919,31 @@ app.get('/api/folders', (_req, res) => {
   const db = getDB();
   const activeFiles = db.files.filter((f) => !f.isDeleted);
 
-  // Compute folder item count & total size
+  // Helper to find all descendant folder IDs recursively
+  const getDescendantFolderIds = (folderId: string): string[] => {
+    const directChildren = db.folders.filter((f) => f.parentId === folderId);
+    let ids: string[] = [];
+    for (const child of directChildren) {
+      ids.push(child.id);
+      ids = ids.concat(getDescendantFolderIds(child.id));
+    }
+    return ids;
+  };
+
+  // Compute folder item count & total size (direct + recursive)
   const foldersWithMeta = db.folders.map((folder) => {
-    const filesInFolder = activeFiles.filter((f) => f.folderId === folder.id);
-    const size = filesInFolder.reduce((acc, f) => acc + (f.size || 0), 0);
+    const descendantIds = [folder.id, ...getDescendantFolderIds(folder.id)];
+    const filesInTree = activeFiles.filter((f) => descendantIds.includes(f.folderId));
+    const directFiles = activeFiles.filter((f) => f.folderId === folder.id);
+    const directChildren = db.folders.filter((f) => f.parentId === folder.id);
+    const size = filesInTree.reduce((acc, f) => acc + (f.size || 0), 0);
+
     return {
       ...folder,
-      fileCount: filesInFolder.length,
+      fileCount: filesInTree.length,
+      directFileCount: directFiles.length,
+      subfolderCount: directChildren.length,
+      subfolderNames: directChildren.map((c) => c.name),
       totalSize: size,
     };
   });

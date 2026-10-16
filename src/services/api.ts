@@ -1,10 +1,51 @@
 import { FileItem, FolderItem, StatsData, UserProfile, SharedConfig, SupabaseStatus } from '../types';
 
+export const localStore = {
+  get<T>(key: string, defaultValue: T): T {
+    try {
+      const val = localStorage.getItem(`thaygon_${key}`);
+      return val ? JSON.parse(val) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  },
+  set(key: string, val: any): void {
+    try {
+      localStorage.setItem(`thaygon_${key}`, JSON.stringify(val));
+    } catch (e) {
+      // quota or private browsing
+    }
+  },
+};
+
 export const api = {
   async getUser(): Promise<UserProfile> {
-    const res = await fetch('/api/user');
-    const data = await res.json();
-    return data.user;
+    try {
+      const res = await fetch('/api/user');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          localStore.set('user', data.user);
+          return data.user;
+        }
+      }
+    } catch (e) {
+      console.warn('API getUser fallback:', e);
+    }
+    return localStore.get('user', {
+      id: 'user_gon_01',
+      fullName: 'TỪ VĂN GỌN',
+      role: 'Giáo viên tiểu học',
+      school: 'Trường Tiểu học Phường An Xuyên',
+      location: 'Cà Mau',
+      email: 'thaygonthax1978@gmail.com',
+      phone: '0918.452.889',
+      storageUsedBytes: 41446434406,
+      storageMaxBytes: 107374182400,
+      avatarUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200&auto=format&fit=crop&q=80',
+      twoFactorEnabled: true,
+      lastLogin: new Date().toISOString(),
+    });
   },
 
   async updateUser(userData: Partial<UserProfile>): Promise<UserProfile> {
@@ -14,19 +55,72 @@ export const api = {
       body: JSON.stringify(userData),
     });
     const data = await res.json();
+    if (data.user) localStore.set('user', data.user);
     return data.user;
   },
 
   async getStats(): Promise<StatsData> {
-    const res = await fetch('/api/stats');
-    const data = await res.json();
-    return data.stats;
+    try {
+      const res = await fetch('/api/stats');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.stats) {
+          localStore.set('stats', data.stats);
+          return data.stats;
+        }
+      }
+    } catch (e) {
+      console.warn('API getStats fallback:', e);
+    }
+    return localStore.get('stats', {
+      totalDocuments: 10,
+      totalStorageBytes: 34800000,
+      maxStorageBytes: 107374182400,
+      usedPercentage: 0.1,
+      counts: { word: 10, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
+      sizes: { word: 34800000, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
+      percentages: { word: 100, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
+      totalFolders: 11,
+      trashCount: 1,
+    });
   },
 
   async getFolders(): Promise<FolderItem[]> {
-    const res = await fetch('/api/folders');
+    try {
+      const res = await fetch('/api/folders');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.folders) && data.folders.length > 0) {
+          localStore.set('folders', data.folders);
+          return data.folders;
+        }
+      }
+    } catch (e) {
+      console.warn('API getFolders fallback:', e);
+    }
+
+    const cached = localStore.get<FolderItem[]>('folders', []);
+    if (cached && cached.length > 0) return cached;
+
+    // Auto-restore seed if completely empty
+    try {
+      const restoreRes = await fetch('/api/database/restore', { method: 'POST' });
+      const restoreData = await restoreRes.json();
+      if (restoreData.folders && restoreData.folders.length > 0) {
+        localStore.set('folders', restoreData.folders);
+        return restoreData.folders;
+      }
+    } catch {}
+
+    return cached;
+  },
+
+  async restoreDatabase(): Promise<{ success: boolean; message: string; folders: FolderItem[]; files: FileItem[] }> {
+    const res = await fetch('/api/database/restore', { method: 'POST' });
     const data = await res.json();
-    return data.folders;
+    if (data.folders) localStore.set('folders', data.folders);
+    if (data.files) localStore.set('files_all', data.files);
+    return data;
   },
 
   async createFolder(name: string, parentId?: string | null, color?: string): Promise<FolderItem> {
@@ -67,9 +161,38 @@ export const api = {
     if (params?.favorite) query.set('favorite', 'true');
     if (params?.trash) query.set('trash', 'true');
 
-    const res = await fetch(`/api/files?${query.toString()}`);
-    const data = await res.json();
-    return data.files || [];
+    try {
+      const res = await fetch(`/api/files?${query.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        const files = data.files || [];
+        if (!params || Object.keys(params).length === 0) {
+          localStore.set('files_all', files);
+        } else if (params.trash) {
+          localStore.set('trash_files', files);
+        }
+        return files;
+      }
+    } catch (e) {
+      console.warn('API getFiles fallback:', e);
+    }
+
+    if (params?.trash) {
+      return localStore.get<FileItem[]>('trash_files', []);
+    }
+    const all = localStore.get<FileItem[]>('files_all', []);
+    let filtered = all.filter((f) => !f.isDeleted);
+    if (params?.folderId) {
+      filtered = filtered.filter((f) => f.folderId === params.folderId);
+    }
+    if (params?.favorite) {
+      filtered = filtered.filter((f) => f.isFavorite);
+    }
+    if (params?.search) {
+      const q = params.search.toLowerCase();
+      filtered = filtered.filter((f) => f.name.toLowerCase().includes(q));
+    }
+    return filtered;
   },
 
   async getFile(id: string): Promise<FileItem> {

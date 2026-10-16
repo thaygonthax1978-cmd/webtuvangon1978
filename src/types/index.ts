@@ -70,6 +70,9 @@ export interface FolderItem {
   createdAt: string;
   updatedAt: string;
   fileCount?: number;
+  directFileCount?: number;
+  subfolderCount?: number;
+  subfolderNames?: string[];
   totalSize?: number;
 }
 

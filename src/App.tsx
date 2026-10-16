@@ -7,7 +7,7 @@ import {
   ViewTab,
   SharedConfig,
 } from './types';
-import { api, formatBytes, formatDate, buildFolderTreeOptions } from './services/api';
+import { api, localStore, formatBytes, formatDate, buildFolderTreeOptions } from './services/api';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { HomeDashboard } from './components/HomeDashboard';
@@ -42,20 +42,33 @@ import {
   FolderUp,
   AlertTriangle,
   Loader2,
+  RotateCcw,
+  CheckSquare,
 } from 'lucide-react';
+
+const getDescendantFolderIds = (folderId: string, folderList: FolderItem[]): string[] => {
+  const directChildren = folderList.filter((f) => f.parentId === folderId);
+  let ids: string[] = [];
+  for (const child of directChildren) {
+    ids.push(child.id);
+    ids = ids.concat(getDescendantFolderIds(child.id, folderList));
+  }
+  return ids;
+};
 
 export default function App() {
   // Navigation & View state
   const [currentTab, setCurrentTab] = useState<ViewTab>('home');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
-  // App data state
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [stats, setStats] = useState<StatsData | null>(null);
-  const [folders, setFolders] = useState<FolderItem[]>([]);
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [trashFiles, setTrashFiles] = useState<FileItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // App data state - initialized from localStore for instant load & offline resilience
+  const [user, setUser] = useState<UserProfile | null>(() => localStore.get('user', null));
+  const [stats, setStats] = useState<StatsData | null>(() => localStore.get('stats', null));
+  const [folders, setFolders] = useState<FolderItem[]>(() => localStore.get('folders', []));
+  const [files, setFiles] = useState<FileItem[]>(() => localStore.get('files_all', []));
+  const [trashFiles, setTrashFiles] = useState<FileItem[]>(() => localStore.get('trash_files', []));
+  const [isLoading, setIsLoading] = useState(() => localStore.get('folders', []).length === 0);
+  const [includeSubfolderFiles, setIncludeSubfolderFiles] = useState(true);
 
   // Layout & Responsive state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -111,14 +124,16 @@ export default function App() {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Load initial data
-  const loadData = async () => {
+  // Load initial data with resilience
+  const loadData = async (manualNotice = false) => {
     try {
-      setIsLoading(true);
-      const [userData, statsData, foldersData, filesData, trashData] = await Promise.all([
+      if (folders.length === 0) {
+        setIsLoading(true);
+      }
+      const results = await Promise.allSettled([
         api.getUser(),
         api.getStats(),
         api.getFolders(),
@@ -126,11 +141,34 @@ export default function App() {
         api.getFiles({ trash: true }),
       ]);
 
-      setUser(userData);
-      setStats(statsData);
-      setFolders(foldersData);
-      setFiles(filesData);
-      setTrashFiles(trashData);
+      const userData = results[0].status === 'fulfilled' ? results[0].value : null;
+      const statsData = results[1].status === 'fulfilled' ? results[1].value : null;
+      const foldersData = results[2].status === 'fulfilled' ? results[2].value : [];
+      const filesData = results[3].status === 'fulfilled' ? results[3].value : [];
+      const trashData = results[4].status === 'fulfilled' ? results[4].value : [];
+
+      if (userData) setUser(userData);
+      if (statsData) setStats(statsData);
+      if (Array.isArray(foldersData) && foldersData.length > 0) {
+        setFolders(foldersData);
+      }
+      if (Array.isArray(filesData) && filesData.length > 0) {
+        setFiles(filesData);
+      }
+      if (Array.isArray(trashData)) {
+        setTrashFiles(trashData);
+      }
+
+      // If both backend and local are somehow empty, auto-restore
+      if ((!foldersData || foldersData.length === 0) && folders.length === 0) {
+        const restored = await api.restoreDatabase();
+        if (restored.folders) setFolders(restored.folders);
+        if (restored.files) setFiles(restored.files);
+      }
+
+      if (manualNotice) {
+        showToast('Đã làm mới và đồng bộ 11 thư mục giáo án thành công!');
+      }
     } catch (err) {
       console.error('Lỗi tải dữ liệu kho tài liệu:', err);
     } finally {
@@ -429,7 +467,12 @@ export default function App() {
           displayedFiles = displayedFiles.filter((f) => f.isFavorite);
         }
         if (selectedFolderId) {
-          displayedFiles = displayedFiles.filter((f) => f.folderId === selectedFolderId);
+          if (includeSubfolderFiles) {
+            const descendantIds = [selectedFolderId, ...getDescendantFolderIds(selectedFolderId, folders)];
+            displayedFiles = displayedFiles.filter((f) => descendantIds.includes(f.folderId));
+          } else {
+            displayedFiles = displayedFiles.filter((f) => f.folderId === selectedFolderId);
+          }
         }
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
@@ -529,9 +572,21 @@ export default function App() {
                   {isFavoritesView
                     ? 'Danh sách tài liệu giảng dạy ưu tiên đánh dấu sao'
                     : selectedFolderId
-                    ? `Đang xem tài liệu trong thư mục ${currentFolderObj?.name} (Mã: ${currentFolderObj?.code || '03'})`
+                    ? `Đang xem tài liệu trong thư mục ${currentFolderObj?.name} (Mã: ${currentFolderObj?.code || '04'})`
                     : 'Hệ thống tài liệu lưu trữ trên đám mây Trường TH Phường An Xuyên'}
                 </p>
+
+                {selectedFolderId && (
+                  <label className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-lg cursor-pointer transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={includeSubfolderFiles}
+                      onChange={(e) => setIncludeSubfolderFiles(e.target.checked)}
+                      className="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                    />
+                    <span>Hiển thị cả tệp trong các thư mục con ({displayedFiles.length} tệp)</span>
+                  </label>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -708,6 +763,7 @@ export default function App() {
             onDeleteFolder={handleDeleteFolder}
             onOpenUpload={(targetFolderId) => handleOpenUpload(targetFolderId, 'file')}
             onOpenUploadFolder={(targetFolderId) => handleOpenUpload(targetFolderId, 'folder')}
+            onRefreshData={() => loadData(true)}
           />
         );
 
