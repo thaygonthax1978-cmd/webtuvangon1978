@@ -20,9 +20,15 @@ import {
   UploadCloud,
   Edit2,
   FolderUp,
+  AlertTriangle,
+  CheckSquare,
+  Square,
+  MinusSquare,
+  Loader2,
+  RotateCcw,
 } from 'lucide-react';
 import { FileItem, FileCategory } from '../types';
-import { formatBytes, formatDate } from '../services/api';
+import { formatBytes, formatDate, api } from '../services/api';
 
 interface FileSearchProps {
   files: FileItem[];
@@ -30,6 +36,8 @@ interface FileSearchProps {
   onDownloadFile: (file: FileItem) => void;
   onShareFile: (file: FileItem) => void;
   onDeleteFile: (file: FileItem) => void;
+  onDeleteMultipleFiles?: (files: FileItem[], permanent?: boolean) => Promise<void>;
+  onDeleteAllFiles?: (filesToDelete: FileItem[], permanent?: boolean) => Promise<void>;
   onRenameFile?: (file: FileItem) => void;
   onMoveToEnd?: (file: FileItem) => void;
   onOpenUpload?: () => void;
@@ -43,6 +51,8 @@ export const FileSearch: React.FC<FileSearchProps> = ({
   onDownloadFile,
   onShareFile,
   onDeleteFile,
+  onDeleteMultipleFiles,
+  onDeleteAllFiles,
   onRenameFile,
   onMoveToEnd,
   onOpenUpload,
@@ -53,6 +63,24 @@ export const FileSearch: React.FC<FileSearchProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'size' | 'date' | 'category'>('name');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
+
+  // Multi-selection state
+  const [selectedFileIds, setSelectedFileIds] = useState<string[]>([]);
+
+  // Modal confirm state
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    mode: 'all' | 'selected';
+    filesToDelete: FileItem[];
+    permanent: boolean;
+    isDeleting: boolean;
+  }>({
+    isOpen: false,
+    mode: 'all',
+    filesToDelete: [],
+    permanent: false,
+    isDeleting: false,
+  });
 
   const categories = [
     { id: 'all', label: 'Tất cả', icon: File },
@@ -92,6 +120,81 @@ export const FileSearch: React.FC<FileSearchProps> = ({
     return sortAsc ? diff : -diff;
   });
 
+  // Selection handlers
+  const handleToggleSelectAll = () => {
+    if (selectedFileIds.length === sortedFiles.length && sortedFiles.length > 0) {
+      setSelectedFileIds([]);
+    } else {
+      setSelectedFileIds(sortedFiles.map((f) => f.id));
+    }
+  };
+
+  const handleToggleSelectFile = (fileId: string) => {
+    setSelectedFileIds((prev) =>
+      prev.includes(fileId) ? prev.filter((id) => id !== fileId) : [...prev, fileId]
+    );
+  };
+
+  const handleClearSelection = () => {
+    setSelectedFileIds([]);
+  };
+
+  // Open Delete Confirmation
+  const handlePromptDeleteAll = () => {
+    if (sortedFiles.length === 0) return;
+    setDeleteModal({
+      isOpen: true,
+      mode: 'all',
+      filesToDelete: sortedFiles,
+      permanent: false,
+      isDeleting: false,
+    });
+  };
+
+  const handlePromptDeleteSelected = () => {
+    const selectedFiles = sortedFiles.filter((f) => selectedFileIds.includes(f.id));
+    if (selectedFiles.length === 0) return;
+    setDeleteModal({
+      isOpen: true,
+      mode: 'selected',
+      filesToDelete: selectedFiles,
+      permanent: false,
+      isDeleting: false,
+    });
+  };
+
+  const handleExecuteDelete = async () => {
+    setDeleteModal((prev) => ({ ...prev, isDeleting: true }));
+    try {
+      if (deleteModal.mode === 'all') {
+        if (onDeleteAllFiles) {
+          await onDeleteAllFiles(deleteModal.filesToDelete, deleteModal.permanent);
+        } else if (onDeleteMultipleFiles) {
+          await onDeleteMultipleFiles(deleteModal.filesToDelete, deleteModal.permanent);
+        } else {
+          await api.batchDeleteFiles({
+            ids: deleteModal.filesToDelete.map((f) => f.id),
+            permanent: deleteModal.permanent,
+          });
+        }
+      } else {
+        if (onDeleteMultipleFiles) {
+          await onDeleteMultipleFiles(deleteModal.filesToDelete, deleteModal.permanent);
+        } else {
+          await api.batchDeleteFiles({
+            ids: deleteModal.filesToDelete.map((f) => f.id),
+            permanent: deleteModal.permanent,
+          });
+        }
+      }
+      setSelectedFileIds([]);
+      setDeleteModal({ isOpen: false, mode: 'all', filesToDelete: [], permanent: false, isDeleting: false });
+    } catch (err) {
+      console.error('Lỗi khi xóa tệp:', err);
+      setDeleteModal((prev) => ({ ...prev, isDeleting: false }));
+    }
+  };
+
   const getFileBadge = (category: string) => {
     switch (category) {
       case 'pdf':
@@ -110,6 +213,9 @@ export const FileSearch: React.FC<FileSearchProps> = ({
         return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700">Khác</span>;
     }
   };
+
+  const isAllSelected = sortedFiles.length > 0 && selectedFileIds.length === sortedFiles.length;
+  const isPartiallySelected = selectedFileIds.length > 0 && selectedFileIds.length < sortedFiles.length;
 
   return (
     <div className="space-y-5">
@@ -162,10 +268,23 @@ export const FileSearch: React.FC<FileSearchProps> = ({
       {/* Results Meta & Table */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <p className="text-xs md:text-sm font-bold text-slate-800">
               Tìm thấy <span className="text-blue-600 font-extrabold">{sortedFiles.length}</span> tài liệu
             </p>
+
+            {/* NÚT XÓA TẤT CẢ FILE - Nổi bật ngay cạnh Tải tệp, Tải thư mục */}
+            {sortedFiles.length > 0 && (
+              <button
+                onClick={handlePromptDeleteAll}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 hover:border-rose-300 transition-all cursor-pointer shadow-xs active:scale-95"
+                title="Bấm để xóa tất cả tài liệu trong danh sách này"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Xóa tất cả file</span>
+              </button>
+            )}
+
             {onOpenUpload && (
               <button
                 onClick={onOpenUpload}
@@ -212,10 +331,62 @@ export const FileSearch: React.FC<FileSearchProps> = ({
           </div>
         </div>
 
+        {/* Thanh tác vụ khi chọn nhiều tệp (Bulk Action Bar) */}
+        {selectedFileIds.length > 0 && (
+          <div className="mx-4 mt-3 mb-2 p-3 bg-blue-50 border border-blue-200 rounded-xl flex flex-wrap items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
+              <span className="text-xs font-bold text-blue-950">
+                Đã chọn <span className="text-blue-700 font-extrabold">{selectedFileIds.length}</span> / {sortedFiles.length} tài liệu
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleToggleSelectAll}
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                {isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn toàn bộ'}
+              </button>
+              <button
+                type="button"
+                onClick={handleClearSelection}
+                className="text-xs font-medium text-slate-500 hover:text-slate-800 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Bỏ chọn
+              </button>
+              <button
+                type="button"
+                onClick={handlePromptDeleteSelected}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs transition-colors cursor-pointer active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Xóa {selectedFileIds.length} file đã chọn</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
               <tr>
+                {/* Checkbox chọn tất cả */}
+                <th className="py-3 px-3 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    aria-label="Chọn tất cả tài liệu"
+                    checked={isAllSelected}
+                    ref={(el) => {
+                      if (el) {
+                        el.indeterminate = isPartiallySelected;
+                      }
+                    }}
+                    onChange={handleToggleSelectAll}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer accent-blue-600"
+                  />
+                </th>
                 <th
                   onClick={() => {
                     if (sortBy === 'name') setSortAsc(!sortAsc);
@@ -316,7 +487,7 @@ export const FileSearch: React.FC<FileSearchProps> = ({
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {sortedFiles.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 px-4 text-center">
+                  <td colSpan={7} className="py-12 px-4 text-center">
                     {searchTerm.trim() || selectedCategory !== 'all' ? (
                       <div className="flex flex-col items-center justify-center">
                         <p className="text-slate-500 text-sm mb-2">
@@ -370,107 +541,228 @@ export const FileSearch: React.FC<FileSearchProps> = ({
                   </td>
                 </tr>
               ) : (
-                sortedFiles.map((file) => (
-                  <tr key={file.id} className="hover:bg-blue-50/50 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                          <File className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 group">
-                            <p
-                              onClick={() => onOpenFile(file)}
-                              className="font-bold text-slate-900 hover:text-blue-600 cursor-pointer truncate max-w-xs md:max-w-md"
-                              title={file.name}
-                            >
-                              {file.name}
-                            </p>
-                            {onRenameFile && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onRenameFile(file);
-                                }}
-                                className="opacity-70 group-hover:opacity-100 p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-all cursor-pointer shrink-0"
-                                title="Sửa tên tệp này"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                sortedFiles.map((file) => {
+                  const isChecked = selectedFileIds.includes(file.id);
+
+                  return (
+                    <tr
+                      key={file.id}
+                      className={`transition-colors ${
+                        isChecked ? 'bg-blue-50/70 hover:bg-blue-100/60' : 'hover:bg-blue-50/40'
+                      }`}
+                    >
+                      {/* Checkbox hàng */}
+                      <td className="py-3 px-3 text-center w-10">
+                        <input
+                          type="checkbox"
+                          aria-label={`Chọn ${file.name}`}
+                          checked={isChecked}
+                          onChange={() => handleToggleSelectFile(file.id)}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer accent-blue-600"
+                        />
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                            <File className="w-4 h-4 text-blue-600" />
                           </div>
-                          <span className="text-[10px] text-slate-400">
-                            Phiên bản: v{file.versions?.length || 1}
-                          </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 group">
+                              <p
+                                onClick={() => onOpenFile(file)}
+                                className="font-bold text-slate-900 hover:text-blue-600 cursor-pointer truncate max-w-xs md:max-w-md"
+                                title={file.name}
+                              >
+                                {file.name}
+                              </p>
+                              {onRenameFile && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRenameFile(file);
+                                  }}
+                                  className="opacity-70 group-hover:opacity-100 p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-all cursor-pointer shrink-0"
+                                  title="Sửa tên tệp này"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400">
+                              Phiên bản: v{file.versions?.length || 1}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3">{getFileBadge(file.category)}</td>
-                    <td className="py-3 px-3 font-medium text-slate-600">{formatBytes(file.size)}</td>
-                    <td className="py-3 px-3 text-slate-500">{formatDate(file.uploadDate)}</td>
-                    <td className="py-3 px-3">
-                      <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                        <Folder className="w-3 h-3 text-amber-500" />
-                        {file.folderName}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {onRenameFile && (
+                      </td>
+                      <td className="py-3 px-3">{getFileBadge(file.category)}</td>
+                      <td className="py-3 px-3 font-medium text-slate-600">{formatBytes(file.size)}</td>
+                      <td className="py-3 px-3 text-slate-500">{formatDate(file.uploadDate)}</td>
+                      <td className="py-3 px-3">
+                        <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                          <Folder className="w-3 h-3 text-amber-500" />
+                          {file.folderName}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {onRenameFile && (
+                            <button
+                              onClick={() => onRenameFile(file)}
+                              className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                              title="Đổi tên tệp"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {onMoveToEnd && (
+                            <button
+                              onClick={() => onMoveToEnd(file)}
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                              title="Đưa tệp này xuống cuối danh sách"
+                            >
+                              <ChevronsDown className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
-                            onClick={() => onRenameFile(file)}
-                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                            title="Đổi tên tệp"
+                            onClick={() => onOpenFile(file)}
+                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
+                            title="Xem trước"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
-                        )}
-                        {onMoveToEnd && (
                           <button
-                            onClick={() => onMoveToEnd(file)}
-                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-                            title="Đưa tệp này xuống cuối danh sách"
+                            onClick={() => onDownloadFile(file)}
+                            className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg cursor-pointer"
+                            title="Tải về"
                           >
-                            <ChevronsDown className="w-4 h-4" />
+                            <Download className="w-4 h-4" />
                           </button>
-                        )}
-                        <button
-                          onClick={() => onOpenFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                          title="Xem trước"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onDownloadFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
-                          title="Tải về"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onShareFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                          title="Chia sẻ"
-                        >
-                          <Share2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onDeleteFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
-                          title="Xóa"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          <button
+                            onClick={() => onShareFile(file)}
+                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
+                            title="Chia sẻ"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onDeleteFile(file)}
+                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                            title="Xóa tệp này"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* MODAL XÁC NHẬN XÓA TẤT CẢ FILE HOẶC CÁC FILE ĐÃ CHỌN */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 shadow-xs">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-bold text-slate-900">
+                  {deleteModal.mode === 'all'
+                    ? 'Xác nhận xóa tất cả tài liệu'
+                    : `Xác nhận xóa ${deleteModal.filesToDelete.length} tài liệu đã chọn`}
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  {deleteModal.mode === 'all'
+                    ? `Thầy đang chọn xóa toàn bộ ${deleteModal.filesToDelete.length} tài liệu ${
+                        currentFolderName ? `trong thư mục "${currentFolderName}"` : 'đang hiển thị'
+                      }.`
+                    : `Thầy đang chọn xóa ${deleteModal.filesToDelete.length} tài liệu đã chọn khỏi danh sách.`}
+                </p>
+              </div>
+            </div>
+
+            {/* Chọn phương thức xóa: Thùng rác vs Vĩnh viễn */}
+            <div className="space-y-2.5 my-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs">
+              <p className="font-bold text-slate-800">Phương thức xóa:</p>
+
+              <label className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-white transition-colors cursor-pointer border border-transparent hover:border-slate-200">
+                <input
+                  type="radio"
+                  name="deleteType"
+                  checked={!deleteModal.permanent}
+                  onChange={() => setDeleteModal((prev) => ({ ...prev, permanent: false }))}
+                  className="mt-0.5 accent-blue-600 cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-slate-900 block">
+                    Chuyển vào thùng rác <span className="text-[11px] font-normal text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 ml-1">Khuyên dùng</span>
+                  </span>
+                  <span className="text-slate-500 text-[11px] block mt-0.5">
+                    Tài liệu được chuyển vào Thùng rác và Thầy có thể xem hoặc khôi phục lại bất kỳ lúc nào.
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-white transition-colors cursor-pointer border border-transparent hover:border-slate-200">
+                <input
+                  type="radio"
+                  name="deleteType"
+                  checked={deleteModal.permanent}
+                  onChange={() => setDeleteModal((prev) => ({ ...prev, permanent: true }))}
+                  className="mt-0.5 accent-rose-600 cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-rose-700 block">
+                    Xóa vĩnh viễn khỏi hệ thống
+                  </span>
+                  <span className="text-slate-500 text-[11px] block mt-0.5">
+                    Xóa hoàn toàn tệp tin vật lý khỏi máy chủ lưu trữ, không thể khôi phục lại.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            {/* Nút hành động */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={deleteModal.isDeleting}
+                onClick={() => setDeleteModal({ isOpen: false, mode: 'all', filesToDelete: [], permanent: false, isDeleting: false })}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={deleteModal.isDeleting}
+                onClick={handleExecuteDelete}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {deleteModal.isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang xóa...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>
+                      {deleteModal.mode === 'all'
+                        ? `Xác nhận xóa tất cả (${deleteModal.filesToDelete.length})`
+                        : `Xác nhận xóa (${deleteModal.filesToDelete.length} tệp)`}
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

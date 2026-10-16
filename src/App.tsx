@@ -39,6 +39,8 @@ import {
   Filter,
   Edit2,
   FolderUp,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 
 export default function App() {
@@ -86,6 +88,21 @@ export default function App() {
 
   // Search keyword from Header or My Files
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Delete All Files in Folder Confirmation State
+  const [folderDeleteAllConfirm, setFolderDeleteAllConfirm] = useState<{
+    open: boolean;
+    folderName: string;
+    files: FileItem[];
+    permanent: boolean;
+    isDeleting: boolean;
+  }>({
+    open: false,
+    folderName: '',
+    files: [],
+    permanent: false,
+    isDeleting: false,
+  });
 
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -163,6 +180,64 @@ export default function App() {
       loadData();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleDeleteMultipleFiles = async (filesToDelete: FileItem[], permanent: boolean = false) => {
+    try {
+      const ids = filesToDelete.map((f) => f.id);
+      const res = await api.batchDeleteFiles({ ids, permanent });
+      showToast(
+        permanent
+          ? `Đã xóa vĩnh viễn ${ids.length} tài liệu khỏi hệ thống!`
+          : `Đã chuyển ${ids.length} tài liệu vào thùng rác!`
+      );
+      loadData();
+    } catch (err) {
+      console.error(err);
+      showToast('Có lỗi xảy ra khi xóa tài liệu');
+    }
+  };
+
+  const handleDeleteAllInView = async (filesToDelete: FileItem[], permanent: boolean = false) => {
+    try {
+      const ids = filesToDelete.map((f) => f.id);
+      const res = await api.batchDeleteFiles({ ids, permanent });
+      showToast(
+        permanent
+          ? `Đã xóa vĩnh viễn toàn bộ ${ids.length} tài liệu!`
+          : `Đã chuyển toàn bộ ${ids.length} tài liệu vào thùng rác!`
+      );
+      loadData();
+    } catch (err) {
+      console.error(err);
+      showToast('Có lỗi xảy ra khi xóa tất cả tài liệu');
+    }
+  };
+
+  const handleExecuteFolderDeleteAll = async () => {
+    if (folderDeleteAllConfirm.files.length === 0) return;
+    setFolderDeleteAllConfirm((prev) => ({ ...prev, isDeleting: true }));
+    try {
+      const ids = folderDeleteAllConfirm.files.map((f) => f.id);
+      await api.batchDeleteFiles({ ids, permanent: folderDeleteAllConfirm.permanent });
+      showToast(
+        folderDeleteAllConfirm.permanent
+          ? `Đã xóa vĩnh viễn ${ids.length} tài liệu khỏi ${folderDeleteAllConfirm.folderName}!`
+          : `Đã chuyển ${ids.length} tài liệu vào thùng rác!`
+      );
+      setFolderDeleteAllConfirm({
+        open: false,
+        folderName: '',
+        files: [],
+        permanent: false,
+        isDeleting: false,
+      });
+      loadData();
+    } catch (err) {
+      console.error(err);
+      showToast('Có lỗi khi xóa tài liệu');
+      setFolderDeleteAllConfirm((prev) => ({ ...prev, isDeleting: false }));
     }
   };
 
@@ -500,6 +575,26 @@ export default function App() {
                   <span>Tải thư mục lên</span>
                 </button>
 
+                {/* 4. Nút Xóa tất cả file trong thư mục */}
+                {displayedFiles.length > 0 && (
+                  <button
+                    onClick={() =>
+                      setFolderDeleteAllConfirm({
+                        open: true,
+                        folderName: currentFolderObj?.name || 'danh sách hiện tại',
+                        files: displayedFiles,
+                        permanent: false,
+                        isDeleting: false,
+                      })
+                    }
+                    className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 hover:border-rose-300 font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    title={`Xóa tất cả ${displayedFiles.length} tài liệu`}
+                  >
+                    <Trash2 className="w-4 h-4 text-rose-600" />
+                    <span>Xóa tất cả file ({displayedFiles.length})</span>
+                  </button>
+                )}
+
                 {/* 3. Nút quay lại */}
                 {selectedFolderId && (
                   <button
@@ -581,6 +676,8 @@ export default function App() {
               onDownloadFile={handleDownloadFile}
               onShareFile={handleShareFile}
               onDeleteFile={handleDeleteFile}
+              onDeleteMultipleFiles={handleDeleteMultipleFiles}
+              onDeleteAllFiles={handleDeleteAllInView}
               onRenameFile={handleOpenRenameFileModal}
               onOpenUpload={() => handleOpenUpload(selectedFolderId || undefined, 'file')}
               onOpenUploadFolder={() => handleOpenUpload(selectedFolderId || undefined, 'folder')}
@@ -1182,6 +1279,104 @@ export default function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xác nhận Xóa tất cả file trong thư mục từ thanh công cụ đầu trang */}
+      {folderDeleteAllConfirm.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 shadow-xs">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-bold text-slate-900">
+                  Xác nhận xóa tất cả tài liệu
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Thầy có chắc chắn muốn xóa toàn bộ <strong>{folderDeleteAllConfirm.files.length} tài liệu</strong> trong {folderDeleteAllConfirm.folderName} không?
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 my-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs">
+              <p className="font-bold text-slate-800">Phương thức xóa:</p>
+
+              <label className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-white transition-colors cursor-pointer border border-transparent hover:border-slate-200">
+                <input
+                  type="radio"
+                  name="folderDeleteType"
+                  checked={!folderDeleteAllConfirm.permanent}
+                  onChange={() => setFolderDeleteAllConfirm((prev) => ({ ...prev, permanent: false }))}
+                  className="mt-0.5 accent-blue-600 cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-slate-900 block">
+                    Chuyển vào thùng rác <span className="text-[11px] font-normal text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 ml-1">Khuyên dùng</span>
+                  </span>
+                  <span className="text-slate-500 text-[11px] block mt-0.5">
+                    Tài liệu được chuyển vào Thùng rác. Thầy có thể khôi phục lại bất kỳ lúc nào nếu cần.
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-white transition-colors cursor-pointer border border-transparent hover:border-slate-200">
+                <input
+                  type="radio"
+                  name="folderDeleteType"
+                  checked={folderDeleteAllConfirm.permanent}
+                  onChange={() => setFolderDeleteAllConfirm((prev) => ({ ...prev, permanent: true }))}
+                  className="mt-0.5 accent-rose-600 cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-rose-700 block">
+                    Xóa vĩnh viễn khỏi hệ thống
+                  </span>
+                  <span className="text-slate-500 text-[11px] block mt-0.5">
+                    Xóa hoàn toàn tệp vật lý khỏi máy chủ, không thể khôi phục lại.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={folderDeleteAllConfirm.isDeleting}
+                onClick={() =>
+                  setFolderDeleteAllConfirm({
+                    open: false,
+                    folderName: '',
+                    files: [],
+                    permanent: false,
+                    isDeleting: false,
+                  })
+                }
+                className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={folderDeleteAllConfirm.isDeleting}
+                onClick={handleExecuteFolderDeleteAll}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {folderDeleteAllConfirm.isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang xóa...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Xác nhận xóa tất cả ({folderDeleteAllConfirm.files.length})</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -134,6 +134,32 @@ export const api = {
     });
   },
 
+  async batchDeleteFiles(options: {
+    ids?: string[];
+    folderId?: string;
+    all?: boolean;
+    permanent?: boolean;
+  }): Promise<{ success: boolean; count: number; message: string }> {
+    const res = await fetch('/api/files/batch-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options),
+    });
+    return res.json();
+  },
+
+  async batchRestoreFiles(options: {
+    ids?: string[];
+    all?: boolean;
+  }): Promise<{ success: boolean; count: number; message: string }> {
+    const res = await fetch('/api/files/batch-restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options),
+    });
+    return res.json();
+  },
+
   async restoreFile(id: string): Promise<FileItem> {
     const res = await fetch(`/api/files/${id}/restore`, { method: 'POST' });
     const data = await res.json();

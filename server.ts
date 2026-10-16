@@ -896,6 +896,96 @@ app.delete('/api/trash/empty', (_req, res) => {
   res.json({ success: true, message: `Đã dọn sạch ${trashFiles.length} tệp trong thùng rác` });
 });
 
+// Batch Delete Files (by IDs or all in folder or all active files)
+app.post('/api/files/batch-delete', (req, res) => {
+  try {
+    const { ids, folderId, all, permanent } = req.body;
+    const db = getDB();
+
+    let targetFiles: FileRecord[] = [];
+
+    if (Array.isArray(ids) && ids.length > 0) {
+      targetFiles = db.files.filter((f) => ids.includes(f.id));
+    } else if (all) {
+      if (folderId && folderId !== 'all') {
+        targetFiles = db.files.filter((f) => !f.isDeleted && f.folderId === folderId);
+      } else {
+        targetFiles = db.files.filter((f) => !f.isDeleted);
+      }
+    }
+
+    if (targetFiles.length === 0) {
+      return res.json({ success: true, count: 0, message: 'Không có tài liệu nào để xóa' });
+    }
+
+    const now = new Date().toISOString();
+    const targetIds = new Set(targetFiles.map((f) => f.id));
+
+    if (permanent === true || permanent === 'true') {
+      targetFiles.forEach((file) => {
+        const filePath = path.join(UPLOADS_DIR, file.filename);
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (e) { console.error(e); }
+        }
+      });
+      db.files = db.files.filter((f) => !targetIds.has(f.id));
+    } else {
+      db.files.forEach((file) => {
+        if (targetIds.has(file.id)) {
+          file.isDeleted = true;
+          file.deletedAt = now;
+        }
+      });
+    }
+
+    saveDB(db);
+    res.json({
+      success: true,
+      count: targetFiles.length,
+      message: permanent
+        ? `Đã xóa vĩnh viễn ${targetFiles.length} tài liệu`
+        : `Đã chuyển ${targetFiles.length} tài liệu vào thùng rác`,
+    });
+  } catch (err: any) {
+    console.error('Lỗi batch-delete:', err);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi xóa tệp: ' + err.message });
+  }
+});
+
+// Batch Restore Files (restore multiple files from trash)
+app.post('/api/files/batch-restore', (req, res) => {
+  try {
+    const { ids, all } = req.body;
+    const db = getDB();
+
+    let count = 0;
+    if (all) {
+      db.files.forEach((f) => {
+        if (f.isDeleted) {
+          f.isDeleted = false;
+          f.deletedAt = undefined;
+          count++;
+        }
+      });
+    } else if (Array.isArray(ids)) {
+      const set = new Set(ids);
+      db.files.forEach((f) => {
+        if (set.has(f.id) && f.isDeleted) {
+          f.isDeleted = false;
+          f.deletedAt = undefined;
+          count++;
+        }
+      });
+    }
+
+    saveDB(db);
+    res.json({ success: true, count, message: `Đã khôi phục ${count} tài liệu thành công` });
+  } catch (err: any) {
+    console.error('Lỗi batch-restore:', err);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi khôi phục tệp: ' + err.message });
+  }
+});
+
 // 7. Version Management
 app.post('/api/files/:id/version', upload.single('file'), (req, res) => {
   const { id } = req.params;
