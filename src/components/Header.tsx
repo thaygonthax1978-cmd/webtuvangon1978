@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   CheckCircle,
   Menu,
+  Database,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -18,6 +19,7 @@ interface HeaderProps {
   onSearch: (query: string) => void;
   onOpenSettings: () => void;
   onOpenNotifications: () => void;
+  onOpenSupabaseModal?: () => void;
   toggleMobileSimulator: () => void;
   isMobileSimulatorActive: boolean;
   onToggleSidebarMobile: () => void;
@@ -27,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   user,
   onSearch,
   onOpenSettings,
+  onOpenSupabaseModal,
   toggleMobileSimulator,
   isMobileSimulatorActive,
   onToggleSidebarMobile,
@@ -107,6 +110,19 @@ export const Header: React.FC<HeaderProps> = ({
             />
             <Search className="w-4 h-4 text-blue-600 absolute left-3 top-2" />
           </form>
+
+          {/* Supabase Cloud Database Status Button */}
+          {onOpenSupabaseModal && (
+            <button
+              onClick={onOpenSupabaseModal}
+              title="Cơ sở dữ liệu Supabase Cloud (Bấm để xem trạng thái và đồng bộ)"
+              className="p-1.5 rounded-full transition-all flex items-center gap-1.5 text-xs px-2.5 font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-300/40 cursor-pointer"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Supabase</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse" />
+            </button>
+          )}
 
           {/* Toggle Mobile Preview Simulator */}
           <button

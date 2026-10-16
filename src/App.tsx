@@ -22,6 +22,7 @@ import { StorageStats } from './components/StorageStats';
 import { TrashBin } from './components/TrashBin';
 import { SecuritySettings } from './components/SecuritySettings';
 import { MobileDeviceSimulator } from './components/MobileDeviceSimulator';
+import { SupabaseModal } from './components/SupabaseModal';
 import {
   FileText,
   Folder,
@@ -68,6 +69,7 @@ export default function App() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadTargetFolderId, setUploadTargetFolderId] = useState<string | undefined>(undefined);
   const [uploadMode, setUploadMode] = useState<'file' | 'folder'>('file');
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
 
   // Create Folder Modal State
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
@@ -805,6 +807,7 @@ export default function App() {
               const updated = await api.updateUser(userData);
               setUser(updated);
             }}
+            onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           />
         );
 
@@ -829,6 +832,7 @@ export default function App() {
         onSearch={handleHeaderSearch}
         onOpenSettings={() => setCurrentTab('settings')}
         onOpenNotifications={() => {}}
+        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         toggleMobileSimulator={() => setIsMobileSimulatorActive(!isMobileSimulatorActive)}
         isMobileSimulatorActive={isMobileSimulatorActive}
         onToggleSidebarMobile={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
@@ -928,6 +932,13 @@ export default function App() {
           onShareUpdated={() => loadData()}
         />
       )}
+
+      {/* Modal: Quản lý kết nối Supabase Cloud */}
+      <SupabaseModal
+        isOpen={isSupabaseModalOpen}
+        onClose={() => setIsSupabaseModalOpen(false)}
+        onSyncSuccess={loadData}
+      />
 
       {/* Modal 12: Chế độ điện thoại (Mobile Device Simulator) */}
       {isMobileSimulatorActive && (

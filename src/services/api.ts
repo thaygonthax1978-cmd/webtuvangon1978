@@ -1,4 +1,4 @@
-import { FileItem, FolderItem, StatsData, UserProfile, SharedConfig } from '../types';
+import { FileItem, FolderItem, StatsData, UserProfile, SharedConfig, SupabaseStatus } from '../types';
 
 export const api = {
   async getUser(): Promise<UserProfile> {
@@ -222,7 +222,119 @@ export const api = {
   getDownloadUrl(fileId: string): string {
     return `/api/files/${fileId}/download`;
   },
+
+  async getSupabaseStatus(): Promise<SupabaseStatus> {
+    try {
+      const res = await fetch('/api/supabase/status');
+      const data = await res.json();
+      return data.status;
+    } catch (e: any) {
+      return {
+        connected: false,
+        url: 'https://ceuwkkfwklxedzndsisu.supabase.co',
+        hasAnonKey: true,
+        tables: { folders: false, files: false, user_profile: false },
+        storage: { bucketExists: false },
+        isFullyReady: false,
+        message: 'Không thể kết nối đến máy chủ: ' + e.message,
+      };
+    }
+  },
+
+  async syncToSupabase(): Promise<{ success: boolean; message: string; syncedFolders?: number; syncedFiles?: number }> {
+    const res = await fetch('/api/supabase/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return res.json();
+  },
 };
+
+export const SUPABASE_SQL_SCRIPT = `-- ==============================================================================
+-- KHO DỮ LIỆU CÁ NHÂN THẦY TỪ VĂN GỌN - SUPABASE DATABASE INITIALIZATION SCRIPT
+-- Dán đoạn mã này vào Supabase -> SQL Editor -> Nhấn RUN để tạo bảng và Storage
+-- ==============================================================================
+
+-- 1. BẢNG THƯ MỤC (FOLDERS)
+CREATE TABLE IF NOT EXISTS public.folders (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    code TEXT,
+    parent_id TEXT,
+    color TEXT DEFAULT '#0866E8',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. BẢNG TẬP TIN (FILES)
+CREATE TABLE IF NOT EXISTS public.files (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    original_name TEXT,
+    mime_type TEXT,
+    extension TEXT,
+    category TEXT,
+    size NUMERIC DEFAULT 0,
+    folder_id TEXT,
+    folder_name TEXT,
+    filename TEXT,
+    upload_date TIMESTAMPTZ DEFAULT NOW(),
+    updated_date TIMESTAMPTZ DEFAULT NOW(),
+    is_favorite BOOLEAN DEFAULT FALSE,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
+    versions JSONB DEFAULT '[]'::jsonb,
+    share_config JSONB,
+    preview_content TEXT
+);
+
+-- 3. BẢNG HỒ SƠ NGƯỜI DÙNG (USER PROFILE)
+CREATE TABLE IF NOT EXISTS public.user_profile (
+    id TEXT PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    role TEXT,
+    school TEXT,
+    location TEXT,
+    email TEXT,
+    phone TEXT,
+    storage_used_bytes NUMERIC DEFAULT 0,
+    storage_max_bytes NUMERIC DEFAULT 107374182400,
+    avatar_url TEXT,
+    two_factor_enabled BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. BẬT ROW LEVEL SECURITY (RLS) & CẤP QUYỀN TOÀN DIỆN CHO ANON KEY
+ALTER TABLE public.folders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_profile ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Cho phep tat ca thao tac tren folders" ON public.folders;
+CREATE POLICY "Cho phep tat ca thao tac tren folders" ON public.folders FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phep tat ca thao tac tren files" ON public.files;
+CREATE POLICY "Cho phep tat ca thao tac tren files" ON public.files FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phep tat ca thao tac tren user_profile" ON public.user_profile;
+CREATE POLICY "Cho phep tat ca thao tac tren user_profile" ON public.user_profile FOR ALL USING (true) WITH CHECK (true);
+
+-- 5. TẠO STORAGE BUCKET CHO TẬP TIN UPLOAD (DOCUMENTS)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('documents', 'documents', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Public access to documents" ON storage.objects;
+CREATE POLICY "Public access to documents" ON storage.objects FOR SELECT USING (bucket_id = 'documents');
+
+DROP POLICY IF EXISTS "Public upload to documents" ON storage.objects;
+CREATE POLICY "Public upload to documents" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'documents');
+
+DROP POLICY IF EXISTS "Public update to documents" ON storage.objects;
+CREATE POLICY "Public update to documents" ON storage.objects FOR UPDATE USING (bucket_id = 'documents');
+
+DROP POLICY IF EXISTS "Public delete to documents" ON storage.objects;
+CREATE POLICY "Public delete to documents" ON storage.objects FOR DELETE USING (bucket_id = 'documents');
+`;
 
 export function formatBytes(bytes: number, decimals = 1): string {
   if (!bytes || bytes === 0) return '0 B';

@@ -13,17 +13,20 @@ import {
   Save,
   Laptop,
   Monitor,
+  Database,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface SecuritySettingsProps {
   user: UserProfile | null;
   onUpdateUser: (userData: Partial<UserProfile>) => Promise<void>;
+  onOpenSupabaseModal?: () => void;
 }
 
 export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   user,
   onUpdateUser,
+  onOpenSupabaseModal,
 }) => {
   const [fullName, setFullName] = useState(user?.fullName || 'TỪ VĂN GỌN');
   const [role, setRole] = useState(user?.role || 'Giáo viên tiểu học');
@@ -182,6 +185,19 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
             <HardDrive className="w-4 h-4" />
             <span>Dung lượng lưu trữ</span>
           </button>
+
+          {onOpenSupabaseModal && (
+            <button
+              onClick={onOpenSupabaseModal}
+              className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-all border border-emerald-200 mt-2 shadow-xs cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4 text-emerald-600" />
+                <span>Supabase Cloud</span>
+              </div>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </button>
+          )}
         </div>
 
         {/* Content Area */}

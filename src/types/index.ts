@@ -111,3 +111,19 @@ export interface UploadQueueItem {
   targetFolderId?: string;
   relativePath?: string;
 }
+
+export interface SupabaseStatus {
+  connected: boolean;
+  url: string;
+  hasAnonKey: boolean;
+  tables: {
+    folders: boolean;
+    files: boolean;
+    user_profile: boolean;
+  };
+  storage: {
+    bucketExists: boolean;
+  };
+  isFullyReady: boolean;
+  message?: string;
+}

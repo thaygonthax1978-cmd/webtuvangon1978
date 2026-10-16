@@ -5,6 +5,7 @@ import fs from 'fs';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
@@ -21,6 +22,12 @@ const DB_FILE = path.resolve(DATA_DIR, 'db.json');
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// Setup Supabase Client
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ceuwkkfwklxedzndsisu.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_5nblBT8S82bUTXPp-wQwig_yRIDJXYF';
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Setup Gemini AI Client
 const ai = new GoogleGenAI({
@@ -413,7 +420,207 @@ function categorizeFile(filename: string): 'pdf' | 'word' | 'excel' | 'powerpoin
   return 'other';
 }
 
+// ================= SUPABASE SYNC HELPERS =================
+async function syncFolderToSupabase(folder: FolderRecord, action: 'upsert' | 'delete') {
+  try {
+    if (action === 'delete') {
+      await supabase.from('folders').delete().eq('id', folder.id);
+    } else {
+      await supabase.from('folders').upsert({
+        id: folder.id,
+        name: folder.name,
+        code: folder.code,
+        parent_id: folder.parentId || null,
+        color: folder.color,
+        created_at: folder.createdAt,
+        updated_at: folder.updatedAt,
+      });
+    }
+  } catch (e) {
+    // Graceful fallback if tables not yet created
+  }
+}
+
+async function syncFileToSupabase(file: FileRecord, action: 'upsert' | 'delete') {
+  try {
+    if (action === 'delete') {
+      await supabase.from('files').delete().eq('id', file.id);
+    } else {
+      await supabase.from('files').upsert({
+        id: file.id,
+        name: file.name,
+        original_name: file.originalName,
+        mime_type: file.mimeType,
+        extension: file.extension,
+        category: file.category,
+        size: file.size,
+        folder_id: file.folderId,
+        folder_name: file.folderName,
+        filename: file.filename,
+        upload_date: file.uploadDate,
+        updated_date: file.updatedDate,
+        is_favorite: file.isFavorite,
+        is_deleted: file.isDeleted,
+        deleted_at: file.deletedAt || null,
+        versions: file.versions || [],
+        share_config: file.shareConfig || null,
+        preview_content: file.previewContent || null,
+      });
+    }
+  } catch (e) {
+    // Graceful fallback if tables not yet created
+  }
+}
+
+async function syncUserToSupabase(user: UserProfile) {
+  try {
+    await supabase.from('user_profile').upsert({
+      id: user.id || 'user_gon_01',
+      full_name: user.fullName,
+      role: user.role,
+      school: user.school,
+      location: user.location,
+      email: user.email,
+      phone: user.phone,
+      storage_used_bytes: user.storageUsedBytes,
+      storage_max_bytes: user.storageMaxBytes,
+      avatar_url: user.avatarUrl,
+      two_factor_enabled: user.twoFactorEnabled,
+      last_login: user.lastLogin || new Date().toISOString(),
+    });
+  } catch (e) {
+    // Graceful fallback
+  }
+}
+
 // ================= API ROUTES =================
+
+// 0. Supabase Integration Endpoints
+app.get('/api/supabase/status', async (_req, res) => {
+  const status = {
+    connected: false,
+    url: SUPABASE_URL,
+    hasAnonKey: Boolean(SUPABASE_ANON_KEY),
+    tables: {
+      folders: false,
+      files: false,
+      user_profile: false,
+    },
+    storage: {
+      bucketExists: false,
+    },
+    isFullyReady: false,
+    message: '',
+  };
+
+  try {
+    // Check tables
+    const [foldersRes, filesRes, userRes, storageRes] = await Promise.all([
+      supabase.from('folders').select('id').limit(1),
+      supabase.from('files').select('id').limit(1),
+      supabase.from('user_profile').select('id').limit(1),
+      supabase.storage.listBuckets().catch(() => ({ data: [], error: null })),
+    ]);
+
+    status.tables.folders = !foldersRes.error;
+    status.tables.files = !filesRes.error;
+    status.tables.user_profile = !userRes.error;
+
+    if (storageRes && Array.isArray(storageRes.data)) {
+      status.storage.bucketExists = storageRes.data.some((b) => b.name === 'documents' || b.id === 'documents');
+    }
+
+    status.connected = true;
+    status.isFullyReady = status.tables.folders && status.tables.files && status.tables.user_profile;
+    status.message = status.isFullyReady
+      ? 'Đã kết nối và các bảng dữ liệu trên Supabase đã sẵn sàng hoạt động!'
+      : 'Đã kết nối tới URL Supabase. Cần chạy mã lệnh SQL trong Supabase SQL Editor để khởi tạo các bảng và Storage.';
+
+    res.json({ success: true, status });
+  } catch (err: any) {
+    res.json({
+      success: false,
+      status: {
+        ...status,
+        message: 'Lỗi kiểm tra Supabase: ' + err.message,
+      },
+    });
+  }
+});
+
+app.post('/api/supabase/sync', async (_req, res) => {
+  try {
+    const db = getDB();
+
+    // 1. Sync User Profile
+    const { error: userErr } = await supabase.from('user_profile').upsert({
+      id: db.user.id || 'user_gon_01',
+      full_name: db.user.fullName,
+      role: db.user.role,
+      school: db.user.school,
+      location: db.user.location,
+      email: db.user.email,
+      phone: db.user.phone,
+      storage_used_bytes: db.user.storageUsedBytes,
+      storage_max_bytes: db.user.storageMaxBytes,
+      avatar_url: db.user.avatarUrl,
+      two_factor_enabled: db.user.twoFactorEnabled,
+      last_login: db.user.lastLogin || new Date().toISOString(),
+    });
+
+    // 2. Sync Folders
+    const folderPayloads = db.folders.map((f) => ({
+      id: f.id,
+      name: f.name,
+      code: f.code,
+      parent_id: f.parentId || null,
+      color: f.color || '#0866E8',
+      created_at: f.createdAt,
+      updated_at: f.updatedAt,
+    }));
+    const { error: folderErr } = await supabase.from('folders').upsert(folderPayloads);
+
+    // 3. Sync Files
+    const filePayloads = db.files.map((f) => ({
+      id: f.id,
+      name: f.name,
+      original_name: f.originalName,
+      mime_type: f.mimeType,
+      extension: f.extension,
+      category: f.category,
+      size: f.size,
+      folder_id: f.folderId,
+      folder_name: f.folderName,
+      filename: f.filename,
+      upload_date: f.uploadDate,
+      updated_date: f.updatedDate,
+      is_favorite: f.isFavorite,
+      is_deleted: f.isDeleted,
+      deleted_at: f.deletedAt || null,
+      versions: f.versions || [],
+      share_config: f.shareConfig || null,
+      preview_content: f.previewContent || null,
+    }));
+    const { error: fileErr } = await supabase.from('files').upsert(filePayloads);
+
+    if (userErr || folderErr || fileErr) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lỗi khi đồng bộ lên Supabase: ' + (userErr?.message || folderErr?.message || fileErr?.message),
+        errors: { userErr, folderErr, fileErr },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Đã đồng bộ thành công ${folderPayloads.length} thư mục và ${filePayloads.length} tài liệu lên Supabase!`,
+      syncedFolders: folderPayloads.length,
+      syncedFiles: filePayloads.length,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi xử lý đồng bộ: ' + err.message });
+  }
+});
 
 // 1. User Profile & Settings
 app.get('/api/user', (_req, res) => {
@@ -425,6 +632,7 @@ app.put('/api/user', (req, res) => {
   const db = getDB();
   db.user = { ...db.user, ...req.body };
   saveDB(db);
+  syncUserToSupabase(db.user);
   res.json({ success: true, user: db.user });
 });
 
@@ -530,6 +738,7 @@ app.post('/api/folders', (req, res) => {
 
   db.folders.push(newFolder);
   saveDB(db);
+  syncFolderToSupabase(newFolder, 'upsert');
   res.json({ success: true, folder: newFolder });
 });
 
@@ -549,11 +758,15 @@ app.put('/api/folders/:id', (req, res) => {
   // If name changed, update folderName in files
   if (name) {
     db.files.forEach((file) => {
-      if (file.folderId === id) file.folderName = name;
+      if (file.folderId === id) {
+        file.folderName = name;
+        syncFileToSupabase(file, 'upsert');
+      }
     });
   }
 
   saveDB(db);
+  syncFolderToSupabase(db.folders[idx], 'upsert');
   res.json({ success: true, folder: db.folders[idx] });
 });
 
@@ -570,10 +783,12 @@ app.delete('/api/folders/:id', (req, res) => {
     if (file.folderId === id) {
       file.isDeleted = true;
       file.deletedAt = new Date().toISOString();
+      syncFileToSupabase(file, 'upsert');
     }
   });
 
   saveDB(db);
+  syncFolderToSupabase(deletedFolder, 'delete');
   res.json({ success: true, message: `Đã xóa thư mục ${deletedFolder.name} và chuyển các tệp vào thùng rác` });
 });
 
@@ -721,6 +936,7 @@ app.post('/api/upload', upload.array('files', 20), (req, res) => {
 
       db.files.unshift(newFile);
       addedFiles.push(newFile);
+      syncFileToSupabase(newFile, 'upsert');
     }
 
     saveDB(db);
@@ -800,6 +1016,7 @@ app.post('/api/upload-json', (req, res) => {
 
     db.files.unshift(newFile);
     saveDB(db);
+    syncFileToSupabase(newFile, 'upsert');
 
     res.json({
       success: true,
@@ -840,6 +1057,7 @@ app.put('/api/files/:id', (req, res) => {
   db.files[idx].updatedDate = new Date().toISOString();
 
   saveDB(db);
+  syncFileToSupabase(db.files[idx], 'upsert');
   res.json({ success: true, file: db.files[idx] });
 });
 
@@ -858,12 +1076,14 @@ app.delete('/api/files/:id', (req, res) => {
       try { fs.unlinkSync(physicalPath); } catch (e) { console.error(e); }
     }
     saveDB(db);
+    syncFileToSupabase(removed, 'delete');
     return res.json({ success: true, message: 'Đã xóa vĩnh viễn tệp' });
   }
 
   db.files[idx].isDeleted = true;
   db.files[idx].deletedAt = new Date().toISOString();
   saveDB(db);
+  syncFileToSupabase(db.files[idx], 'upsert');
   res.json({ success: true, message: 'Đã chuyển tệp vào thùng rác' });
 });
 
@@ -877,6 +1097,7 @@ app.post('/api/files/:id/restore', (req, res) => {
   db.files[idx].isDeleted = false;
   db.files[idx].deletedAt = undefined;
   saveDB(db);
+  syncFileToSupabase(db.files[idx], 'upsert');
   res.json({ success: true, message: 'Đã khôi phục tệp thành công', file: db.files[idx] });
 });
 
@@ -927,6 +1148,7 @@ app.post('/api/files/batch-delete', (req, res) => {
         if (fs.existsSync(filePath)) {
           try { fs.unlinkSync(filePath); } catch (e) { console.error(e); }
         }
+        syncFileToSupabase(file, 'delete');
       });
       db.files = db.files.filter((f) => !targetIds.has(f.id));
     } else {
@@ -934,6 +1156,7 @@ app.post('/api/files/batch-delete', (req, res) => {
         if (targetIds.has(file.id)) {
           file.isDeleted = true;
           file.deletedAt = now;
+          syncFileToSupabase(file, 'upsert');
         }
       });
     }
@@ -964,6 +1187,7 @@ app.post('/api/files/batch-restore', (req, res) => {
         if (f.isDeleted) {
           f.isDeleted = false;
           f.deletedAt = undefined;
+          syncFileToSupabase(f, 'upsert');
           count++;
         }
       });
@@ -973,6 +1197,7 @@ app.post('/api/files/batch-restore', (req, res) => {
         if (set.has(f.id) && f.isDeleted) {
           f.isDeleted = false;
           f.deletedAt = undefined;
+          syncFileToSupabase(f, 'upsert');
           count++;
         }
       });
