@@ -371,6 +371,14 @@ export const api = {
     });
     return res.json();
   },
+
+  async pullFromSupabase(): Promise<{ success: boolean; message: string; foldersCount?: number; filesCount?: number }> {
+    const res = await fetch('/api/supabase/pull', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return res.json();
+  },
 };
 
 export const SUPABASE_SQL_SCRIPT = `-- ==============================================================================

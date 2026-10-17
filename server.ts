@@ -821,6 +821,107 @@ app.post('/api/supabase/sync', async (_req, res) => {
   }
 });
 
+// Pull all data from Supabase to local DB
+app.post('/api/supabase/pull', async (_req, res) => {
+  try {
+    const [foldersRes, filesRes, userRes] = await Promise.all([
+      supabase.from('folders').select('*'),
+      supabase.from('files').select('*'),
+      supabase.from('user_profile').select('*').limit(1),
+    ]);
+
+    if (foldersRes.error || filesRes.error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lỗi tải dữ liệu từ Supabase: ' + (foldersRes.error?.message || filesRes.error?.message),
+      });
+    }
+
+    const db = getDB();
+
+    if (userRes.data && userRes.data.length > 0) {
+      const u = userRes.data[0];
+      db.user = {
+        id: u.id || db.user.id,
+        fullName: u.full_name || db.user.fullName,
+        role: u.role || db.user.role,
+        school: u.school || db.user.school,
+        location: u.location || db.user.location,
+        email: u.email || db.user.email,
+        phone: u.phone || db.user.phone,
+        storageUsedBytes: Number(u.storage_used_bytes || db.user.storageUsedBytes),
+        storageMaxBytes: Number(u.storage_max_bytes || db.user.storageMaxBytes),
+        avatarUrl: u.avatar_url || db.user.avatarUrl,
+        twoFactorEnabled: u.two_factor_enabled ?? db.user.twoFactorEnabled,
+        lastLogin: u.last_login || db.user.lastLogin,
+      };
+    }
+
+    if (Array.isArray(foldersRes.data) && foldersRes.data.length > 0) {
+      for (const row of foldersRes.data) {
+        const item: FolderRecord = {
+          id: row.id,
+          name: row.name,
+          code: row.code || '',
+          parentId: row.parent_id || null,
+          color: row.color || '#0866E8',
+          createdAt: row.created_at || new Date().toISOString(),
+          updatedAt: row.updated_at || new Date().toISOString(),
+        };
+        const idx = db.folders.findIndex((f) => f.id === row.id);
+        if (idx >= 0) {
+          db.folders[idx] = item;
+        } else {
+          db.folders.push(item);
+        }
+      }
+    }
+
+    if (Array.isArray(filesRes.data) && filesRes.data.length > 0) {
+      for (const row of filesRes.data) {
+        const item: FileRecord = {
+          id: row.id,
+          name: row.name,
+          originalName: row.original_name || row.name,
+          mimeType: row.mime_type || 'application/octet-stream',
+          extension: row.extension || 'docx',
+          category: row.category || 'word',
+          size: Number(row.size || 0),
+          folderId: row.folder_id,
+          folderName: row.folder_name,
+          filename: row.filename || `${row.id}.dat`,
+          uploadDate: row.upload_date || new Date().toISOString(),
+          updatedDate: row.updated_date || new Date().toISOString(),
+          isFavorite: Boolean(row.is_favorite),
+          isDeleted: Boolean(row.is_deleted),
+          deletedAt: row.deleted_at || undefined,
+          versions: row.versions || [],
+          shareConfig: row.share_config || undefined,
+          previewContent: row.preview_content || undefined,
+        };
+        const idx = db.files.findIndex((f) => f.id === row.id);
+        if (idx >= 0) {
+          db.files[idx] = item;
+        } else {
+          db.files.unshift(item);
+        }
+      }
+    }
+
+    saveDB(db);
+
+    res.json({
+      success: true,
+      message: `Đã nạp thành công ${foldersRes.data?.length || 0} thư mục và ${filesRes.data?.length || 0} tài liệu từ Supabase!`,
+      foldersCount: db.folders.length,
+      filesCount: db.files.length,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi tải dữ liệu: ' + err.message });
+  }
+});
+
+
 // Restore database with lesson plans and all folders
 app.post('/api/database/restore', (_req, res) => {
   const db: DatabaseSchema = {

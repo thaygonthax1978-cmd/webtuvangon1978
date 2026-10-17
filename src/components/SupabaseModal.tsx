@@ -85,6 +85,28 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
     }
   };
 
+  const handlePullData = async () => {
+    setSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await api.pullFromSupabase();
+      if (res.success) {
+        setSyncMessage({ text: res.message, success: true });
+        await fetchStatus();
+        if (onSyncSuccess) onSyncSuccess();
+      } else {
+        setSyncMessage({ text: res.message, success: false });
+      }
+    } catch (err: any) {
+      setSyncMessage({
+        text: 'Lỗi tải dữ liệu: ' + (err.message || 'Không thể kéo dữ liệu từ Supabase'),
+        success: false,
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const isReady = status?.isFullyReady;
 
   return (
@@ -335,27 +357,35 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
             </div>
           )}
 
-          {/* Step 2: Sync existing data */}
+          {/* Step 2: Sync data bidirectional */}
           <div className="border border-slate-200 bg-white rounded-xl p-4 space-y-3">
             <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">
                 {isReady ? '✓' : '2'}
               </span>
-              Đồng bộ dữ liệu hiện có lên Supabase Cloud
+              Đồng bộ dữ liệu hai chiều với Supabase Cloud
             </h3>
             <p className="text-xs text-slate-600">
-              Nhấn nút bên dưới để đẩy toàn bộ các thư mục (Khối lớp 1, 2, 3, 4, 5, môn Toán, Tiếng Việt, Đạo đức...)
-              và các tài liệu tuần hiện tại lên tài khoản Supabase của Thầy Gọn.
+              Thầy có thể đồng bộ hai chiều linh hoạt: đẩy toàn bộ thư mục và tài liệu lên đám mây Supabase để lưu trữ an toàn, hoặc kéo toàn bộ dữ liệu từ Supabase về ứng dụng khi chuyển thiết bị.
             </p>
 
-            <div className="pt-1">
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               <button
                 onClick={handleSyncData}
                 disabled={syncing}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Đang đồng bộ dữ liệu sang Supabase...' : 'Đồng bộ toàn bộ dữ liệu sang Supabase ngay'}
+                {syncing ? 'Đang đồng bộ...' : 'Đẩy dữ liệu lên Supabase (Push)'}
+              </button>
+
+              <button
+                onClick={handlePullData}
+                disabled={syncing}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+              >
+                <ArrowRight className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Đang tải về...' : 'Tải dữ liệu từ Supabase về máy (Pull)'}
               </button>
             </div>
           </div>
