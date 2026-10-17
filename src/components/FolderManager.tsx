@@ -47,15 +47,9 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [drillFolderId, setDrillFolderId] = useState<string | null>(null);
-  const [filterLevel, setFilterLevel] = useState<'tree' | 'all' | 'root'>('tree');
-  // Expand all folders by default so user immediately sees all subfolders
-  const [expandedFolderIds, setExpandedFolderIds] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    folders.forEach((f) => {
-      init[f.id] = true;
-    });
-    return init;
-  });
+  const [filterLevel, setFilterLevel] = useState<'tree' | 'all' | 'root'>('root');
+  // Subfolders stay hidden inside their parent folder by default
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Record<string, boolean>>({});
   const [sortBy, setSortBy] = useState<'name' | 'size' | 'files' | 'date'>('name');
   const [sortAsc, setSortAsc] = useState(true);
 
@@ -281,16 +275,16 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
 
           <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <span>
-              {drillFolder ? `Thư mục con trong "${drillFolder.name}"` : 'Thư mục của tôi'}
+              {drillFolder ? `Thư mục trong "${drillFolder.name}"` : 'Thư mục của tôi'}
             </span>
             <span className="text-xs bg-blue-100 text-blue-800 font-bold px-2.5 py-0.5 rounded-full">
-              {folders.length} thư mục
+              {drillFolder ? `${childrenOfDrill.length} thư mục` : `${rootFolders.length} thư mục chính`}
             </span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {drillFolder
-              ? `Đang duyệt các thư mục con và môn học trong ${drillFolder.name}`
-              : 'Hệ thống thư mục giáo án, hồ sơ chuyên môn và tài liệu giảng dạy của Thầy Từ Văn Gọn'}
+              ? `Đang xem các thư mục bên trong ${drillFolder.name}`
+              : 'Hệ thống 11 thư mục giáo án, hồ sơ chuyên môn và tài liệu giảng dạy của Thầy Từ Văn Gọn'}
           </p>
         </div>
 
@@ -382,21 +376,6 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
           <button
             onClick={() => {
-              setFilterLevel('tree');
-              setDrillFolderId(null);
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              filterLevel === 'tree' && !drillFolderId
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-            }`}
-          >
-            <FolderTree className="w-3.5 h-3.5" />
-            <span>Cây thư mục (Tất cả cấp bậc)</span>
-          </button>
-
-          <button
-            onClick={() => {
               setFilterLevel('root');
               setDrillFolderId(null);
             }}
@@ -407,7 +386,22 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
             }`}
           >
             <Folder className="w-3.5 h-3.5" />
-            <span>Thư mục gốc ({rootFolders.length})</span>
+            <span>Thư mục chính ({rootFolders.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setFilterLevel('tree');
+              setDrillFolderId(null);
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              filterLevel === 'tree' && !drillFolderId
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+            }`}
+          >
+            <FolderTree className="w-3.5 h-3.5" />
+            <span>Cây thư mục</span>
           </button>
 
           <button
@@ -470,7 +464,6 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                 <tr>
                   <th className="py-3 px-4 w-12 text-center">#</th>
                   <th className="py-3 px-4">Tên thư mục</th>
-                  <th className="py-3 px-4 text-center">Thư mục con</th>
                   <th className="py-3 px-4 text-center">Tổng số tệp</th>
                   <th className="py-3 px-4 text-center">Dung lượng</th>
                   <th className="py-3 px-4 text-center">Ngày sửa đổi</th>
@@ -480,7 +473,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {sortedFolders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Folder className="w-8 h-8 text-slate-300" />
                         <p className="font-semibold text-slate-500">Không tìm thấy thư mục nào phù hợp.</p>
@@ -533,7 +526,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
 
                             {/* Folder Icon */}
                             <div
-                              onClick={() => onSelectFolder(folder.id)}
+                              onClick={() => folder.hasChildren ? setDrillFolderId(folder.id) : onSelectFolder(folder.id)}
                               className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-xs cursor-pointer group-hover:scale-105 transition-transform"
                               style={{
                                 backgroundColor: `${folder.color || '#0866E8'}18`,
@@ -547,45 +540,18 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span
-                                  onClick={() => onSelectFolder(folder.id)}
+                                  onClick={() => folder.hasChildren ? setDrillFolderId(folder.id) : onSelectFolder(folder.id)}
                                   className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors cursor-pointer text-xs md:text-sm hover:underline"
                                 >
                                   {folder.name}
                                 </span>
-
-                                {folder.isSubfolder && folder.parentName && (
-                                  <span className="text-[10px] font-semibold bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-md">
-                                    ↳ Thuộc: {folder.parentName}
-                                  </span>
-                                )}
                               </div>
 
                               <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
                                 <span>Mã: {folder.code}</span>
-                                {folder.hasChildren && (
-                                  <span className="text-blue-600 font-semibold">
-                                    • Chứa {folder.childrenCount} thư mục con
-                                  </span>
-                                )}
                               </div>
                             </div>
                           </div>
-                        </td>
-
-                        {/* Subfolder count badge */}
-                        <td className="py-3 px-4 text-center">
-                          {directChildren.length > 0 ? (
-                            <button
-                              onClick={() => setDrillFolderId(folder.id)}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-[11px] border border-indigo-200 transition-colors cursor-pointer"
-                              title={`Bấm để mở xem ${directChildren.length} thư mục con`}
-                            >
-                              <FolderTree className="w-3 h-3" />
-                              <span>{directChildren.length} thư mục con</span>
-                            </button>
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">—</span>
-                          )}
                         </td>
 
                         {/* Total Files count (recursive) */}
@@ -697,7 +663,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                 <div>
                   <div className="flex items-start justify-between mb-3">
                     <div
-                      onClick={() => onSelectFolder(folder.id)}
+                      onClick={() => folder.hasChildren ? setDrillFolderId(folder.id) : onSelectFolder(folder.id)}
                       className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-xs cursor-pointer group-hover:scale-105 transition-transform"
                       style={{
                         backgroundColor: `${folder.color || '#0866E8'}18`,
@@ -710,37 +676,15 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                       <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
                         {folder.fileCount ?? 0} tệp
                       </span>
-                      {folder.isSubfolder && (
-                        <span className="text-[9px] font-bold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
-                          Thư mục con
-                        </span>
-                      )}
                     </div>
                   </div>
 
                   <h3
-                    onClick={() => onSelectFolder(folder.id)}
+                    onClick={() => folder.hasChildren ? setDrillFolderId(folder.id) : onSelectFolder(folder.id)}
                     className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-sm mb-1 truncate cursor-pointer"
                   >
                     {folder.name}
                   </h3>
-
-                  {folder.isSubfolder && folder.parentName && (
-                    <p className="text-[11px] text-purple-700 font-semibold mb-1 truncate flex items-center gap-1">
-                      <span>↳</span>
-                      <span>Thuộc: {folder.parentName}</span>
-                    </p>
-                  )}
-
-                  {directChildren.length > 0 && (
-                    <button
-                      onClick={() => setDrillFolderId(folder.id)}
-                      className="text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md mb-2 flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      <FolderTree className="w-3 h-3" />
-                      <span>{directChildren.length} thư mục con bên trong</span>
-                    </button>
-                  )}
 
                   <div className="flex items-center justify-between text-[11px] text-slate-400 mb-3">
                     <span>Dung lượng: {formatBytes(folder.totalSize || 0)}</span>
