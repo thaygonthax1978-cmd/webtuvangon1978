@@ -469,7 +469,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
               <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
                 <tr>
                   <th className="py-3 px-4 w-12 text-center">#</th>
-                  <th className="py-3 px-4">Tên thư mục & Cấp bậc</th>
+                  <th className="py-3 px-4">Tên thư mục</th>
                   <th className="py-3 px-4 text-center">Thư mục con</th>
                   <th className="py-3 px-4 text-center">Tổng số tệp</th>
                   <th className="py-3 px-4 text-center">Dung lượng</th>
@@ -552,12 +552,6 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                                 >
                                   {folder.name}
                                 </span>
-
-                                {folder.levelDepth === 0 && (
-                                  <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded-md">
-                                    Cấp 1: Gốc
-                                  </span>
-                                )}
 
                                 {folder.isSubfolder && folder.parentName && (
                                   <span className="text-[10px] font-semibold bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-md">

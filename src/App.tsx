@@ -873,7 +873,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F4FA] flex flex-col font-sans text-slate-800">
+    <div translate="no" className="notranslate min-h-screen bg-[#F0F4FA] flex flex-col font-sans text-slate-800">
       {/* Toast Notification Alert */}
       {toastMessage && (
         <div className="fixed top-16 right-4 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-2">

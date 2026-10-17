@@ -69,7 +69,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar container */}
       <aside
-        className={`fixed md:sticky top-[61px] left-0 h-[calc(100vh-61px)] bg-[#064AA8] text-white flex flex-col justify-between transition-all duration-300 z-50 shadow-xl ${
+        translate="no"
+        className={`notranslate fixed md:sticky top-[61px] left-0 h-[calc(100vh-61px)] bg-[#064AA8] text-white flex flex-col justify-between transition-all duration-300 z-50 shadow-xl ${
           isCollapsed ? 'w-20' : 'w-64'
         } ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
@@ -130,7 +131,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }`}
                   />
                   {!isCollapsed && (
-                    <span className="flex-1 truncate tracking-wide text-xs md:text-sm">
+                    <span
+                      translate="no"
+                      className="notranslate flex-1 truncate tracking-wide text-xs md:text-sm"
+                    >
                       {item.label}
                     </span>
                   )}
