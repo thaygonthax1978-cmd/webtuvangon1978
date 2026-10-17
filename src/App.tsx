@@ -7,7 +7,7 @@ import {
   ViewTab,
   SharedConfig,
 } from './types';
-import { api, localStore, formatBytes, formatDate, buildFolderTreeOptions } from './services/api';
+import { api, localStore, DEFAULT_FOLDERS, formatBytes, formatDate, buildFolderTreeOptions } from './services/api';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { HomeDashboard } from './components/HomeDashboard';
@@ -64,10 +64,10 @@ export default function App() {
   // App data state - initialized from localStore for instant load & offline resilience
   const [user, setUser] = useState<UserProfile | null>(() => localStore.get('user', null));
   const [stats, setStats] = useState<StatsData | null>(() => localStore.get('stats', null));
-  const [folders, setFolders] = useState<FolderItem[]>(() => localStore.get('folders', []));
+  const [folders, setFolders] = useState<FolderItem[]>(() => localStore.get('folders', DEFAULT_FOLDERS));
   const [files, setFiles] = useState<FileItem[]>(() => localStore.get('files_all', []));
   const [trashFiles, setTrashFiles] = useState<FileItem[]>(() => localStore.get('trash_files', []));
-  const [isLoading, setIsLoading] = useState(() => localStore.get('folders', []).length === 0);
+  const [isLoading, setIsLoading] = useState(false);
   const [includeSubfolderFiles, setIncludeSubfolderFiles] = useState(true);
 
   // Layout & Responsive state
@@ -151,6 +151,8 @@ export default function App() {
       if (statsData) setStats(statsData);
       if (Array.isArray(foldersData) && foldersData.length > 0) {
         setFolders(foldersData);
+      } else {
+        setFolders((prev) => (prev && prev.length > 0 ? prev : DEFAULT_FOLDERS));
       }
       if (Array.isArray(filesData) && filesData.length > 0) {
         setFiles(filesData);
@@ -159,11 +161,13 @@ export default function App() {
         setTrashFiles(trashData);
       }
 
-      // If both backend and local are somehow empty, auto-restore
-      if ((!foldersData || foldersData.length === 0) && folders.length === 0) {
-        const restored = await api.restoreDatabase();
-        if (restored.folders) setFolders(restored.folders);
-        if (restored.files) setFiles(restored.files);
+      // If backend is somehow empty, auto-restore
+      if (!foldersData || foldersData.length === 0) {
+        try {
+          const restored = await api.restoreDatabase();
+          if (restored.folders && restored.folders.length > 0) setFolders(restored.folders);
+          if (restored.files && restored.files.length > 0) setFiles(restored.files);
+        } catch {}
       }
 
       if (manualNotice) {

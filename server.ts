@@ -10,7 +10,17 @@ import { createClient } from '@supabase/supabase-js';
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -131,107 +141,134 @@ const initialUser: UserProfile = {
 
 const defaultFolders: FolderRecord[] = [
   {
+    id: 'f_03',
+    name: '01. GIÁO ÁN TIẾNG VIỆT 1',
+    code: '03',
+    parentId: null,
+    color: '#8257E5',
+    createdAt: '2026-09-02T08:00:00+00:00',
+    updatedAt: '2026-10-15T07:25:21.976+00:00',
+  },
+  {
+    id: 'f_1792049102744',
+    name: '02. GIÁO ÁN TOÁN 1',
+    code: '13',
+    parentId: null,
+    color: '#0866E8',
+    createdAt: '2026-10-15T07:25:02.744+00:00',
+    updatedAt: '2026-10-15T07:25:02.744+00:00',
+  },
+  {
+    id: 'f_01',
+    name: '03. GIÁO ÁN ĐẠO ĐỨC 1',
+    code: '01',
+    parentId: null,
+    color: '#0866E8',
+    createdAt: '2026-09-01T08:00:00+00:00',
+    updatedAt: '2026-10-15T07:26:13.679+00:00',
+  },
+  {
+    id: 'f_02',
+    name: '04. GIÁO ÁN TỰ NHIÊN VÀ XÃ HỘI 1',
+    code: '02',
+    parentId: null,
+    color: '#16B875',
+    createdAt: '2026-09-01T08:15:00+00:00',
+    updatedAt: '2026-10-15T07:26:44.994+00:00',
+  },
+  {
     id: 'f_04',
-    name: '01. GIÁO ÁN CÁC LỚP',
+    name: '05. GIÁO ÁN HOẠT ĐỘNG TRẢI NGHIỆM 1',
     code: '04',
     parentId: null,
     color: '#0866E8',
-    createdAt: '2026-09-05T09:00:00Z',
-    updatedAt: '2026-10-16T07:17:34.496Z',
+    createdAt: '2026-09-05T09:00:00+00:00',
+    updatedAt: '2026-10-15T07:27:13.076+00:00',
   },
   {
-    id: 'f_1792136674742',
-    name: 'LỚP 1',
-    code: '02',
-    parentId: 'f_04',
-    color: '#8257E5',
-    createdAt: '2026-10-16T07:44:34.742Z',
-    updatedAt: '2026-10-16T07:44:34.742Z',
-  },
-  {
-    id: 'f_1792136682204',
-    name: 'LỚP 2',
-    code: '03',
-    parentId: 'f_04',
-    color: '#8257E5',
-    createdAt: '2026-10-16T07:44:42.204Z',
-    updatedAt: '2026-10-16T07:44:42.204Z',
-  },
-  {
-    id: 'f_1792136688926',
-    name: 'LỚP 3',
-    code: '04',
-    parentId: 'f_04',
-    color: '#8257E5',
-    createdAt: '2026-10-16T07:44:48.926Z',
-    updatedAt: '2026-10-16T07:44:48.926Z',
-  },
-  {
-    id: 'f_1792136694456',
-    name: 'LỚP 4',
-    code: '05',
-    parentId: 'f_04',
-    color: '#8257E5',
-    createdAt: '2026-10-16T07:44:54.456Z',
-    updatedAt: '2026-10-16T07:44:54.456Z',
-  },
-  {
-    id: 'f_1792136720609',
-    name: 'LỚP 5',
-    code: '06',
-    parentId: 'f_04',
-    color: '#8257E5',
-    createdAt: '2026-10-16T07:45:20.609Z',
-    updatedAt: '2026-10-16T07:45:20.609Z',
-  },
-  {
-    id: 'f_1792136755685',
-    name: 'TIẾNG VIỆT',
+    id: 'f_07',
+    name: '06. WORD',
     code: '07',
-    parentId: 'f_1792136674742',
-    color: '#8257E5',
-    createdAt: '2026-10-16T07:45:55.685Z',
-    updatedAt: '2026-10-16T07:47:30.455Z',
+    parentId: null,
+    color: '#0866E8',
+    createdAt: '2026-09-07T13:00:00+00:00',
+    updatedAt: '2026-10-15T07:28:45.624+00:00',
   },
   {
-    id: 'f_1792136833788',
-    name: 'TOÁN',
+    id: 'f_08',
+    name: '07. EXCEL',
     code: '08',
-    parentId: 'f_1792136674742',
-    color: '#8257E5',
-    createdAt: '2026-10-16T07:47:13.788Z',
-    updatedAt: '2026-10-16T07:47:27.071Z',
+    parentId: null,
+    color: '#16B875',
+    createdAt: '2026-09-08T14:00:00+00:00',
+    updatedAt: '2026-10-15T07:28:52.056+00:00',
   },
   {
-    id: 'f_1792136843359',
-    name: 'ĐẠO ĐỨC',
-    code: '09',
-    parentId: 'f_1792136674742',
-    color: '#8257E5',
-    createdAt: '2026-10-16T07:47:23.359Z',
-    updatedAt: '2026-10-16T07:47:23.359Z',
-  },
-  {
-    id: 'f_1792136866375',
-    name: 'TỰ NHIÊN VÀ XÃ HỘI',
+    id: 'f_10',
+    name: '08. POWERPOINT',
     code: '10',
-    parentId: 'f_1792136674742',
-    color: '#8257E5',
-    createdAt: '2026-10-16T07:47:46.375Z',
-    updatedAt: '2026-10-16T07:47:46.375Z',
+    parentId: null,
+    color: '#FF9F1C',
+    createdAt: '2026-09-10T10:00:00+00:00',
+    updatedAt: '2026-10-15T07:29:13.881+00:00',
   },
   {
-    id: 'f_1792136874703',
-    name: 'HOẠT ĐỘNG TRẢI NGHIỆM',
-    code: '11',
-    parentId: 'f_1792136674742',
+    id: 'f_09',
+    name: '09. PDF',
+    code: '09',
+    parentId: null,
+    color: '#F04444',
+    createdAt: '2026-09-09T08:00:00+00:00',
+    updatedAt: '2026-09-20T17:10:00+00:00',
+  },
+  {
+    id: 'f_06',
+    name: '10. VIDEO',
+    code: '06',
+    parentId: null,
+    color: '#F04444',
+    createdAt: '2026-09-06T11:00:00+00:00',
+    updatedAt: '2026-10-15T07:29:32.218+00:00',
+  },
+  {
+    id: 'f_05',
+    name: '11. HÌNH ẢNH',
+    code: '05',
+    parentId: null,
+    color: '#FF9F1C',
+    createdAt: '2026-09-05T10:30:00+00:00',
+    updatedAt: '2026-10-15T07:28:10.042+00:00',
+  },
+  {
+    id: 'f_1792226614838',
+    name: 'ẢNH CẢ NHÀ',
+    code: '12',
+    parentId: 'f_05',
     color: '#8257E5',
-    createdAt: '2026-10-16T07:47:54.704Z',
-    updatedAt: '2026-10-16T07:47:54.704Z',
+    createdAt: '2026-10-17T08:43:34.838Z',
+    updatedAt: '2026-10-17T08:43:34.838Z',
+  },
+  {
+    id: 'f_1792226627426',
+    name: 'ẢNH DU LỊCH',
+    code: '13',
+    parentId: 'f_05',
+    color: '#8257E5',
+    createdAt: '2026-10-17T08:43:47.426Z',
+    updatedAt: '2026-10-17T08:43:47.426Z',
   },
 ];
 
 function seedInitialFiles(): FileRecord[] {
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+      if (Array.isArray(existing.files) && existing.files.length > 0) {
+        return existing.files;
+      }
+    } catch {}
+  }
+
   const sampleFiles: FileRecord[] = [
     {
       id: 'file_1792141493684_gq72s',
@@ -924,15 +961,25 @@ app.post('/api/supabase/pull', async (_req, res) => {
 
 // Restore database with lesson plans and all folders
 app.post('/api/database/restore', (_req, res) => {
+  let existingUser = initialUser;
+  let existingFiles: FileRecord[] = [];
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+      if (parsed.user) existingUser = parsed.user;
+      if (Array.isArray(parsed.files) && parsed.files.length > 0) existingFiles = parsed.files;
+    } catch {}
+  }
+
   const db: DatabaseSchema = {
-    user: initialUser,
+    user: existingUser,
     folders: defaultFolders,
-    files: seedInitialFiles(),
+    files: existingFiles.length > 0 ? existingFiles : seedInitialFiles(),
   };
   saveDB(db);
   res.json({
     success: true,
-    message: 'Đã khôi phục toàn bộ hệ thống thư mục và tài liệu giáo án của Thầy Gọn!',
+    message: 'Đã khôi phục toàn bộ hệ thống 11 thư mục giáo án và tài liệu của Thầy Gọn!',
     folders: db.folders,
     files: db.files,
   });

@@ -489,7 +489,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                           className="mt-1 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-bold text-xs flex items-center gap-1.5"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Khôi phục dữ liệu 01. GIÁO ÁN CÁC LỚP và môn học</span>
+                          <span>Khôi phục hệ thống 11 thư mục giáo án & tài liệu của Thầy Gọn</span>
                         </button>
                       </div>
                     </td>

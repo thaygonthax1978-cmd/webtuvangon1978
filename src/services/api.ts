@@ -18,6 +18,191 @@ export const localStore = {
   },
 };
 
+export const DEFAULT_FOLDERS: FolderItem[] = [
+  {
+    id: 'f_03',
+    name: '01. GIÁO ÁN TIẾNG VIỆT 1',
+    code: '03',
+    parentId: null,
+    color: '#8257E5',
+    createdAt: '2026-09-02T08:00:00+00:00',
+    updatedAt: '2026-10-15T07:25:21.976+00:00',
+    fileCount: 35,
+    directFileCount: 35,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 54474468,
+  },
+  {
+    id: 'f_1792049102744',
+    name: '02. GIÁO ÁN TOÁN 1',
+    code: '13',
+    parentId: null,
+    color: '#0866E8',
+    createdAt: '2026-10-15T07:25:02.744+00:00',
+    updatedAt: '2026-10-15T07:25:02.744+00:00',
+    fileCount: 35,
+    directFileCount: 35,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 74979312,
+  },
+  {
+    id: 'f_01',
+    name: '03. GIÁO ÁN ĐẠO ĐỨC 1',
+    code: '01',
+    parentId: null,
+    color: '#0866E8',
+    createdAt: '2026-09-01T08:00:00+00:00',
+    updatedAt: '2026-10-15T07:26:13.679+00:00',
+    fileCount: 35,
+    directFileCount: 35,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 47897905,
+  },
+  {
+    id: 'f_02',
+    name: '04. GIÁO ÁN TỰ NHIÊN VÀ XÃ HỘI 1',
+    code: '02',
+    parentId: null,
+    color: '#16B875',
+    createdAt: '2026-09-01T08:15:00+00:00',
+    updatedAt: '2026-10-15T07:26:44.994+00:00',
+    fileCount: 35,
+    directFileCount: 35,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 16534997,
+  },
+  {
+    id: 'f_04',
+    name: '05. GIÁO ÁN HOẠT ĐỘNG TRẢI NGHIỆM 1',
+    code: '04',
+    parentId: null,
+    color: '#0866E8',
+    createdAt: '2026-09-05T09:00:00+00:00',
+    updatedAt: '2026-10-15T07:27:13.076+00:00',
+    fileCount: 35,
+    directFileCount: 35,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 20824037,
+  },
+  {
+    id: 'f_07',
+    name: '06. WORD',
+    code: '07',
+    parentId: null,
+    color: '#0866E8',
+    createdAt: '2026-09-07T13:00:00+00:00',
+    updatedAt: '2026-10-15T07:28:45.624+00:00',
+    fileCount: 0,
+    directFileCount: 0,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 0,
+  },
+  {
+    id: 'f_08',
+    name: '07. EXCEL',
+    code: '08',
+    parentId: null,
+    color: '#16B875',
+    createdAt: '2026-09-08T14:00:00+00:00',
+    updatedAt: '2026-10-15T07:28:52.056+00:00',
+    fileCount: 0,
+    directFileCount: 0,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 0,
+  },
+  {
+    id: 'f_10',
+    name: '08. POWERPOINT',
+    code: '10',
+    parentId: null,
+    color: '#FF9F1C',
+    createdAt: '2026-09-10T10:00:00+00:00',
+    updatedAt: '2026-10-15T07:29:13.881+00:00',
+    fileCount: 0,
+    directFileCount: 0,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 0,
+  },
+  {
+    id: 'f_09',
+    name: '09. PDF',
+    code: '09',
+    parentId: null,
+    color: '#F04444',
+    createdAt: '2026-09-09T08:00:00+00:00',
+    updatedAt: '2026-10-15T07:20:00+00:00',
+    fileCount: 0,
+    directFileCount: 0,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 0,
+  },
+  {
+    id: 'f_06',
+    name: '10. VIDEO',
+    code: '06',
+    parentId: null,
+    color: '#F04444',
+    createdAt: '2026-09-06T11:00:00+00:00',
+    updatedAt: '2026-10-15T07:29:32.218+00:00',
+    fileCount: 0,
+    directFileCount: 0,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 0,
+  },
+  {
+    id: 'f_05',
+    name: '11. HÌNH ẢNH',
+    code: '05',
+    parentId: null,
+    color: '#FF9F1C',
+    createdAt: '2026-09-05T10:30:00+00:00',
+    updatedAt: '2026-10-15T07:28:10.042+00:00',
+    fileCount: 0,
+    directFileCount: 0,
+    subfolderCount: 2,
+    subfolderNames: ['ẢNH CẢ NHÀ', 'ẢNH DU LỊCH'],
+    totalSize: 0,
+  },
+  {
+    id: 'f_1792226614838',
+    name: 'ẢNH CẢ NHÀ',
+    code: '12',
+    parentId: 'f_05',
+    color: '#8257E5',
+    createdAt: '2026-10-17T08:43:34.838Z',
+    updatedAt: '2026-10-17T08:43:34.838Z',
+    fileCount: 0,
+    directFileCount: 0,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 0,
+  },
+  {
+    id: 'f_1792226627426',
+    name: 'ẢNH DU LỊCH',
+    code: '13',
+    parentId: 'f_05',
+    color: '#8257E5',
+    createdAt: '2026-10-17T08:43:47.426Z',
+    updatedAt: '2026-10-17T08:43:47.426Z',
+    fileCount: 0,
+    directFileCount: 0,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 0,
+  },
+];
+
 export const api = {
   async getUser(): Promise<UserProfile> {
     try {
@@ -72,16 +257,17 @@ export const api = {
     } catch (e) {
       console.warn('API getStats fallback:', e);
     }
+    const currentFolders = localStore.get<FolderItem[]>('folders', DEFAULT_FOLDERS);
     return localStore.get('stats', {
-      totalDocuments: 10,
-      totalStorageBytes: 34800000,
+      totalDocuments: 175,
+      totalStorageBytes: 214710719,
       maxStorageBytes: 107374182400,
-      usedPercentage: 0.1,
-      counts: { word: 10, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
-      sizes: { word: 34800000, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
+      usedPercentage: 0.2,
+      counts: { word: 175, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
+      sizes: { word: 214710719, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
       percentages: { word: 100, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
-      totalFolders: 11,
-      trashCount: 1,
+      totalFolders: currentFolders.length || DEFAULT_FOLDERS.length,
+      trashCount: 0,
     });
   },
 
@@ -102,17 +288,9 @@ export const api = {
     const cached = localStore.get<FolderItem[]>('folders', []);
     if (cached && cached.length > 0) return cached;
 
-    // Auto-restore seed if completely empty
-    try {
-      const restoreRes = await fetch('/api/database/restore', { method: 'POST' });
-      const restoreData = await restoreRes.json();
-      if (restoreData.folders && restoreData.folders.length > 0) {
-        localStore.set('folders', restoreData.folders);
-        return restoreData.folders;
-      }
-    } catch {}
-
-    return cached;
+    // Use DEFAULT_FOLDERS as standard foundation, cache to localStorage
+    localStore.set('folders', DEFAULT_FOLDERS);
+    return DEFAULT_FOLDERS;
   },
 
   async restoreDatabase(): Promise<{ success: boolean; message: string; folders: FolderItem[]; files: FileItem[] }> {
