@@ -19,6 +19,7 @@ import {
   Layers,
   ArrowLeft,
   FileText,
+  Loader2,
 } from 'lucide-react';
 import { FolderItem } from '../types';
 import { formatBytes, formatDate, buildFolderTreeOptions, api } from '../services/api';
@@ -29,6 +30,8 @@ interface FolderManagerProps {
   onCreateFolder: (name: string, color?: string, parentId?: string | null) => Promise<void>;
   onRenameFolder: (folderId: string, newName: string, color?: string, parentId?: string | null) => Promise<void>;
   onDeleteFolder: (folderId: string) => Promise<void>;
+  onBatchDeleteFolders?: (folderIds: string[], deleteFiles?: boolean) => Promise<void>;
+  onDeleteAllFolders?: (deleteFiles?: boolean) => Promise<void>;
   onOpenUpload: (targetFolderId?: string) => void;
   onOpenUploadFolder?: (targetFolderId?: string) => void;
   onRefreshData?: () => void;
@@ -40,6 +43,8 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
+  onBatchDeleteFolders,
+  onDeleteAllFolders,
   onOpenUpload,
   onOpenUploadFolder,
   onRefreshData,
@@ -66,6 +71,22 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
 
   const [deleteTarget, setDeleteTarget] = useState<FolderItem | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
+
+  // Multi-select & Batch/Delete All State
+  const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>([]);
+  const [deleteAllModal, setDeleteAllModal] = useState<{
+    isOpen: boolean;
+    mode: 'all' | 'selected';
+    targetFolders: FolderItem[];
+    deleteFiles: boolean;
+    isDeleting: boolean;
+  }>({
+    isOpen: false,
+    mode: 'all',
+    targetFolders: [],
+    deleteFiles: true,
+    isDeleting: false,
+  });
 
   // Color options
   const colorOptions = ['#0866E8', '#16B875', '#8257E5', '#FF9F1C', '#F04444', '#064AA8', '#38BDF8', '#64748B'];
@@ -175,6 +196,72 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
     if (!deleteTarget) return;
     await onDeleteFolder(deleteTarget.id);
     setDeleteTarget(null);
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedFolderIds.length === sortedFolders.length && sortedFolders.length > 0) {
+      setSelectedFolderIds([]);
+    } else {
+      setSelectedFolderIds(sortedFolders.map((f) => f.id));
+    }
+  };
+
+  const handleToggleSelectFolder = (id: string) => {
+    setSelectedFolderIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleOpenDeleteAllModal = () => {
+    if (folders.length === 0) return;
+    setDeleteAllModal({
+      isOpen: true,
+      mode: 'all',
+      targetFolders: sortedFolders,
+      deleteFiles: true,
+      isDeleting: false,
+    });
+  };
+
+  const handleOpenDeleteSelectedModal = () => {
+    const targets = sortedFolders.filter((f) => selectedFolderIds.includes(f.id));
+    if (targets.length === 0) return;
+    setDeleteAllModal({
+      isOpen: true,
+      mode: 'selected',
+      targetFolders: targets,
+      deleteFiles: true,
+      isDeleting: false,
+    });
+  };
+
+  const handleExecuteBatchDelete = async () => {
+    setDeleteAllModal((prev) => ({ ...prev, isDeleting: true }));
+    try {
+      if (deleteAllModal.mode === 'all') {
+        if (onDeleteAllFolders) {
+          await onDeleteAllFolders(deleteAllModal.deleteFiles);
+        } else if (onBatchDeleteFolders) {
+          await onBatchDeleteFolders(folders.map((f) => f.id), deleteAllModal.deleteFiles);
+        }
+      } else {
+        const ids = deleteAllModal.targetFolders.map((f) => f.id);
+        if (onBatchDeleteFolders) {
+          await onBatchDeleteFolders(ids, deleteAllModal.deleteFiles);
+        }
+      }
+      setSelectedFolderIds([]);
+      setDeleteAllModal({
+        isOpen: false,
+        mode: 'all',
+        targetFolders: [],
+        deleteFiles: true,
+        isDeleting: false,
+      });
+    } catch (err) {
+      console.error('Lỗi khi xóa thư mục:', err);
+      setDeleteAllModal((prev) => ({ ...prev, isDeleting: false }));
+    }
   };
 
   const handleRestoreDefaults = async () => {
@@ -292,6 +379,19 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
             <span>Làm mới</span>
           </button>
 
+          {/* Nút XÓA TẤT CẢ THƯ MỤC - Nổi bật màu đỏ */}
+          {folders.length > 0 && (
+            <button
+              type="button"
+              onClick={handleOpenDeleteAllModal}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+              title="Bấm để xóa tất cả thư mục trong hệ thống"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Xóa tất cả thư mục</span>
+            </button>
+          )}
+
           {/* List/Grid View Toggle */}
           <div className="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200">
             <button
@@ -318,8 +418,8 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
 
       {/* Filter Mode Selector & Search / Sort Bar */}
       <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-        {/* View Indicator */}
-        <div className="flex items-center gap-2">
+        {/* View Indicator & Action */}
+        <div className="flex flex-wrap items-center gap-2">
           {drillFolder ? (
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-blue-800 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
@@ -338,6 +438,18 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
               <Folder className="w-3.5 h-3.5 text-blue-600" />
               <span>Hệ thống 11 thư mục chính của Thầy Gọn</span>
             </span>
+          )}
+
+          {folders.length > 0 && (
+            <button
+              type="button"
+              onClick={handleOpenDeleteAllModal}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 hover:border-rose-300 transition-all cursor-pointer shadow-xs active:scale-95"
+              title="Bấm để xóa tất cả thư mục"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span>Xóa tất cả thư mục</span>
+            </button>
           )}
         </div>
 
@@ -376,6 +488,35 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
         </div>
       </div>
 
+      {/* Thanh công cụ khi đã tích chọn thư mục */}
+      {selectedFolderIds.length > 0 && (
+        <div className="bg-rose-50 border border-rose-200 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs animate-in fade-in shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
+            <span className="font-bold text-rose-900">
+              Đã chọn {selectedFolderIds.length} / {sortedFolders.length} thư mục
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedFolderIds([])}
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-xl hover:bg-rose-100/60 transition-colors cursor-pointer"
+            >
+              Bỏ chọn
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenDeleteSelectedModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer active:scale-95"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Xóa {selectedFolderIds.length} thư mục đã chọn</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Folders Display: List or Grid */}
       {viewMode === 'list' ? (
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
@@ -383,7 +524,21 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-4 w-12 text-center">#</th>
+                  <th className="py-3 px-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      aria-label="Chọn tất cả thư mục"
+                      checked={sortedFolders.length > 0 && selectedFolderIds.length === sortedFolders.length}
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate = selectedFolderIds.length > 0 && selectedFolderIds.length < sortedFolders.length;
+                        }
+                      }}
+                      onChange={handleToggleSelectAll}
+                      className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer accent-blue-600"
+                    />
+                  </th>
+                  <th className="py-3 px-3 w-12 text-center">#</th>
                   <th className="py-3 px-4">Tên thư mục</th>
                   <th className="py-3 px-4 text-center">Tổng số tệp</th>
                   <th className="py-3 px-4 text-center">Dung lượng</th>
@@ -394,7 +549,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {sortedFolders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                    <td colSpan={7} className="py-12 text-center text-slate-400">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Folder className="w-8 h-8 text-slate-300" />
                         <p className="font-semibold text-slate-500">Không tìm thấy thư mục nào phù hợp.</p>
@@ -412,13 +567,24 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                   sortedFolders.map((folder, index) => {
                     const isExpanded = expandedFolderIds[folder.id] !== false;
                     const directChildren = folders.filter((f) => f.parentId === folder.id);
+                    const isSelected = selectedFolderIds.includes(folder.id);
 
                     return (
                       <tr
                         key={folder.id}
-                        className="hover:bg-blue-50/50 transition-colors group"
+                        className={`transition-colors group ${
+                          isSelected ? 'bg-blue-50/80 hover:bg-blue-50' : 'hover:bg-blue-50/50'
+                        }`}
                       >
-                        <td className="py-3 px-4 text-center text-slate-400 font-medium">
+                        <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSelectFolder(folder.id)}
+                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer accent-blue-600"
+                          />
+                        </td>
+                        <td className="py-3 px-3 text-center text-slate-400 font-medium">
                           {index + 1}
                         </td>
                         <td className="py-3 px-4">
@@ -928,6 +1094,100 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                 className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs cursor-pointer"
               >
                 Đồng ý xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Xác nhận xóa tất cả thư mục hoặc các thư mục đã chọn */}
+      {deleteAllModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 shadow-xs">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-bold text-slate-900">
+                  {deleteAllModal.mode === 'all'
+                    ? 'Xác nhận xóa tất cả thư mục'
+                    : `Xác nhận xóa ${deleteAllModal.targetFolders.length} thư mục đã chọn`}
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  {deleteAllModal.mode === 'all'
+                    ? `Thầy đang chọn xóa toàn bộ ${deleteAllModal.targetFolders.length} thư mục trong hệ thống.`
+                    : `Thầy đang chọn xóa ${deleteAllModal.targetFolders.length} thư mục đã chọn khỏi danh sách.`}
+                </p>
+              </div>
+            </div>
+
+            {/* Checkbox tùy chọn xử lý tệp tin bên trong */}
+            <div className="space-y-2.5 my-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deleteAllModal.deleteFiles}
+                  onChange={(e) =>
+                    setDeleteAllModal((prev) => ({ ...prev, deleteFiles: e.target.checked }))
+                  }
+                  className="mt-0.5 accent-rose-600 w-4 h-4 rounded cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-slate-900 block">
+                    Đồng thời chuyển các tệp tài liệu trong thư mục vào Thùng rác
+                  </span>
+                  <span className="text-slate-500 text-[11px] block mt-0.5">
+                    Các tệp tin giáo án sẽ được chuyển an toàn vào Thùng rác, Thầy có thể xem hoặc khôi phục lại bất kỳ lúc nào.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            {/* Hướng dẫn an toàn */}
+            <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-100 text-[11px] text-blue-800 leading-relaxed mb-4">
+              💡 <strong>Lưu ý:</strong> Sau khi xóa, Thầy luôn có thể bấm nút <strong>"Làm mới"</strong> trên thanh công cụ để khôi phục lại đầy đủ hệ thống 11 thư mục giáo án mặc định của Thầy Gọn bất cứ lúc nào!
+            </div>
+
+            {/* Nút hành động */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={deleteAllModal.isDeleting}
+                onClick={() =>
+                  setDeleteAllModal({
+                    isOpen: false,
+                    mode: 'all',
+                    targetFolders: [],
+                    deleteFiles: true,
+                    isDeleting: false,
+                  })
+                }
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={deleteAllModal.isDeleting}
+                onClick={handleExecuteBatchDelete}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {deleteAllModal.isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang xóa...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>
+                      {deleteAllModal.mode === 'all'
+                        ? `Xác nhận xóa tất cả (${deleteAllModal.targetFolders.length} thư mục)`
+                        : `Xác nhận xóa (${deleteAllModal.targetFolders.length} thư mục)`}
+                    </span>
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -1162,12 +1162,20 @@ app.put('/api/folders/:id', (req, res) => {
   res.json({ success: true, folder: db.folders[idx] });
 });
 
-app.delete('/api/folders/:id', (req, res) => {
+app.delete('/api/folders/:id', async (req, res) => {
   const { id } = req.params;
   const db = getDB();
 
   const idx = db.folders.findIndex((f) => f.id === id);
-  if (idx === -1) return res.status(404).json({ success: false, message: 'Thư mục không tồn tại' });
+  if (idx === -1) {
+    // If not in local db, try deleting directly from Supabase
+    try {
+      await supabase.from('folders').delete().eq('id', id);
+    } catch (e) {
+      console.warn('Supabase delete folder warning:', e);
+    }
+    return res.json({ success: true, message: 'Đã xóa thư mục' });
+  }
 
   // Move all files in this folder to Trash
   const deletedFolder = db.folders.splice(idx, 1)[0];
@@ -1175,13 +1183,97 @@ app.delete('/api/folders/:id', (req, res) => {
     if (file.folderId === id) {
       file.isDeleted = true;
       file.deletedAt = new Date().toISOString();
-      syncFileToSupabase(file, 'upsert');
     }
   });
 
   saveDB(db);
-  syncFolderToSupabase(deletedFolder, 'delete');
+
+  try {
+    await supabase.from('folders').delete().eq('id', id);
+    await supabase.from('files').update({
+      is_deleted: true,
+      deleted_at: new Date().toISOString(),
+    }).eq('folder_id', id);
+  } catch (sbErr) {
+    console.warn('Supabase folder delete error:', sbErr);
+  }
+
   res.json({ success: true, message: `Đã xóa thư mục ${deletedFolder.name} và chuyển các tệp vào thùng rác` });
+});
+
+// Batch delete folders or delete all folders
+app.post('/api/folders/batch-delete', async (req, res) => {
+  try {
+    const { ids, all, deleteFiles, permanent } = req.body;
+    const db = getDB();
+
+    let targetIds: string[] = [];
+    if (Array.isArray(ids) && ids.length > 0) {
+      targetIds = ids;
+    } else if (all) {
+      targetIds = db.folders.map((f) => f.id);
+    }
+
+    if (targetIds.length === 0) {
+      return res.json({ success: true, count: 0, message: 'Không có thư mục nào để xóa' });
+    }
+
+    const idSet = new Set(targetIds);
+    db.folders = db.folders.filter((f) => !idSet.has(f.id));
+
+    // Handle files in deleted folders
+    if (deleteFiles) {
+      const now = new Date().toISOString();
+      db.files.forEach((file) => {
+        if (idSet.has(file.folderId)) {
+          if (permanent) {
+            const filePath = path.join(UPLOADS_DIR, file.filename);
+            if (fs.existsSync(filePath)) {
+              try { fs.unlinkSync(filePath); } catch (e) { console.error(e); }
+            }
+          } else {
+            file.isDeleted = true;
+            file.deletedAt = now;
+          }
+        }
+      });
+      if (permanent) {
+        db.files = db.files.filter((f) => !idSet.has(fileFolder(f)));
+      }
+    }
+
+    function fileFolder(f: FileRecord) {
+      return f.folderId;
+    }
+
+    saveDB(db);
+
+    // Sync to Supabase
+    try {
+      await supabase.from('folders').delete().in('id', targetIds);
+      if (deleteFiles) {
+        if (permanent) {
+          await supabase.from('files').delete().in('folder_id', targetIds);
+        } else {
+          await supabase.from('files').update({
+            is_deleted: true,
+            deleted_at: new Date().toISOString(),
+          }).in('folder_id', targetIds);
+        }
+      }
+    } catch (sbErr) {
+      console.warn('Supabase folders batch delete sync warning:', sbErr);
+    }
+
+    res.json({
+      success: true,
+      count: targetIds.length,
+      message: `Đã xóa thành công ${targetIds.length} thư mục`,
+    });
+  } catch (err: any) {
+    console.error('Lỗi batch-delete folders:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi xóa thư mục: ' + err.message });
+  }
 });
 
 // 4. Files Management

@@ -466,11 +466,40 @@ export default function App() {
 
   const handleDeleteFolder = async (folderId: string) => {
     try {
+      setFolders((prev) => prev.filter((f) => f.id !== folderId));
       await api.deleteFolder(folderId);
-      showToast('Đã xóa thư mục và di chuyển tệp vào thùng rác');
-      loadData();
+      showToast('Đã xóa thư mục và chuyển các tệp vào thùng rác');
+      await loadData();
     } catch (err) {
       console.error(err);
+      await loadData();
+    }
+  };
+
+  const handleBatchDeleteFolders = async (folderIds: string[], deleteFiles: boolean = true) => {
+    try {
+      const idSet = new Set(folderIds);
+      setFolders((prev) => prev.filter((f) => !idSet.has(f.id)));
+      await api.batchDeleteFolders({ ids: folderIds, deleteFiles });
+      showToast(`Đã xóa thành công ${folderIds.length} thư mục!`);
+      await loadData();
+    } catch (err) {
+      console.error('Lỗi xóa nhiều thư mục:', err);
+      showToast('Có lỗi xảy ra khi xóa thư mục');
+      await loadData();
+    }
+  };
+
+  const handleDeleteAllFolders = async (deleteFiles: boolean = true) => {
+    try {
+      setFolders([]);
+      await api.batchDeleteFolders({ all: true, deleteFiles });
+      showToast('Đã xóa tất cả các thư mục khỏi hệ thống!');
+      await loadData();
+    } catch (err) {
+      console.error('Lỗi xóa tất cả thư mục:', err);
+      showToast('Có lỗi xảy ra khi xóa tất cả thư mục');
+      await loadData();
     }
   };
 
@@ -881,6 +910,8 @@ export default function App() {
             onCreateFolder={handleCreateFolder}
             onRenameFolder={handleRenameFolder}
             onDeleteFolder={handleDeleteFolder}
+            onBatchDeleteFolders={handleBatchDeleteFolders}
+            onDeleteAllFolders={handleDeleteAllFolders}
             onOpenUpload={(targetFolderId) => handleOpenUpload(targetFolderId, 'file')}
             onOpenUploadFolder={(targetFolderId) => handleOpenUpload(targetFolderId, 'folder')}
             onRefreshData={() => loadData(true)}

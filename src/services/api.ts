@@ -326,7 +326,53 @@ export const api = {
   },
 
   async deleteFolder(id: string): Promise<void> {
-    await fetch(`/api/folders/${id}`, { method: 'DELETE' });
+    try {
+      await fetch(`/api/folders/${id}`, { method: 'DELETE' });
+    } catch (e) {
+      console.warn('API deleteFolder error:', e);
+    }
+    try {
+      await supabase.from('folders').delete().eq('id', id);
+    } catch {}
+    const folders = localStore.get<FolderItem[]>('folders', []);
+    localStore.set('folders', folders.filter((f) => f.id !== id));
+  },
+
+  async batchDeleteFolders(options: {
+    ids?: string[];
+    all?: boolean;
+    deleteFiles?: boolean;
+    permanent?: boolean;
+  }): Promise<{ success: boolean; count: number; message: string }> {
+    let result = { success: true, count: 0, message: '' };
+    try {
+      const res = await fetch('/api/folders/batch-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options),
+      });
+      result = await res.json();
+    } catch (e) {
+      console.warn('API batchDeleteFolders error:', e);
+    }
+
+    try {
+      if (options.all) {
+        await supabase.from('folders').delete().neq('id', '');
+      } else if (options.ids && options.ids.length > 0) {
+        await supabase.from('folders').delete().in('id', options.ids);
+      }
+    } catch {}
+
+    const folders = localStore.get<FolderItem[]>('folders', []);
+    if (options.all) {
+      localStore.set('folders', []);
+    } else if (options.ids && options.ids.length > 0) {
+      const idSet = new Set(options.ids);
+      localStore.set('folders', folders.filter((f) => !idSet.has(f.id)));
+    }
+
+    return result;
   },
 
   async getFiles(params?: {
