@@ -14,6 +14,8 @@ import {
   Laptop,
   Monitor,
   Database,
+  Camera,
+  Upload,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -38,11 +40,55 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   const [twoFactor, setTwoFactor] = useState(user?.twoFactorEnabled ?? true);
   const [activeTab, setActiveTab] = useState<'profile' | 'password' | '2fa' | 'devices' | 'storage'>('profile');
   const [notification, setNotification] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
 
   // Password state
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn tệp hình ảnh hợp lệ (JPG, PNG, WEBP)!');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 400;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          setAvatarUrl(dataUrl);
+          await onUpdateUser({ avatarUrl: dataUrl });
+          setNotification('Đã cập nhật ảnh đại diện của Thầy Từ Văn Gọn thành công!');
+          setTimeout(() => setNotification(''), 3000);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +100,9 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
       email,
       phone,
       twoFactorEnabled: twoFactor,
+      avatarUrl: avatarUrl || user?.avatarUrl,
     });
-    setNotification('Đã cập nhật thông tin hồ sơ của Thầy Gọn thành công!');
+    setNotification('Đã cập nhật thông tin hồ sơ của Thầy Từ Văn Gọn thành công!');
     setTimeout(() => setNotification(''), 3000);
   };
 
@@ -207,6 +254,43 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
                 Hồ sơ giáo viên chủ sở hữu
               </h3>
+
+              {/* Khối Ảnh đại diện Từ Văn Gọn */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-blue-50/60 rounded-2xl border border-blue-100">
+                <div className="relative group w-20 h-20 rounded-full overflow-hidden border-3 border-blue-500 shadow-md shrink-0 bg-white">
+                  <img
+                    src={avatarUrl || user?.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200&auto=format&fit=crop&q=80'}
+                    alt="Từ Văn Gọn"
+                    className="w-full h-full object-cover"
+                  />
+                  <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity text-[10px]">
+                    <Camera className="w-5 h-5 mb-0.5" />
+                    <span>Đổi ảnh</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarFile}
+                    />
+                  </label>
+                </div>
+                <div className="text-center sm:text-left flex-1">
+                  <h4 className="font-bold text-slate-800 text-sm">Ảnh đại diện của Thầy Từ Văn Gọn</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Ảnh đại diện xuất hiện trên góc trái màn hình chính và các liên kết chia sẻ tài liệu.
+                  </p>
+                  <label className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-xs transition-colors">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Tải ảnh mới từ thiết bị</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarFile}
+                    />
+                  </label>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>

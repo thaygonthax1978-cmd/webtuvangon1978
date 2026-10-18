@@ -979,6 +979,11 @@ export default function App() {
         toggleMobileSimulator={() => setIsMobileSimulatorActive(!isMobileSimulatorActive)}
         isMobileSimulatorActive={isMobileSimulatorActive}
         onToggleSidebarMobile={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+        onUpdateUser={async (userData) => {
+          const updated = await api.updateUser(userData);
+          setUser(updated);
+          showToast('Đã cập nhật ảnh đại diện thành công!');
+        }}
       />
 
       {/* Main Body Container: Sidebar + Content */}
