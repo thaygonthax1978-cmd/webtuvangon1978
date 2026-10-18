@@ -263,6 +263,15 @@ const defaultFolders: FolderRecord[] = [
     createdAt: '2026-10-17T08:43:47.426Z',
     updatedAt: '2026-10-17T08:43:47.426Z',
   },
+  {
+    id: 'f_1792328783177',
+    name: '12. TÀI LIỆU LƯU TRỮ',
+    code: '20',
+    parentId: null,
+    color: '#0866E8',
+    createdAt: '2026-10-18T05:00:00+00:00',
+    updatedAt: '2026-10-18T05:00:00+00:00',
+  },
 ];
 
 function seedInitialFiles(): FileRecord[] {
