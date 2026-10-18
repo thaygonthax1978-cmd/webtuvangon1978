@@ -202,6 +202,33 @@
       "color": "#8257E5",
       "createdAt": "2026-10-16T09:42:16.809+00:00",
       "updatedAt": "2026-10-16T09:42:16.809+00:00"
+    },
+    {
+      "id": "f_1792226614838",
+      "name": "ẢNH CẢ NHÀ",
+      "code": "12",
+      "parentId": "f_05",
+      "color": "#8257E5",
+      "createdAt": "2026-10-17T08:43:34.838Z",
+      "updatedAt": "2026-10-17T08:43:34.838Z"
+    },
+    {
+      "id": "f_1792226627426",
+      "name": "ẢNH DU LỊCH",
+      "code": "13",
+      "parentId": "f_05",
+      "color": "#8257E5",
+      "createdAt": "2026-10-17T08:43:47.426Z",
+      "updatedAt": "2026-10-17T08:43:47.426Z"
+    },
+    {
+      "id": "f_geogebra_math",
+      "name": "Phần mềm Toán học động GeoGebra (dành cho việc dạy học Toán)",
+      "code": "GG",
+      "parentId": "f_1792143694454",
+      "color": "#16B875",
+      "createdAt": "2026-10-18T01:37:56.938Z",
+      "updatedAt": "2026-10-18T01:37:56.939Z"
     }
   ],
   "files": [

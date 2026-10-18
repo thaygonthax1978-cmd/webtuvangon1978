@@ -680,7 +680,7 @@ export default function App() {
                 <div className="flex items-center gap-2">
                   <Folder className="w-4 h-4 text-amber-500" />
                   <h3 className="text-xs md:text-sm font-bold text-slate-900">
-                    Thư mục con trong {currentFolderObj?.name} ({subfoldersInCurrent.length})
+                    Thư mục bên trong {currentFolderObj?.name}
                   </h3>
                 </div>
 

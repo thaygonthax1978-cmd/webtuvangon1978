@@ -15,23 +15,25 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Headers', '*');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
   next();
 });
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Directories
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
+const CHUNKS_TEMP_DIR = path.resolve(process.cwd(), 'temp_chunks');
 const DB_FILE = path.resolve(DATA_DIR, 'db.json');
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!fs.existsSync(CHUNKS_TEMP_DIR)) fs.mkdirSync(CHUNKS_TEMP_DIR, { recursive: true });
 
 // Setup Supabase Client
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ceuwkkfwklxedzndsisu.supabase.co';
@@ -643,6 +645,11 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 * 1024 }, // 2GB
 });
 
+const chunkUpload = multer({
+  dest: CHUNKS_TEMP_DIR,
+  limits: { fileSize: 30 * 1024 * 1024 }, // 30MB max per chunk
+});
+
 // Determine category by extension
 function categorizeFile(filename: string): 'pdf' | 'word' | 'excel' | 'powerpoint' | 'image' | 'video' | 'zip' | 'other' {
   const ext = path.extname(filename).toLowerCase().replace('.', '');
@@ -1056,7 +1063,7 @@ app.get('/api/stats', (_req, res) => {
       counts: categoryCounts,
       sizes: categorySizes,
       percentages,
-      totalFolders: db.folders.length,
+      totalFolders: db.folders.filter((f) => !f.parentId).length,
       trashCount: db.files.filter((f) => f.isDeleted).length,
     },
   });
@@ -1263,7 +1270,9 @@ app.post('/api/upload', upload.array('files', 20), (req, res) => {
     }
 
     const db = getDB();
-    const targetFolder = db.folders.find((f) => f.id === folderId) || db.folders[0];
+    const targetFolder =
+      (db.folders && db.folders.find((f) => f.id === folderId)) ||
+      (db.folders && db.folders[0]) || { id: 'f_01', name: 'Tài liệu' };
 
     const addedFiles: FileRecord[] = [];
 
@@ -1332,7 +1341,7 @@ app.post('/api/upload', upload.array('files', 20), (req, res) => {
   }
 });
 
-// 5b. Resilient Direct Upload via JSON / Base64 (100% reliable across proxies)
+// 5b. Resilient Direct Upload via JSON / Base64 (Preserves UTF-8)
 app.post('/api/upload-json', (req, res) => {
   try {
     const { name, size, mimeType, folderId, base64Content } = req.body;
@@ -1341,7 +1350,9 @@ app.post('/api/upload-json', (req, res) => {
     }
 
     const db = getDB();
-    const targetFolder = db.folders.find((f) => f.id === folderId) || db.folders[0];
+    const targetFolder =
+      (db.folders && db.folders.find((f) => f.id === folderId)) ||
+      (db.folders && db.folders[0]) || { id: 'f_01', name: 'Tài liệu' };
 
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const ext = path.extname(name).toLowerCase().replace('.', '');
@@ -1407,6 +1418,131 @@ app.post('/api/upload-json', (req, res) => {
   } catch (err: any) {
     console.error('Lỗi tải tệp /api/upload-json:', err);
     res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lưu tệp: ' + err.message });
+  }
+});
+
+// 5c. Chunked File Upload (Solves Cloud Run 32MB payload limit for large files like 47.7MB GeoGebra up to 2GB)
+app.post('/api/upload-chunk', chunkUpload.single('chunk'), async (req, res) => {
+  try {
+    const { uploadId, chunkIndex, totalChunks, filename, fileSize, mimeType, folderId } = req.body;
+    const chunkFile = req.file;
+
+    if (!uploadId || chunkIndex === undefined || !totalChunks || !filename) {
+      return res.status(400).json({ success: false, message: 'Thiếu thông tin phân đoạn tải lên' });
+    }
+
+    const cIndex = parseInt(chunkIndex, 10);
+    const tChunks = parseInt(totalChunks, 10);
+    const uploadSessionDir = path.join(CHUNKS_TEMP_DIR, uploadId);
+
+    if (!fs.existsSync(uploadSessionDir)) {
+      fs.mkdirSync(uploadSessionDir, { recursive: true });
+    }
+
+    if (chunkFile) {
+      const chunkTarget = path.join(uploadSessionDir, `part_${cIndex}`);
+      fs.renameSync(chunkFile.path, chunkTarget);
+    }
+
+    // Check if all chunks have arrived
+    let isComplete = true;
+    for (let i = 0; i < tChunks; i++) {
+      if (!fs.existsSync(path.join(uploadSessionDir, `part_${i}`))) {
+        isComplete = false;
+        break;
+      }
+    }
+
+    if (!isComplete) {
+      return res.json({
+        success: true,
+        isComplete: false,
+        chunkIndex: cIndex,
+        totalChunks: tChunks,
+        message: `Đã nhận phân đoạn ${cIndex + 1}/${tChunks}`,
+      });
+    }
+
+    // All chunks arrived: Assemble into final file in UPLOADS_DIR
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(filename).toLowerCase().replace('.', '');
+    const physicalFilename = `${uniqueSuffix}.${ext || 'dat'}`;
+    const finalFilePath = path.join(UPLOADS_DIR, physicalFilename);
+
+    const writeStream = fs.createWriteStream(finalFilePath);
+    for (let i = 0; i < tChunks; i++) {
+      const partPath = path.join(uploadSessionDir, `part_${i}`);
+      const partData = fs.readFileSync(partPath);
+      writeStream.write(partData);
+      try {
+        fs.unlinkSync(partPath);
+      } catch (e) {}
+    }
+    writeStream.end();
+
+    // Clean up session directory
+    try {
+      fs.rmdirSync(uploadSessionDir);
+    } catch (e) {}
+
+    const db = getDB();
+    const targetFolder =
+      (db.folders && db.folders.find((f) => f.id === folderId)) ||
+      (db.folders && db.folders[0]) || { id: 'f_01', name: 'Tài liệu' };
+
+    const parsedSize = parseInt(fileSize, 10) || (fs.existsSync(finalFilePath) ? fs.statSync(finalFilePath).size : 0);
+    let previewContent = '';
+    if (['txt', 'md', 'csv', 'json'].includes(ext)) {
+      try {
+        previewContent = fs.readFileSync(finalFilePath, 'utf-8').slice(0, 5000);
+      } catch (e) {}
+    }
+    if (!previewContent) {
+      previewContent = `Tài liệu: ${filename}\nĐịnh dạng: ${ext.toUpperCase()}\nKích thước: ${(parsedSize / (1024 * 1024)).toFixed(2)} MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.`;
+    }
+
+    const category = categorizeFile(filename);
+    const newFile: FileRecord = {
+      id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      name: filename,
+      originalName: filename,
+      mimeType: mimeType || 'application/octet-stream',
+      extension: ext,
+      category,
+      size: parsedSize,
+      folderId: targetFolder.id,
+      folderName: targetFolder.name,
+      filename: physicalFilename,
+      uploadDate: new Date().toISOString(),
+      updatedDate: new Date().toISOString(),
+      isFavorite: false,
+      isDeleted: false,
+      versions: [
+        {
+          version: 1,
+          name: filename,
+          size: parsedSize,
+          uploadDate: new Date().toISOString().split('T')[0],
+          updatedBy: db.user.fullName,
+          filename: physicalFilename,
+        },
+      ],
+      previewContent,
+    };
+
+    db.files.unshift(newFile);
+    saveDB(db);
+    syncFileToSupabase(newFile, 'upsert');
+
+    return res.json({
+      success: true,
+      isComplete: true,
+      message: 'Tải lên tệp thành công!',
+      files: [newFile],
+    });
+  } catch (err: any) {
+    console.error('Lỗi tải tệp phân đoạn /api/upload-chunk:', err);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi ghép tệp: ' + err.message });
   }
 });
 

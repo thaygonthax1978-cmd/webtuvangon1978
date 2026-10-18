@@ -96,9 +96,9 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   };
 
   // Build items to display:
+  // Subfolders stay hidden inside their parent folder (e.g. ẢNH CẢ NHÀ & ẢNH DU LỊCH inside 11. HÌNH ẢNH)
   type DisplayFolderItem = FolderItem & {
     isSubfolder: boolean;
-    parentName?: string;
     levelDepth: number;
     hasChildren: boolean;
     childrenCount: number;
@@ -107,34 +107,20 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   let displayFolders: DisplayFolderItem[] = [];
 
   if (drillFolderId) {
-    // Inside a folder: display its children
+    // Inside a folder: display only its subfolders (e.g. ẢNH CẢ NHÀ, ẢNH DU LỊCH inside 11. HÌNH ẢNH)
     displayFolders = childrenOfDrill.map((child) => {
       const grandChildren = folders.filter((f) => f.parentId === child.id);
       return {
         ...child,
         isSubfolder: true,
-        parentName: drillFolder?.name,
-        levelDepth: 1,
+        levelDepth: 0,
         hasChildren: grandChildren.length > 0,
         childrenCount: grandChildren.length,
       };
     });
-  } else if (filterLevel === 'all') {
-    // Flat list of all folders
-    displayFolders = folders.map((f) => {
-      const parent = f.parentId ? folders.find((p) => p.id === f.parentId) : undefined;
-      const children = folders.filter((c) => c.parentId === f.id);
-      return {
-        ...f,
-        isSubfolder: Boolean(f.parentId),
-        parentName: parent?.name,
-        levelDepth: f.parentId ? 1 : 0,
-        hasChildren: children.length > 0,
-        childrenCount: children.length,
-      };
-    });
-  } else if (filterLevel === 'root') {
-    // Only root folders
+  } else {
+    // Top-level / Thư mục chính: ALWAYS only display the 11 root folders!
+    // Subfolders stay hidden inside and do NOT appear outside.
     displayFolders = rootFolders.map((root) => {
       const children = folders.filter((f) => f.parentId === root.id);
       return {
@@ -145,51 +131,11 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
         childrenCount: children.length,
       };
     });
-  } else {
-    // Tree View (Default): Root folders, and if expanded, show their children and grandchildren indented!
-    const addRecursive = (parentId: string | null, depth: number) => {
-      const items = folders.filter((f) => (f.parentId || null) === parentId);
-      items.sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true }));
-
-      for (const item of items) {
-        const directChildren = folders.filter((f) => f.parentId === item.id);
-        const parentObj = item.parentId ? folders.find((p) => p.id === item.parentId) : undefined;
-        displayFolders.push({
-          ...item,
-          isSubfolder: depth > 0,
-          parentName: parentObj?.name,
-          levelDepth: depth,
-          hasChildren: directChildren.length > 0,
-          childrenCount: directChildren.length,
-        });
-
-        // If expanded (default is true), recurse
-        if (expandedFolderIds[item.id] !== false && directChildren.length > 0) {
-          addRecursive(item.id, depth + 1);
-        }
-      }
-    };
-
-    addRecursive(null, 0);
-
-    // Any orphan folders with missing parent
-    const addedIds = new Set(displayFolders.map((d) => d.id));
-    const orphans = folders.filter((f) => !addedIds.has(f.id));
-    for (const orphan of orphans) {
-      displayFolders.push({
-        ...orphan,
-        isSubfolder: false,
-        levelDepth: 0,
-        hasChildren: false,
-        childrenCount: 0,
-      });
-    }
   }
 
   // Filter by search
   const filteredFolders = displayFolders.filter((f) =>
-    f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (f.parentName && f.parentName.toLowerCase().includes(searchTerm.toLowerCase()))
+    f.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Sort folders (only if not tree view or if searching)
@@ -372,52 +318,27 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
 
       {/* Filter Mode Selector & Search / Sort Bar */}
       <div className="bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-        {/* View hierarchy level tabs */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-          <button
-            onClick={() => {
-              setFilterLevel('root');
-              setDrillFolderId(null);
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              filterLevel === 'root' && !drillFolderId
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-            }`}
-          >
-            <Folder className="w-3.5 h-3.5" />
-            <span>Thư mục chính ({rootFolders.length})</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setFilterLevel('tree');
-              setDrillFolderId(null);
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              filterLevel === 'tree' && !drillFolderId
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-            }`}
-          >
-            <FolderTree className="w-3.5 h-3.5" />
-            <span>Cây thư mục</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setFilterLevel('all');
-              setDrillFolderId(null);
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              filterLevel === 'all' && !drillFolderId
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Tất cả ({folders.length})</span>
-          </button>
+        {/* View Indicator */}
+        <div className="flex items-center gap-2">
+          {drillFolder ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-blue-800 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                <Folder className="w-3.5 h-3.5 text-blue-600" />
+                <span>Thư mục bên trong {drillFolder.name} ({childrenOfDrill.length})</span>
+              </span>
+              <button
+                onClick={() => setDrillFolderId(null)}
+                className="text-xs font-semibold text-slate-600 hover:text-blue-600 hover:bg-slate-100 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer"
+              >
+                ← Quay lại
+              </button>
+            </div>
+          ) : (
+            <span className="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+              <Folder className="w-3.5 h-3.5 text-blue-600" />
+              <span>Hệ thống 11 thư mục chính của Thầy Gọn</span>
+            </span>
+          )}
         </div>
 
         {/* Search & Sort */}
@@ -501,28 +422,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                           {index + 1}
                         </td>
                         <td className="py-3 px-4">
-                          <div
-                            className="flex items-center gap-2.5"
-                            style={{ paddingLeft: `${Math.min(folder.levelDepth * 24, 72)}px` }}
-                          >
-                            {/* Expand/Collapse Chevron if has children */}
-                            {folder.hasChildren ? (
-                              <button
-                                onClick={(e) => toggleFolderExpand(folder.id, e)}
-                                className="p-1 hover:bg-blue-100 rounded text-slate-500 hover:text-blue-700 transition-colors cursor-pointer"
-                                title={isExpanded ? 'Thu gọn' : 'Mở rộng'}
-                              >
-                                {isExpanded ? (
-                                  <ChevronDown className="w-4 h-4 text-blue-600" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4 text-slate-500" />
-                                )}
-                              </button>
-                            ) : folder.levelDepth > 0 ? (
-                              <span className="text-slate-300 w-4 text-center font-mono">↳</span>
-                            ) : (
-                              <span className="w-4" />
-                            )}
+                          <div className="flex items-center gap-2.5">
 
                             {/* Folder Icon */}
                             <div
@@ -591,7 +491,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                               <button
                                 onClick={() => setDrillFolderId(folder.id)}
                                 className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
-                                title={`Mở xem thư mục con của "${folder.name}"`}
+                                title={`Mở thư mục "${folder.name}"`}
                               >
                                 <FolderTree className="w-4 h-4" />
                               </button>

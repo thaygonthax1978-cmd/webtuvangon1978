@@ -264,107 +264,143 @@ export const UploadView: React.FC<UploadViewProps> = ({
     }
   };
 
-  const uploadSingleItem = (item: UploadQueueItem, targetFolderId: string): Promise<FileItem[]> => {
-    return new Promise((resolve, reject) => {
-      setQueue((prev) =>
-        prev.map((q) => (q.id === item.id ? { ...q, status: 'uploading', progress: 15, errorMessage: undefined } : q))
-      );
-
-      // Strategy 1: For files <= 40MB, read as DataURL and send via /api/upload-json (100% reliable across Cloud proxies, preserves UTF-8)
-      if (item.file && item.size <= 40 * 1024 * 1024) {
-        const reader = new FileReader();
-
-        reader.onprogress = (evt) => {
-          if (evt.lengthComputable) {
-            const pct = Math.min(85, Math.round((evt.loaded / evt.total) * 75) + 10);
-            setQueue((prev) =>
-              prev.map((q) => (q.id === item.id ? { ...q, progress: pct } : q))
-            );
-          }
-        };
-
-        reader.onload = async () => {
-          setQueue((prev) =>
-            prev.map((q) => (q.id === item.id ? { ...q, progress: 90 } : q))
-          );
-
-          try {
-            const base64Content = reader.result as string;
-            const res = await fetch('/api/upload-json', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                name: item.name,
-                size: item.size,
-                mimeType: item.file.type || 'application/octet-stream',
-                folderId: targetFolderId,
-                base64Content,
-              }),
-            });
-
-            if (!res.ok) {
-              const errData = await res.json().catch(() => ({}));
-              throw new Error(errData.message || `Lỗi máy chủ (${res.status})`);
-            }
-
-            const data = await res.json();
-            setQueue((prev) =>
-              prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
-            );
-            resolve(data.files || []);
-          } catch (err: any) {
-            console.warn('JSON upload failed, falling back to FormData:', err);
-            // Fallback to FormData multipart upload
-            uploadViaFormData(item, targetFolderId, resolve, reject);
-          }
-        };
-
-        reader.onerror = () => {
-          uploadViaFormData(item, targetFolderId, resolve, reject);
-        };
-
-        reader.readAsDataURL(item.file);
-      } else {
-        // Files > 40MB: Stream via FormData directly
-        uploadViaFormData(item, targetFolderId, resolve, reject);
-      }
-    });
-  };
-
-  const uploadViaFormData = (
+  const uploadViaChunks = (
     item: UploadQueueItem,
     targetFolderId: string,
     resolve: (files: FileItem[]) => void,
     reject: (err: any) => void
   ) => {
-    const formData = new FormData();
-    formData.append('files', item.file);
-    formData.append('folderId', targetFolderId);
+    const file = item.file;
+    if (!file) {
+      reject(new Error('Tệp không hợp lệ'));
+      return;
+    }
 
-    fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || (res.status === 413 ? 'Tệp vượt quá giới hạn 32MB' : 'Lỗi tải tệp'));
+    const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB per chunk (safely under Cloud Run 32MB limit)
+    const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+    const uploadId = `up_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+    let currentChunk = 0;
+
+    const uploadNextChunk = (retryCount = 0) => {
+      const start = currentChunk * CHUNK_SIZE;
+      const end = Math.min(file.size, start + CHUNK_SIZE);
+      const chunkBlob = file.slice(start, end);
+
+      const formData = new FormData();
+      formData.append('chunk', chunkBlob, item.name);
+      formData.append('uploadId', uploadId);
+      formData.append('chunkIndex', String(currentChunk));
+      formData.append('totalChunks', String(totalChunks));
+      formData.append('filename', item.name);
+      formData.append('fileSize', String(file.size));
+      formData.append('mimeType', file.type || 'application/octet-stream');
+      formData.append('folderId', targetFolderId);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload-chunk', true);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const currentUploaded = start + e.loaded;
+          const pct = Math.min(99, Math.round((currentUploaded / file.size) * 100));
+          setQueue((prev) =>
+            prev.map((q) => (q.id === item.id ? { ...q, progress: pct, status: 'uploading' } : q))
+          );
         }
-        return res.json();
-      })
-      .then((data) => {
-        setQueue((prev) =>
-          prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
-        );
-        resolve(data.files || []);
-      })
-      .catch((err: any) => {
-        const errorMsg = err.message || 'Lỗi đường truyền mạng';
-        setQueue((prev) =>
-          prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: errorMsg } : q))
-        );
-        reject(err);
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            if (res.isComplete) {
+              setQueue((prev) =>
+                prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
+              );
+              resolve(res.files || []);
+            } else {
+              currentChunk++;
+              uploadNextChunk(0);
+            }
+          } catch (e) {
+            handleError(new Error('Phản hồi từ máy chủ không hợp lệ'));
+          }
+        } else {
+          try {
+            const errJson = JSON.parse(xhr.responseText);
+            handleError(new Error(errJson.message || `Lỗi tải tệp (${xhr.status})`));
+          } catch {
+            handleError(new Error(`Lỗi tải tệp (${xhr.status})`));
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        if (retryCount < 2) {
+          setTimeout(() => uploadNextChunk(retryCount + 1), 1000);
+        } else {
+          handleError(new Error('Lỗi kết nối mạng khi tải tệp'));
+        }
+      };
+
+      const handleError = (err: Error) => {
+        if (retryCount < 2) {
+          setTimeout(() => uploadNextChunk(retryCount + 1), 1000);
+        } else {
+          setQueue((prev) =>
+            prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: err.message } : q))
+          );
+          reject(err);
+        }
+      };
+
+      xhr.send(formData);
+    };
+
+    uploadNextChunk(0);
+  };
+
+  const uploadSingleItem = (item: UploadQueueItem, targetFolderId: string): Promise<FileItem[]> => {
+    return new Promise((resolve, reject) => {
+      setQueue((prev) =>
+        prev.map((q) => (q.id === item.id ? { ...q, status: 'uploading', progress: 5, errorMessage: undefined } : q))
+      );
+
+      // Primary strategy: Chunked upload (handles files of any size smoothly, byte-level progress, bypasses proxy limits)
+      uploadViaChunks(item, targetFolderId, resolve, (chunkErr) => {
+        console.warn('Chunk upload failed, attempting fallback to multipart upload:', chunkErr);
+        // Fallback: standard FormData upload
+        const formData = new FormData();
+        formData.append('files', item.file);
+        formData.append('folderId', targetFolderId);
+
+        fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+          .then(async (res) => {
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              throw new Error(errData.message || (res.status === 413 ? 'Tệp vượt quá giới hạn dung lượng tải lên' : 'Lỗi tải tệp'));
+            }
+            return res.json();
+          })
+          .then((data) => {
+            setQueue((prev) =>
+              prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
+            );
+            resolve(data.files || []);
+          })
+          .catch((err: any) => {
+            const errorMsg = err.message || 'Lỗi đường truyền mạng';
+            setQueue((prev) =>
+              prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: errorMsg } : q))
+            );
+            reject(err);
+          });
       });
+    });
   };
 
   const uploadSequential = async (items: UploadQueueItem[], targetFolderId: string) => {

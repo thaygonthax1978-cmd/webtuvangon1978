@@ -266,7 +266,7 @@ export const api = {
       counts: { word: 175, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
       sizes: { word: 214710719, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
       percentages: { word: 100, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
-      totalFolders: currentFolders.length || DEFAULT_FOLDERS.length,
+      totalFolders: (currentFolders.filter((f) => !f.parentId).length) || 11,
       trashCount: 0,
     });
   },

@@ -316,7 +316,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 <Folder className="w-3.5 h-3.5 text-blue-500" />
                 Tổng số thư mục khởi tạo
               </span>
-              <span className="font-bold text-slate-800">{stats?.totalFolders || 12} thư mục</span>
+              <span className="font-bold text-slate-800">{stats?.totalFolders || 11} thư mục</span>
             </div>
             <div className="flex items-center justify-between text-xs text-slate-600">
               <span className="flex items-center gap-1.5">
