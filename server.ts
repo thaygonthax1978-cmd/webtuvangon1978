@@ -6,11 +6,12 @@ import multer from 'multer';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
+import { isRealDocx, generateValidDocx } from './src/services/docxHelper';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = 3000;
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -1582,49 +1583,75 @@ app.put('/api/files/:id', (req, res) => {
 });
 
 // Soft Delete (Move to Trash)
-app.delete('/api/files/:id', (req, res) => {
+app.delete('/api/files/:id', async (req, res) => {
   const { id } = req.params;
   const { permanent } = req.query;
+  const isPermanent = permanent === 'true';
   const db = getDB();
   const idx = db.files.findIndex((f) => f.id === id);
-  if (idx === -1) return res.status(404).json({ success: false, message: 'Không tìm thấy tệp' });
 
-  if (permanent === 'true') {
-    const removed = db.files.splice(idx, 1)[0];
-    const physicalPath = path.join(UPLOADS_DIR, removed.filename);
-    if (fs.existsSync(physicalPath)) {
-      try { fs.unlinkSync(physicalPath); } catch (e) { console.error(e); }
+  if (idx !== -1) {
+    if (isPermanent) {
+      const removed = db.files.splice(idx, 1)[0];
+      const physicalPath = path.join(UPLOADS_DIR, removed.filename);
+      if (fs.existsSync(physicalPath)) {
+        try { fs.unlinkSync(physicalPath); } catch (e) { console.error(e); }
+      }
+    } else {
+      db.files[idx].isDeleted = true;
+      db.files[idx].deletedAt = new Date().toISOString();
     }
     saveDB(db);
-    syncFileToSupabase(removed, 'delete');
-    return res.json({ success: true, message: 'Đã xóa vĩnh viễn tệp' });
   }
 
-  db.files[idx].isDeleted = true;
-  db.files[idx].deletedAt = new Date().toISOString();
-  saveDB(db);
-  syncFileToSupabase(db.files[idx], 'upsert');
-  res.json({ success: true, message: 'Đã chuyển tệp vào thùng rác' });
+  // Always sync to Supabase
+  try {
+    if (isPermanent) {
+      await supabase.from('files').delete().eq('id', id);
+    } else {
+      await supabase.from('files').update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+      }).eq('id', id);
+    }
+  } catch (err) {
+    console.warn('Supabase delete error:', err);
+  }
+
+  res.json({
+    success: true,
+    message: isPermanent ? 'Đã xóa vĩnh viễn tệp' : 'Đã chuyển tệp vào thùng rác',
+  });
 });
 
 // Restore from Trash
-app.post('/api/files/:id/restore', (req, res) => {
+app.post('/api/files/:id/restore', async (req, res) => {
   const { id } = req.params;
   const db = getDB();
   const idx = db.files.findIndex((f) => f.id === id);
-  if (idx === -1) return res.status(404).json({ success: false, message: 'Không tìm thấy tệp' });
+  if (idx !== -1) {
+    db.files[idx].isDeleted = false;
+    db.files[idx].deletedAt = undefined;
+    saveDB(db);
+  }
 
-  db.files[idx].isDeleted = false;
-  db.files[idx].deletedAt = undefined;
-  saveDB(db);
-  syncFileToSupabase(db.files[idx], 'upsert');
-  res.json({ success: true, message: 'Đã khôi phục tệp thành công', file: db.files[idx] });
+  try {
+    await supabase.from('files').update({
+      is_deleted: false,
+      deleted_at: null,
+    }).eq('id', id);
+  } catch (err) {
+    console.warn('Supabase restore error:', err);
+  }
+
+  res.json({ success: true, message: 'Đã khôi phục tệp thành công' });
 });
 
 // Empty Trash
-app.delete('/api/trash/empty', (_req, res) => {
+app.delete('/api/trash/empty', async (_req, res) => {
   const db = getDB();
   const trashFiles = db.files.filter((f) => f.isDeleted);
+  const trashIds = trashFiles.map((f) => f.id);
   trashFiles.forEach((file) => {
     const filePath = path.join(UPLOADS_DIR, file.filename);
     if (fs.existsSync(filePath)) {
@@ -1634,64 +1661,88 @@ app.delete('/api/trash/empty', (_req, res) => {
 
   db.files = db.files.filter((f) => !f.isDeleted);
   saveDB(db);
+
+  try {
+    if (trashIds.length > 0) {
+      await supabase.from('files').delete().in('id', trashIds);
+    }
+    await supabase.from('files').delete().eq('is_deleted', true);
+  } catch (err) {
+    console.warn('Supabase empty trash error:', err);
+  }
+
   res.json({ success: true, message: `Đã dọn sạch ${trashFiles.length} tệp trong thùng rác` });
 });
 
 // Batch Delete Files (by IDs or all in folder or all active files)
-app.post('/api/files/batch-delete', (req, res) => {
+app.post('/api/files/batch-delete', async (req, res) => {
   try {
     const { ids, folderId, all, permanent } = req.body;
+    const isPermanent = permanent === true || permanent === 'true';
     const db = getDB();
 
-    let targetFiles: FileRecord[] = [];
-
+    let targetIds: string[] = [];
     if (Array.isArray(ids) && ids.length > 0) {
-      targetFiles = db.files.filter((f) => ids.includes(f.id));
+      targetIds = ids;
     } else if (all) {
       if (folderId && folderId !== 'all') {
-        targetFiles = db.files.filter((f) => !f.isDeleted && f.folderId === folderId);
+        targetIds = db.files.filter((f) => !f.isDeleted && f.folderId === folderId).map((f) => f.id);
       } else {
-        targetFiles = db.files.filter((f) => !f.isDeleted);
+        targetIds = db.files.filter((f) => !f.isDeleted).map((f) => f.id);
       }
     }
 
-    if (targetFiles.length === 0) {
+    if (targetIds.length === 0) {
       return res.json({ success: true, count: 0, message: 'Không có tài liệu nào để xóa' });
     }
 
+    const idSet = new Set(targetIds);
     const now = new Date().toISOString();
-    const targetIds = new Set(targetFiles.map((f) => f.id));
 
-    if (permanent === true || permanent === 'true') {
-      targetFiles.forEach((file) => {
+    if (isPermanent) {
+      const removedFiles = db.files.filter((f) => idSet.has(f.id));
+      removedFiles.forEach((file) => {
         const filePath = path.join(UPLOADS_DIR, file.filename);
         if (fs.existsSync(filePath)) {
           try { fs.unlinkSync(filePath); } catch (e) { console.error(e); }
         }
-        syncFileToSupabase(file, 'delete');
       });
-      db.files = db.files.filter((f) => !targetIds.has(f.id));
+      db.files = db.files.filter((f) => !idSet.has(f.id));
     } else {
       db.files.forEach((file) => {
-        if (targetIds.has(file.id)) {
+        if (idSet.has(file.id)) {
           file.isDeleted = true;
           file.deletedAt = now;
-          syncFileToSupabase(file, 'upsert');
         }
       });
     }
 
     saveDB(db);
+
+    // Sync to Supabase
+    try {
+      if (isPermanent) {
+        await supabase.from('files').delete().in('id', targetIds);
+      } else {
+        await supabase.from('files').update({
+          is_deleted: true,
+          deleted_at: now,
+        }).in('id', targetIds);
+      }
+    } catch (err) {
+      console.warn('Supabase batch delete sync error:', err);
+    }
+
     res.json({
       success: true,
-      count: targetFiles.length,
-      message: permanent
-        ? `Đã xóa vĩnh viễn ${targetFiles.length} tài liệu`
-        : `Đã chuyển ${targetFiles.length} tài liệu vào thùng rác`,
+      count: targetIds.length,
+      message: isPermanent
+        ? `Đã xóa vĩnh viễn ${targetIds.length} tài liệu`
+        : `Đã chuyển ${targetIds.length} tài liệu vào thùng rác`,
     });
   } catch (err: any) {
-    console.error('Lỗi batch-delete:', err);
-    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi xóa tệp: ' + err.message });
+    console.error('Batch delete error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi xóa tài liệu: ' + err.message });
   }
 });
 
@@ -1788,13 +1839,30 @@ app.post('/api/files/:id/share', (req, res) => {
 });
 
 // 9. Download File
-app.get('/api/files/:id/download', (req, res) => {
+app.get('/api/files/:id/download', async (req, res) => {
   const { id } = req.params;
   const db = getDB();
   const file = db.files.find((f) => f.id === id);
   if (!file) return res.status(404).send('Không tìm thấy tệp');
 
   const filePath = path.join(UPLOADS_DIR, file.filename);
+  const isDocx = (file.extension || '').toLowerCase() === 'docx' || file.name.toLowerCase().endsWith('.docx');
+
+  // Nếu là tệp Word (.docx), đảm bảo gửi tệp chuẩn Microsoft Word (magic header PK\x03\x04)
+  if (isDocx) {
+    if (isRealDocx(filePath)) {
+      return res.download(filePath, file.name);
+    }
+    try {
+      const buffer = await generateValidDocx(file.name, file.folderName, file.previewContent);
+      fs.writeFileSync(filePath, buffer);
+      return res.download(filePath, file.name);
+    } catch (docxErr) {
+      console.error('Lỗi phát sinh tệp docx:', docxErr);
+    }
+  }
+
+  // Nếu tệp vật lý đã có sẵn và hợp lệ
   if (fs.existsSync(filePath)) {
     return res.download(filePath, file.name);
   }

@@ -1,5 +1,6 @@
 import { FileItem, FolderItem, StatsData, UserProfile, SharedConfig, SupabaseStatus } from '../types';
 import { DEFAULT_FILES } from './defaultFiles';
+import { supabase } from './supabaseClient';
 
 export { DEFAULT_FILES };
 
@@ -433,9 +434,43 @@ export const api = {
   },
 
   async deleteFile(id: string, permanent: boolean = false): Promise<void> {
-    await fetch(`/api/files/${id}?permanent=${permanent}`, {
-      method: 'DELETE',
-    });
+    try {
+      await fetch(`/api/files/${id}?permanent=${permanent}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      console.warn('API deleteFile error:', e);
+    }
+
+    try {
+      if (permanent) {
+        await supabase.from('files').delete().eq('id', id);
+      } else {
+        await supabase.from('files').update({
+          is_deleted: true,
+          deleted_at: new Date().toISOString(),
+        }).eq('id', id);
+      }
+    } catch (e) {
+      console.warn('Supabase client deleteFile error:', e);
+    }
+
+    // Update localStore
+    const all = localStore.get<FileItem[]>('files_all', []);
+    if (permanent) {
+      localStore.set('files_all', all.filter((f) => f.id !== id));
+      const trash = localStore.get<FileItem[]>('trash_files', []);
+      localStore.set('trash_files', trash.filter((f) => f.id !== id));
+    } else {
+      const now = new Date().toISOString();
+      const updatedAll = all.map((f) => (f.id === id ? { ...f, isDeleted: true, deletedAt: now } : f));
+      localStore.set('files_all', updatedAll);
+      const target = all.find((f) => f.id === id);
+      if (target) {
+        const trash = localStore.get<FileItem[]>('trash_files', []);
+        localStore.set('trash_files', [{ ...target, isDeleted: true, deletedAt: now }, ...trash.filter((f) => f.id !== id)]);
+      }
+    }
   },
 
   async batchDeleteFiles(options: {
@@ -444,12 +479,48 @@ export const api = {
     all?: boolean;
     permanent?: boolean;
   }): Promise<{ success: boolean; count: number; message: string }> {
-    const res = await fetch('/api/files/batch-delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(options),
-    });
-    return res.json();
+    let result = { success: true, count: 0, message: '' };
+    try {
+      const res = await fetch('/api/files/batch-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options),
+      });
+      result = await res.json();
+    } catch (e) {
+      console.warn('API batchDeleteFiles error:', e);
+    }
+
+    const ids = options.ids || [];
+    const idSet = new Set(ids);
+    const now = new Date().toISOString();
+
+    try {
+      if (ids.length > 0) {
+        if (options.permanent) {
+          await supabase.from('files').delete().in('id', ids);
+        } else {
+          await supabase.from('files').update({
+            is_deleted: true,
+            deleted_at: now,
+          }).in('id', ids);
+        }
+      }
+    } catch (e) {
+      console.warn('Supabase client batchDeleteFiles error:', e);
+    }
+
+    // Update localStore
+    const all = localStore.get<FileItem[]>('files_all', []);
+    if (options.permanent) {
+      localStore.set('files_all', all.filter((f) => !idSet.has(f.id)));
+      const trash = localStore.get<FileItem[]>('trash_files', []);
+      localStore.set('trash_files', trash.filter((f) => !idSet.has(f.id)));
+    } else {
+      localStore.set('files_all', all.map((f) => (idSet.has(f.id) ? { ...f, isDeleted: true, deletedAt: now } : f)));
+    }
+
+    return result;
   },
 
   async batchRestoreFiles(options: {
@@ -465,13 +536,49 @@ export const api = {
   },
 
   async restoreFile(id: string): Promise<FileItem> {
-    const res = await fetch(`/api/files/${id}/restore`, { method: 'POST' });
-    const data = await res.json();
-    return data.file;
+    let restoredFile: FileItem | null = null;
+    try {
+      const res = await fetch(`/api/files/${id}/restore`, { method: 'POST' });
+      const data = await res.json();
+      restoredFile = data.file;
+    } catch (e) {
+      console.warn('API restoreFile error:', e);
+    }
+
+    try {
+      await supabase.from('files').update({
+        is_deleted: false,
+        deleted_at: null,
+      }).eq('id', id);
+    } catch (e) {
+      console.warn('Supabase client restore error:', e);
+    }
+
+    const all = localStore.get<FileItem[]>('files_all', []);
+    const updatedAll = all.map((f) => (f.id === id ? { ...f, isDeleted: false, deletedAt: undefined } : f));
+    localStore.set('files_all', updatedAll);
+    const trash = localStore.get<FileItem[]>('trash_files', []);
+    localStore.set('trash_files', trash.filter((f) => f.id !== id));
+
+    return restoredFile || updatedAll.find((f) => f.id === id)!;
   },
 
   async emptyTrash(): Promise<void> {
-    await fetch('/api/trash/empty', { method: 'DELETE' });
+    try {
+      await fetch('/api/trash/empty', { method: 'DELETE' });
+    } catch (e) {
+      console.warn('API emptyTrash error:', e);
+    }
+
+    try {
+      await supabase.from('files').delete().eq('is_deleted', true);
+    } catch (e) {
+      console.warn('Supabase client emptyTrash error:', e);
+    }
+
+    localStore.set('trash_files', []);
+    const all = localStore.get<FileItem[]>('files_all', []);
+    localStore.set('files_all', all.filter((f) => !f.isDeleted));
   },
 
   async reorderFile(id: string, position: 'start' | 'end'): Promise<void> {

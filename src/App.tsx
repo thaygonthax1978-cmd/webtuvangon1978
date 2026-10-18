@@ -225,63 +225,81 @@ export default function App() {
 
   const handleDeleteFile = async (file: FileItem) => {
     try {
+      setFiles((prev) => prev.filter((f) => f.id !== file.id));
       await api.deleteFile(file.id, false);
       showToast(`Đã chuyển tệp "${file.name}" vào thùng rác`);
-      loadData();
+      await loadData();
     } catch (err) {
-      console.error(err);
+      console.error('Lỗi xóa tệp:', err);
+      await loadData();
     }
   };
 
   const handleRestoreFile = async (file: FileItem) => {
     try {
+      setTrashFiles((prev) => prev.filter((f) => f.id !== file.id));
       await api.restoreFile(file.id);
       showToast(`Đã khôi phục tệp "${file.name}" thành công!`);
-      loadData();
+      await loadData();
     } catch (err) {
-      console.error(err);
+      console.error('Lỗi khôi phục tệp:', err);
+      await loadData();
     }
   };
 
   const handlePermanentDeleteFile = async (file: FileItem) => {
     try {
+      setFiles((prev) => prev.filter((f) => f.id !== file.id));
+      setTrashFiles((prev) => prev.filter((f) => f.id !== file.id));
       await api.deleteFile(file.id, true);
       showToast(`Đã xóa vĩnh viễn tệp "${file.name}"`);
-      loadData();
+      await loadData();
     } catch (err) {
-      console.error(err);
+      console.error('Lỗi xóa vĩnh viễn:', err);
+      await loadData();
     }
   };
 
   const handleDeleteMultipleFiles = async (filesToDelete: FileItem[], permanent: boolean = false) => {
     try {
       const ids = filesToDelete.map((f) => f.id);
-      const res = await api.batchDeleteFiles({ ids, permanent });
+      const idSet = new Set(ids);
+      setFiles((prev) => prev.filter((f) => !idSet.has(f.id)));
+      if (permanent) {
+        setTrashFiles((prev) => prev.filter((f) => !idSet.has(f.id)));
+      }
+      await api.batchDeleteFiles({ ids, permanent });
       showToast(
         permanent
           ? `Đã xóa vĩnh viễn ${ids.length} tài liệu khỏi hệ thống!`
           : `Đã chuyển ${ids.length} tài liệu vào thùng rác!`
       );
-      loadData();
+      await loadData();
     } catch (err) {
-      console.error(err);
+      console.error('Lỗi xóa nhiều tệp:', err);
       showToast('Có lỗi xảy ra khi xóa tài liệu');
+      await loadData();
     }
   };
 
   const handleDeleteAllInView = async (filesToDelete: FileItem[], permanent: boolean = false) => {
     try {
       const ids = filesToDelete.map((f) => f.id);
-      const res = await api.batchDeleteFiles({ ids, permanent });
+      const idSet = new Set(ids);
+      setFiles((prev) => prev.filter((f) => !idSet.has(f.id)));
+      if (permanent) {
+        setTrashFiles((prev) => prev.filter((f) => !idSet.has(f.id)));
+      }
+      await api.batchDeleteFiles({ ids, permanent });
       showToast(
         permanent
-          ? `Đã xóa vĩnh viễn toàn bộ ${ids.length} tài liệu!`
-          : `Đã chuyển toàn bộ ${ids.length} tài liệu vào thùng rác!`
+          ? `Đã xóa vĩnh viễn ${ids.length} tài liệu trong thư mục!`
+          : `Đã chuyển ${ids.length} tài liệu vào thùng rác!`
       );
-      loadData();
+      await loadData();
     } catch (err) {
-      console.error(err);
-      showToast('Có lỗi xảy ra khi xóa tất cả tài liệu');
+      console.error('Lỗi xóa tất cả trong thư mục:', err);
+      await loadData();
     }
   };
 
