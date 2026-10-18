@@ -1,4 +1,7 @@
 import { FileItem, FolderItem, StatsData, UserProfile, SharedConfig, SupabaseStatus } from '../types';
+import { DEFAULT_FILES } from './defaultFiles';
+
+export { DEFAULT_FILES };
 
 export const localStore = {
   get<T>(key: string, defaultValue: T): T {
@@ -358,7 +361,7 @@ export const api = {
     if (params?.trash) {
       return localStore.get<FileItem[]>('trash_files', []);
     }
-    const all = localStore.get<FileItem[]>('files_all', []);
+    const all = localStore.get<FileItem[]>('files_all', DEFAULT_FILES);
     let filtered = all.filter((f) => !f.isDeleted);
     if (params?.folderId) {
       filtered = filtered.filter((f) => f.folderId === params.folderId);

@@ -7,7 +7,7 @@ import {
   ViewTab,
   SharedConfig,
 } from './types';
-import { api, localStore, DEFAULT_FOLDERS, formatBytes, formatDate, buildFolderTreeOptions } from './services/api';
+import { api, localStore, DEFAULT_FOLDERS, DEFAULT_FILES, formatBytes, formatDate, buildFolderTreeOptions } from './services/api';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { HomeDashboard } from './components/HomeDashboard';
@@ -57,15 +57,24 @@ const getDescendantFolderIds = (folderId: string, folderList: FolderItem[]): str
 };
 
 export default function App() {
-  // Navigation & View state
-  const [currentTab, setCurrentTab] = useState<ViewTab>('home');
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  // Navigation & View state - initialized with optional persistence
+  const [currentTab, setCurrentTab] = useState<ViewTab>(() => localStore.get('active_tab', 'home'));
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(() => localStore.get('active_folderId', null));
 
-  // App data state - initialized from localStore for instant load & offline resilience
+  // Sync tab & selected folder to localStore
+  useEffect(() => {
+    localStore.set('active_tab', currentTab);
+  }, [currentTab]);
+
+  useEffect(() => {
+    localStore.set('active_folderId', selectedFolderId);
+  }, [selectedFolderId]);
+
+  // App data state - initialized from localStore or DEFAULT constants for instant load
   const [user, setUser] = useState<UserProfile | null>(() => localStore.get('user', null));
   const [stats, setStats] = useState<StatsData | null>(() => localStore.get('stats', null));
   const [folders, setFolders] = useState<FolderItem[]>(() => localStore.get('folders', DEFAULT_FOLDERS));
-  const [files, setFiles] = useState<FileItem[]>(() => localStore.get('files_all', []));
+  const [files, setFiles] = useState<FileItem[]>(() => localStore.get('files_all', DEFAULT_FILES));
   const [trashFiles, setTrashFiles] = useState<FileItem[]>(() => localStore.get('trash_files', []));
   const [isLoading, setIsLoading] = useState(false);
   const [includeSubfolderFiles, setIncludeSubfolderFiles] = useState(true);
@@ -156,6 +165,8 @@ export default function App() {
       }
       if (Array.isArray(filesData) && filesData.length > 0) {
         setFiles(filesData);
+      } else {
+        setFiles((prev) => (prev && prev.length > 0 ? prev : DEFAULT_FILES));
       }
       if (Array.isArray(trashData)) {
         setTrashFiles(trashData);
@@ -453,6 +464,8 @@ export default function App() {
           <HomeDashboard
             stats={stats}
             recentFiles={files.filter((f) => !f.isDeleted)}
+            folders={folders}
+            onSelectFolder={handleSelectFolderToView}
             onOpenFile={handleOpenFile}
             onDownloadFile={handleDownloadFile}
             onShareFile={handleShareFile}
@@ -671,6 +684,76 @@ export default function App() {
                     ← Quay lại
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* Quick Root Folders Selector Bar - Chọn nhanh thư mục giáo án */}
+            <div className="bg-white p-3 md:p-3.5 rounded-2xl shadow-xs border border-slate-200">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                <span className="text-xs font-bold text-slate-600 shrink-0 flex items-center gap-1">
+                  <Folder className="w-3.5 h-3.5 text-blue-600" />
+                  Chọn nhanh thư mục:
+                </span>
+                <button
+                  onClick={() => setSelectedFolderId(null)}
+                  className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                    selectedFolderId === null
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <span>📁 Tất cả</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      selectedFolderId === null ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {files.filter((f) => !f.isDeleted).length}
+                  </span>
+                </button>
+                {folders
+                  .filter((f) => !f.parentId)
+                  .sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true, sensitivity: 'base' }))
+                  .map((folder) => {
+                    const isSelected = selectedFolderId === folder.id;
+                    const isTV1 = folder.id === 'f_03';
+                    const count =
+                      folder.fileCount ??
+                      files.filter((f) => !f.isDeleted && f.folderId === folder.id).length;
+                    return (
+                      <button
+                        key={folder.id}
+                        onClick={() => setSelectedFolderId(folder.id)}
+                        className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'text-white shadow-xs'
+                            : isTV1
+                            ? 'bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100'
+                            : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                        }`}
+                        style={isSelected ? { backgroundColor: folder.color || '#0866E8' } : undefined}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{
+                            backgroundColor: isSelected ? '#ffffff' : folder.color || '#0866E8',
+                          }}
+                        />
+                        <span>{folder.name}</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                            isSelected
+                              ? 'bg-white/20 text-white'
+                              : isTV1
+                              ? 'bg-purple-200 text-purple-900 font-extrabold'
+                              : 'bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
               </div>
             </div>
 

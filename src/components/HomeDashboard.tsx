@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FileText,
   HardDrive,
@@ -12,30 +12,38 @@ import {
   Eye,
   Trash2,
   Folder,
+  FolderTree,
   ArrowUpRight,
   Sparkles,
   UploadCloud,
   File,
   Edit2,
+  BookOpen,
+  CheckCircle2,
+  Layers,
 } from 'lucide-react';
-import { StatsData, FileItem } from '../types';
+import { StatsData, FileItem, FolderItem } from '../types';
 import { formatBytes, formatDate } from '../services/api';
 
 interface HomeDashboardProps {
   stats: StatsData | null;
   recentFiles: FileItem[];
+  folders?: FolderItem[];
+  onSelectFolder?: (folderId: string) => void;
   onOpenFile: (file: FileItem) => void;
   onDownloadFile: (file: FileItem) => void;
   onShareFile: (file: FileItem) => void;
   onDeleteFile: (file: FileItem) => void;
   onRenameFile?: (file: FileItem) => void;
-  onOpenUpload: () => void;
+  onOpenUpload: (folderId?: string) => void;
   onGoToTab: (tab: any) => void;
 }
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   stats,
   recentFiles,
+  folders = [],
+  onSelectFolder,
   onOpenFile,
   onDownloadFile,
   onShareFile,
@@ -44,6 +52,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   onOpenUpload,
   onGoToTab,
 }) => {
+  const [activeSubjectTab, setActiveSubjectTab] = useState<string>('all');
+
   const counts = stats?.counts || {
     pdf: 456,
     word: 215,
@@ -55,11 +65,38 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     other: 15,
   };
 
-  const totalFiles = stats?.totalDocuments || 1256;
+  const totalFiles = stats?.totalDocuments || 175;
   const usedBytes = stats?.totalStorageBytes || 38.6 * 1024 * 1024 * 1024;
   const maxBytes = stats?.maxStorageBytes || 100 * 1024 * 1024 * 1024;
   const usedPercent = stats?.usedPercentage || 38.6;
   const remainingBytes = Math.max(0, maxBytes - usedBytes);
+
+  // Filter root folders only - subfolders like ẢNH CẢ NHÀ & ẢNH DU LỊCH remain hidden inside 11. HÌNH ẢNH
+  const rootFolders = folders
+    .filter((f) => !f.parentId)
+    .sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true, sensitivity: 'base' }));
+
+  // Filter files in table based on selected subject tab
+  const displayedTableFiles = (() => {
+    let list = recentFiles.filter((f) => !f.isDeleted);
+    if (activeSubjectTab !== 'all') {
+      list = list.filter((f) => f.folderId === activeSubjectTab);
+    }
+    // Natural sort: Tuần 1 -> Tuần 35
+    return [...list].sort((a, b) =>
+      a.name.localeCompare(b.name, 'vi', { numeric: true, sensitivity: 'base' })
+    );
+  })();
+
+  // Subject quick tabs
+  const subjectTabs = [
+    { id: 'all', label: 'Tất cả tài liệu gần đây', count: recentFiles.length },
+    { id: 'f_03', label: '01. GIÁO ÁN TIẾNG VIỆT 1', count: recentFiles.filter((f) => f.folderId === 'f_03').length || 35, color: '#8257E5' },
+    { id: 'f_1792049102744', label: '02. GIÁO ÁN TOÁN 1', count: recentFiles.filter((f) => f.folderId === 'f_1792049102744').length || 35, color: '#0866E8' },
+    { id: 'f_01', label: '03. GIÁO ÁN ĐẠO ĐỨC 1', count: recentFiles.filter((f) => f.folderId === 'f_01').length || 35, color: '#0866E8' },
+    { id: 'f_02', label: '04. GIÁO ÁN TNXH 1', count: recentFiles.filter((f) => f.folderId === 'f_02').length || 35, color: '#16B875' },
+    { id: 'f_04', label: '05. GIÁO ÁN HĐTN 1', count: recentFiles.filter((f) => f.folderId === 'f_04').length || 35, color: '#0866E8' },
+  ];
 
   // File type categories
   const fileTypeCards = [
@@ -137,36 +174,13 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     },
   ];
 
-  // Helper for file badge
-  const getFileBadge = (category: string) => {
-    switch (category) {
-      case 'pdf':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-700">PDF</span>;
-      case 'word':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-700">Word</span>;
-      case 'excel':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-700">Excel</span>;
-      case 'powerpoint':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-700">PowerPoint</span>;
-      case 'image':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-100 text-sky-700">Hình ảnh</span>;
-      case 'video':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-700">Video</span>;
-      case 'zip':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-200 text-slate-800">ZIP</span>;
-      default:
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700">Khác</span>;
-    }
-  };
-
   const donutData = [
-    { label: 'PDF (36%)', value: 36, color: '#F04444' },
-    { label: 'Word (17%)', value: 17, color: '#0866E8' },
-    { label: 'Excel (7%)', value: 7, color: '#16B875' },
-    { label: 'PowerPoint (6%)', value: 6, color: '#FF9F1C' },
-    { label: 'Hình ảnh (25%)', value: 25, color: '#38BDF8' },
-    { label: 'Video (10%)', value: 10, color: '#8257E5' },
-    { label: 'Khác (5%)', value: 5, color: '#94A3B8' },
+    { label: 'Word (55%)', value: 55, color: '#0866E8' },
+    { label: 'PDF (20%)', value: 20, color: '#F04444' },
+    { label: 'PowerPoint (10%)', value: 10, color: '#FF9F1C' },
+    { label: 'Excel (5%)', value: 5, color: '#16B875' },
+    { label: 'Hình ảnh (5%)', value: 5, color: '#38BDF8' },
+    { label: 'Video (5%)', value: 5, color: '#8257E5' },
   ];
 
   return (
@@ -184,20 +198,29 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             Chào mừng Thầy Từ Văn Gọn đến với Kho Dữ Liệu Giáo Dục
           </h2>
           <p className="text-blue-100 text-xs md:text-sm leading-relaxed mb-4">
-            Toàn bộ kế hoạch bài dạy, bài giảng điện tử, ma trận đề kiểm tra và tài liệu đánh giá học sinh tiểu học theo Thông tư 27 được lưu trữ an toàn và sẵn sàng truy cập mọi lúc mọi nơi.
+            Toàn bộ kế hoạch bài dạy, giáo án Tiếng Việt 1 (35 tuần), Toán 1, Đạo đức 1, TNXH 1, HĐTN 1 và tư liệu giảng dạy được lưu trữ an toàn và sẵn sàng truy cập mọi lúc mọi nơi.
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={onOpenUpload}
-              className="bg-white text-blue-700 hover:bg-blue-50 font-bold px-4 py-2 rounded-xl text-xs shadow transition-all flex items-center gap-2"
+              onClick={() => onOpenUpload()}
+              className="bg-white text-blue-700 hover:bg-blue-50 font-bold px-4 py-2 rounded-xl text-xs shadow transition-all flex items-center gap-2 cursor-pointer"
             >
               <UploadCloud className="w-4 h-4" />
               Tải lên tài liệu mới
             </button>
+            {onSelectFolder && (
+              <button
+                onClick={() => onSelectFolder('f_03')}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition-all flex items-center gap-2 cursor-pointer border border-purple-400/50"
+              >
+                <BookOpen className="w-4 h-4" />
+                Mở Giáo Án Tiếng Việt 1 (35 tệp)
+              </button>
+            )}
             <button
               onClick={() => onGoToTab('ai-assistant')}
-              className="bg-blue-500/30 hover:bg-blue-500/40 text-white font-semibold px-4 py-2 rounded-xl text-xs border border-white/30 backdrop-blur-md transition-all flex items-center gap-2"
+              className="bg-blue-500/30 hover:bg-blue-500/40 text-white font-semibold px-4 py-2 rounded-xl text-xs border border-white/30 backdrop-blur-md transition-all flex items-center gap-2 cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-yellow-300" />
               Nhờ AI soạn giáo án & phân tích
@@ -235,6 +258,109 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         })}
       </div>
 
+      {/* SECTION: 11 THƯ MỤC GIÁO ÁN & DỮ LIỆU CỦA THẦY GỌN (Prominent Folder Grid) */}
+      <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                <FolderTree className="w-4 h-4" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">
+                11 Thư Mục Giáo Án & Tư Liệu Giảng Dạy Của Thầy Gọn
+              </h3>
+              <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">
+                {rootFolders.length} thư mục chính
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Bấm vào thư mục bất kỳ để mở xem toàn bộ danh sách giáo án, bài giảng và tài liệu bên trong.
+            </p>
+          </div>
+
+          <button
+            onClick={() => onGoToTab('folders')}
+            className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 cursor-pointer bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors border border-blue-200"
+          >
+            <span>Quản lý chi tiết cây thư mục</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Folder Grid Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 pt-1">
+          {rootFolders.map((folder) => {
+            const isTV1 = folder.id === 'f_03';
+            const fileCount = folder.fileCount ?? 0;
+
+            return (
+              <div
+                key={folder.id}
+                onClick={() => onSelectFolder && onSelectFolder(folder.id)}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer group flex flex-col justify-between ${
+                  isTV1
+                    ? 'bg-gradient-to-br from-purple-50 via-white to-purple-50/40 border-purple-300 ring-2 ring-purple-200 shadow-sm hover:shadow-md hover:border-purple-500'
+                    : 'bg-white hover:bg-blue-50/40 border-slate-200 hover:border-blue-300 shadow-xs hover:shadow-md'
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between mb-2.5">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shadow-xs transition-transform group-hover:scale-110"
+                      style={{
+                        backgroundColor: `${folder.color || '#0866E8'}20`,
+                        color: folder.color || '#0866E8',
+                      }}
+                    >
+                      <Folder className="w-5 h-5 fill-current" />
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1">
+                      <span
+                        className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
+                          isTV1
+                            ? 'bg-purple-600 text-white shadow-xs'
+                            : fileCount > 0
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {fileCount} tệp
+                      </span>
+                      {isTV1 && (
+                        <span className="text-[10px] font-bold text-purple-700 bg-purple-100/80 px-1.5 py-0.2 rounded">
+                          35 Tuần GDPT 2018
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <h4 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors text-xs md:text-sm line-clamp-1 mb-1">
+                    {folder.name}
+                  </h4>
+
+                  <p className="text-[11px] text-slate-400">
+                    Dung lượng: {formatBytes(folder.totalSize || 0)}
+                  </p>
+                </div>
+
+                <div className="pt-2.5 mt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span
+                    className={`font-semibold flex items-center gap-1 ${
+                      isTV1 ? 'text-purple-700 font-bold' : 'text-blue-600 group-hover:translate-x-0.5 transition-transform'
+                    }`}
+                  >
+                    {isTV1 ? 'Mở xem 35 tệp giáo án' : 'Mở xem tệp'}
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="text-[10px] text-slate-400">Mã: {folder.code}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Middle Row: Donut Chart & Storage Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Donut Chart: Tỷ lệ loại tài liệu */}
@@ -245,16 +371,14 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           </div>
 
           <div className="flex items-center justify-center py-2">
-            {/* SVG Donut */}
             <div className="relative w-44 h-44">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90 transform">
-                {/* SVG Circle segments */}
-                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#F04444" strokeWidth="18" strokeDasharray="36 64" strokeDashoffset="0" />
-                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#0866E8" strokeWidth="18" strokeDasharray="17 83" strokeDashoffset="-36" />
-                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#16B875" strokeWidth="18" strokeDasharray="7 93" strokeDashoffset="-53" />
-                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#FF9F1C" strokeWidth="18" strokeDasharray="6 94" strokeDashoffset="-60" />
-                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#38BDF8" strokeWidth="18" strokeDasharray="25 75" strokeDashoffset="-66" />
-                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#8257E5" strokeWidth="18" strokeDasharray="10 90" strokeDashoffset="-91" />
+                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#0866E8" strokeWidth="18" strokeDasharray="55 45" strokeDashoffset="0" />
+                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#F04444" strokeWidth="18" strokeDasharray="20 80" strokeDashoffset="-55" />
+                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#FF9F1C" strokeWidth="18" strokeDasharray="10 90" strokeDashoffset="-75" />
+                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#16B875" strokeWidth="18" strokeDasharray="5 95" strokeDashoffset="-85" />
+                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#38BDF8" strokeWidth="18" strokeDasharray="5 95" strokeDashoffset="-90" />
+                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#8257E5" strokeWidth="18" strokeDasharray="5 95" strokeDashoffset="-95" />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                 <span className="text-xs text-slate-400 font-medium">Tổng cộng</span>
@@ -264,7 +388,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             </div>
           </div>
 
-          {/* Legend */}
           <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
             {donutData.map((item, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -289,7 +412,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               Lưu trữ an toàn trên máy chủ đám mây, bảo vệ bằng mã hóa và sao lưu định kỳ cho toàn bộ tư liệu giảng dạy.
             </p>
 
-            {/* Storage Progress */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4">
               <div className="flex justify-between items-center text-xs mb-2">
                 <span className="font-semibold text-slate-700">
@@ -314,7 +436,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             <div className="flex items-center justify-between text-xs text-slate-600">
               <span className="flex items-center gap-1.5">
                 <Folder className="w-3.5 h-3.5 text-blue-500" />
-                Tổng số thư mục khởi tạo
+                Tổng số thư mục chính
               </span>
               <span className="font-bold text-slate-800">{stats?.totalFolders || 11} thư mục</span>
             </div>
@@ -323,7 +445,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                 Tệp trong thùng rác
               </span>
-              <span className="font-bold text-slate-800">{stats?.trashCount || 1} tệp</span>
+              <span className="font-bold text-slate-800">{stats?.trashCount || 0} tệp</span>
             </div>
           </div>
         </div>
@@ -375,23 +497,65 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         </div>
       </div>
 
-      {/* Table: Tài liệu gần đây */}
+      {/* Table: Danh Sách Giáo Án & Tài Liệu với Bộ Lọc Thư Mục */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm md:text-base font-bold text-slate-900">Tài liệu gần đây</h3>
+            <h3 className="text-sm md:text-base font-bold text-slate-900">
+              Danh sách giáo án & tài liệu giảng dạy
+            </h3>
             <span className="bg-blue-100 text-blue-800 text-[11px] font-semibold px-2 py-0.5 rounded-full">
-              {recentFiles.length} tệp
+              {displayedTableFiles.length} tệp
             </span>
           </div>
 
           <button
-            onClick={() => onGoToTab('my-files')}
-            className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
+            onClick={() => {
+              if (activeSubjectTab !== 'all' && onSelectFolder) {
+                onSelectFolder(activeSubjectTab);
+              } else {
+                onGoToTab('my-files');
+              }
+            }}
+            className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 cursor-pointer bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200"
           >
-            Xem tất cả
+            {activeSubjectTab !== 'all' ? 'Mở trong thư mục đầy đủ' : 'Xem tất cả tài liệu'}
             <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
+        </div>
+
+        {/* Quick Subject Tabs */}
+        <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2 overflow-x-auto">
+          <span className="text-[11px] font-bold text-slate-500 shrink-0">Lọc theo môn:</span>
+          {subjectTabs.map((tab) => {
+            const isActive = activeSubjectTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveSubjectTab(tab.id)}
+                className={`text-xs px-2.5 py-1 rounded-lg font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                  isActive
+                    ? 'bg-[#0866E8] text-white shadow-xs'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                {tab.color && (
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: isActive ? '#ffffff' : tab.color }}
+                  />
+                )}
+                <span>{tab.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="overflow-x-auto">
@@ -401,20 +565,20 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 <th className="py-3 px-4">Tên tài liệu</th>
                 <th className="py-3 px-3">Loại</th>
                 <th className="py-3 px-3">Dung lượng</th>
-                <th className="py-3 px-3">Ngày tải lên</th>
+                <th className="py-3 px-3">Ngày cập nhật</th>
                 <th className="py-3 px-3">Thư mục</th>
                 <th className="py-3 px-4 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {recentFiles.length === 0 ? (
+              {displayedTableFiles.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
-                    Chưa có tài liệu nào. Nhấn "Tải tài liệu lên" để bắt đầu!
+                    Chưa có tài liệu nào trong mục này.
                   </td>
                 </tr>
               ) : (
-                recentFiles.slice(0, 7).map((file) => (
+                displayedTableFiles.slice(0, 35).map((file) => (
                   <tr key={file.id} className="hover:bg-blue-50/40 transition-colors">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2.5">
@@ -449,50 +613,58 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-3">{getFileBadge(file.category)}</td>
-                    <td className="py-3 px-3 font-medium text-slate-600">{formatBytes(file.size)}</td>
-                    <td className="py-3 px-3 text-slate-500">{formatDate(file.uploadDate)}</td>
+
                     <td className="py-3 px-3">
-                      <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                        <Folder className="w-3 h-3 text-amber-500" />
-                        {file.folderName}
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-700">
+                        {file.extension?.toUpperCase() || 'DOCX'}
                       </span>
                     </td>
+
+                    <td className="py-3 px-3 font-medium text-slate-600">
+                      {formatBytes(file.size || 0)}
+                    </td>
+
+                    <td className="py-3 px-3 text-slate-500">
+                      {formatDate(file.updatedDate || file.uploadDate)}
+                    </td>
+
+                    <td className="py-3 px-3">
+                      <span
+                        onClick={() => onSelectFolder && onSelectFolder(file.folderId)}
+                        className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline cursor-pointer font-medium max-w-[140px] truncate"
+                        title={file.folderName}
+                      >
+                        <Folder className="w-3 h-3 text-amber-500 shrink-0" />
+                        <span className="truncate">{file.folderName}</span>
+                      </span>
+                    </td>
+
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {onRenameFile && (
-                          <button
-                            onClick={() => onRenameFile(file)}
-                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                            title="Đổi tên tệp"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
                         <button
                           onClick={() => onOpenFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                          title="Xem trước tài liệu"
+                          className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
+                          title="Xem trước tệp"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onDownloadFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
-                          title="Tải xuống"
+                          className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors cursor-pointer"
+                          title="Tải tệp về máy"
                         >
                           <Download className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onShareFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                          title="Chia sẻ"
+                          className="p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors cursor-pointer"
+                          title="Chia sẻ tệp"
                         >
                           <Share2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onDeleteFile(file)}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
                           title="Chuyển vào thùng rác"
                         >
                           <Trash2 className="w-4 h-4" />

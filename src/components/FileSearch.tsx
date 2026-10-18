@@ -270,7 +270,16 @@ export const FileSearch: React.FC<FileSearchProps> = ({
         <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2.5">
             <p className="text-xs md:text-sm font-bold text-slate-800">
-              Tìm thấy <span className="text-blue-600 font-extrabold">{sortedFiles.length}</span> tài liệu
+              {currentFolderName ? (
+                <span>
+                  Thư mục <span className="text-blue-700 font-extrabold font-mono">"{currentFolderName}"</span>: có{' '}
+                  <span className="text-blue-600 font-extrabold">{sortedFiles.length}</span> tài liệu
+                </span>
+              ) : (
+                <span>
+                  Tìm thấy <span className="text-blue-600 font-extrabold">{sortedFiles.length}</span> tài liệu
+                </span>
+              )}
             </p>
 
             {/* NÚT XÓA TẤT CẢ FILE - Nổi bật ngay cạnh Tải tệp, Tải thư mục */}
