@@ -54,8 +54,8 @@ export const Header: React.FC<HeaderProps> = ({
   // Preset teacher avatar samples
   const presetAvatars = [
     {
-      label: 'Chân dung 1',
-      url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400&auto=format&fit=crop&q=80',
+      label: 'Thầy Từ Văn Gọn (Chính chủ)',
+      url: '/avatar_tu_van_gon.jpg',
     },
     {
       label: 'Chân dung 2',
@@ -182,7 +182,7 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const currentAvatar = user?.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200&auto=format&fit=crop&q=80';
+  const currentAvatar = user?.avatarUrl || '/avatar_tu_van_gon.jpg';
 
   return (
     <header className="bg-gradient-to-r from-[#064AA8] via-[#0866E8] to-[#0a75f0] text-white shadow-md sticky top-0 z-40">

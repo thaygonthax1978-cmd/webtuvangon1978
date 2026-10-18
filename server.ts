@@ -35,6 +35,9 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(CHUNKS_TEMP_DIR)) fs.mkdirSync(CHUNKS_TEMP_DIR, { recursive: true });
 
+app.use(express.static(path.resolve(process.cwd(), 'public')));
+app.use('/uploads', express.static(UPLOADS_DIR));
+
 // Setup Supabase Client
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ceuwkkfwklxedzndsisu.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_5nblBT8S82bUTXPp-wQwig_yRIDJXYF';
@@ -136,7 +139,7 @@ const initialUser: UserProfile = {
   phone: '0918.452.889',
   storageUsedBytes: 38.6 * 1024 * 1024 * 1024, // 38.6 GB
   storageMaxBytes: 100 * 1024 * 1024 * 1024, // 100 GB
-  avatarUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200&auto=format&fit=crop&q=80',
+  avatarUrl: '/avatar_tu_van_gon.jpg',
   twoFactorEnabled: true,
   lastLogin: new Date().toISOString(),
 };

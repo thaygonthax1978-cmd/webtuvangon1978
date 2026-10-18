@@ -78,7 +78,7 @@ export const MobileDeviceSimulator: React.FC<MobileDeviceSimulatorProps> = ({
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full overflow-hidden border border-white">
                   <img
-                    src={user?.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200&auto=format&fit=crop&q=80'}
+                    src={user?.avatarUrl || '/avatar_tu_van_gon.jpg'}
                     alt="Từ Văn Gọn"
                     className="w-full h-full object-cover"
                   />

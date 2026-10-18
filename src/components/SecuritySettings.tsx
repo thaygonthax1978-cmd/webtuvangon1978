@@ -259,7 +259,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-blue-50/60 rounded-2xl border border-blue-100">
                 <div className="relative group w-20 h-20 rounded-full overflow-hidden border-3 border-blue-500 shadow-md shrink-0 bg-white">
                   <img
-                    src={avatarUrl || user?.avatarUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200&auto=format&fit=crop&q=80'}
+                    src={avatarUrl || user?.avatarUrl || '/avatar_tu_van_gon.jpg'}
                     alt="Từ Văn Gọn"
                     className="w-full h-full object-cover"
                   />

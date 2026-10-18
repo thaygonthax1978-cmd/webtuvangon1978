@@ -71,7 +71,17 @@ export default function App() {
   }, [selectedFolderId]);
 
   // App data state - initialized from localStore or DEFAULT constants for instant load
-  const [user, setUser] = useState<UserProfile | null>(() => localStore.get('user', null));
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    const cached = localStore.get<UserProfile | null>('user', null);
+    if (cached) {
+      if (!cached.avatarUrl || cached.avatarUrl.includes('photo-1544717305')) {
+        cached.avatarUrl = '/avatar_tu_van_gon.jpg';
+        localStore.set('user', cached);
+      }
+      return cached;
+    }
+    return null;
+  });
   const [stats, setStats] = useState<StatsData | null>(() => localStore.get('stats', null));
   const [folders, setFolders] = useState<FolderItem[]>(() => localStore.get('folders', DEFAULT_FOLDERS));
   const [files, setFiles] = useState<FileItem[]>(() => localStore.get('files_all', DEFAULT_FILES));
@@ -156,7 +166,12 @@ export default function App() {
       const filesData = results[3].status === 'fulfilled' ? results[3].value : [];
       const trashData = results[4].status === 'fulfilled' ? results[4].value : [];
 
-      if (userData) setUser(userData);
+      if (userData) {
+        if (!userData.avatarUrl || userData.avatarUrl.includes('photo-1544717305')) {
+          userData.avatarUrl = '/avatar_tu_van_gon.jpg';
+        }
+        setUser(userData);
+      }
       if (statsData) setStats(statsData);
       if (Array.isArray(foldersData) && foldersData.length > 0) {
         setFolders(foldersData);

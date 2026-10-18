@@ -230,7 +230,7 @@ export const api = {
       phone: '0918.452.889',
       storageUsedBytes: 41446434406,
       storageMaxBytes: 107374182400,
-      avatarUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200&auto=format&fit=crop&q=80',
+      avatarUrl: '/avatar_tu_van_gon.jpg',
       twoFactorEnabled: true,
       lastLogin: new Date().toISOString(),
     });
