@@ -31,11 +31,11 @@ export const DEFAULT_FOLDERS: FolderItem[] = [
     color: '#8257E5',
     createdAt: '2026-09-02T08:00:00+00:00',
     updatedAt: '2026-10-15T07:25:21.976+00:00',
-    fileCount: 35,
-    directFileCount: 35,
+    fileCount: 0,
+    directFileCount: 0,
     subfolderCount: 0,
     subfolderNames: [],
-    totalSize: 54474468,
+    totalSize: 0,
   },
   {
     id: 'f_1792049102744',
@@ -45,11 +45,11 @@ export const DEFAULT_FOLDERS: FolderItem[] = [
     color: '#0866E8',
     createdAt: '2026-10-15T07:25:02.744+00:00',
     updatedAt: '2026-10-15T07:25:02.744+00:00',
-    fileCount: 35,
-    directFileCount: 35,
+    fileCount: 0,
+    directFileCount: 0,
     subfolderCount: 0,
     subfolderNames: [],
-    totalSize: 74979312,
+    totalSize: 0,
   },
   {
     id: 'f_01',
@@ -59,11 +59,11 @@ export const DEFAULT_FOLDERS: FolderItem[] = [
     color: '#0866E8',
     createdAt: '2026-09-01T08:00:00+00:00',
     updatedAt: '2026-10-15T07:26:13.679+00:00',
-    fileCount: 35,
-    directFileCount: 35,
+    fileCount: 0,
+    directFileCount: 0,
     subfolderCount: 0,
     subfolderNames: [],
-    totalSize: 47897905,
+    totalSize: 0,
   },
   {
     id: 'f_02',
@@ -73,11 +73,11 @@ export const DEFAULT_FOLDERS: FolderItem[] = [
     color: '#16B875',
     createdAt: '2026-09-01T08:15:00+00:00',
     updatedAt: '2026-10-15T07:26:44.994+00:00',
-    fileCount: 35,
-    directFileCount: 35,
+    fileCount: 0,
+    directFileCount: 0,
     subfolderCount: 0,
     subfolderNames: [],
-    totalSize: 16534997,
+    totalSize: 0,
   },
   {
     id: 'f_04',
@@ -87,11 +87,11 @@ export const DEFAULT_FOLDERS: FolderItem[] = [
     color: '#0866E8',
     createdAt: '2026-09-05T09:00:00+00:00',
     updatedAt: '2026-10-15T07:27:13.076+00:00',
-    fileCount: 35,
-    directFileCount: 35,
+    fileCount: 0,
+    directFileCount: 0,
     subfolderCount: 0,
     subfolderNames: [],
-    totalSize: 20824037,
+    totalSize: 0,
   },
   {
     id: 'f_07',
@@ -277,13 +277,13 @@ export const api = {
     }
     const currentFolders = localStore.get<FolderItem[]>('folders', DEFAULT_FOLDERS);
     return localStore.get('stats', {
-      totalDocuments: 175,
-      totalStorageBytes: 214710719,
+      totalDocuments: 0,
+      totalStorageBytes: 0,
       maxStorageBytes: 107374182400,
-      usedPercentage: 0.2,
-      counts: { word: 175, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
-      sizes: { word: 214710719, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
-      percentages: { word: 100, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
+      usedPercentage: 0,
+      counts: { word: 0, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
+      sizes: { word: 0, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
+      percentages: { word: 0, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
       totalFolders: (currentFolders.filter((f) => !f.parentId).length) || 11,
       trashCount: 0,
     });
@@ -422,7 +422,7 @@ export const api = {
     if (params?.trash) {
       return localStore.get<FileItem[]>('trash_files', []);
     }
-    const all = localStore.get<FileItem[]>('files_all', DEFAULT_FILES);
+    const all = localStore.get<FileItem[]>('files_all', []);
     let filtered = all.filter((f) => !f.isDeleted);
     if (params?.folderId) {
       filtered = filtered.filter((f) => f.folderId === params.folderId);
@@ -435,6 +435,15 @@ export const api = {
       filtered = filtered.filter((f) => f.name.toLowerCase().includes(q));
     }
     return filtered;
+  },
+
+  clearLocalCache(): void {
+    try {
+      localStorage.removeItem('thaygon_files_all');
+      localStorage.removeItem('thaygon_trash_files');
+      localStorage.removeItem('thaygon_stats');
+      localStorage.removeItem('thaygon_folders');
+    } catch (e) {}
   },
 
   async getFile(id: string): Promise<FileItem> {

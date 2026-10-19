@@ -84,7 +84,7 @@ export default function App() {
   });
   const [stats, setStats] = useState<StatsData | null>(() => localStore.get('stats', null));
   const [folders, setFolders] = useState<FolderItem[]>(() => localStore.get('folders', DEFAULT_FOLDERS));
-  const [files, setFiles] = useState<FileItem[]>(() => localStore.get('files_all', DEFAULT_FILES));
+  const [files, setFiles] = useState<FileItem[]>(() => localStore.get('files_all', []));
   const [trashFiles, setTrashFiles] = useState<FileItem[]>(() => localStore.get('trash_files', []));
   const [isLoading, setIsLoading] = useState(false);
   const [includeSubfolderFiles, setIncludeSubfolderFiles] = useState(true);
@@ -175,25 +175,17 @@ export default function App() {
       if (statsData) setStats(statsData);
       if (Array.isArray(foldersData) && foldersData.length > 0) {
         setFolders(foldersData);
+        localStore.set('folders', foldersData);
       } else {
         setFolders((prev) => (prev && prev.length > 0 ? prev : DEFAULT_FOLDERS));
       }
-      if (Array.isArray(filesData) && filesData.length > 0) {
+      if (Array.isArray(filesData)) {
         setFiles(filesData);
-      } else {
-        setFiles((prev) => (prev && prev.length > 0 ? prev : DEFAULT_FILES));
+        localStore.set('files_all', filesData);
       }
       if (Array.isArray(trashData)) {
         setTrashFiles(trashData);
-      }
-
-      // If backend is somehow empty, auto-restore
-      if (!foldersData || foldersData.length === 0) {
-        try {
-          const restored = await api.restoreDatabase();
-          if (restored.folders && restored.folders.length > 0) setFolders(restored.folders);
-          if (restored.files && restored.files.length > 0) setFiles(restored.files);
-        } catch {}
+        localStore.set('trash_files', trashData);
       }
 
       if (manualNotice) {
@@ -204,6 +196,12 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleClearCacheAndRefresh = async () => {
+    api.clearLocalCache();
+    showToast('Đang dọn sạch bộ nhớ đệm và đồng bộ dữ liệu...');
+    await loadData(true);
   };
 
   useEffect(() => {
@@ -1040,6 +1038,7 @@ export default function App() {
         onOpenSettings={() => setCurrentTab('settings')}
         onOpenNotifications={() => {}}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+        onClearCacheAndRefresh={handleClearCacheAndRefresh}
         toggleMobileSimulator={() => setIsMobileSimulatorActive(!isMobileSimulatorActive)}
         isMobileSimulatorActive={isMobileSimulatorActive}
         onToggleSidebarMobile={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}

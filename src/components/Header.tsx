@@ -15,6 +15,7 @@ import {
   X,
   Check,
   Sparkles,
+  RotateCw,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -24,6 +25,7 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onOpenNotifications: () => void;
   onOpenSupabaseModal?: () => void;
+  onClearCacheAndRefresh?: () => void;
   toggleMobileSimulator: () => void;
   isMobileSimulatorActive: boolean;
   onToggleSidebarMobile: () => void;
@@ -35,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSearch,
   onOpenSettings,
   onOpenSupabaseModal,
+  onClearCacheAndRefresh,
   toggleMobileSimulator,
   isMobileSimulatorActive,
   onToggleSidebarMobile,
@@ -303,6 +306,18 @@ export const Header: React.FC<HeaderProps> = ({
               <Database className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Supabase</span>
               <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse" />
+            </button>
+          )}
+
+          {/* Nút Làm mới dữ liệu sạch & Xóa bộ nhớ đệm */}
+          {onClearCacheAndRefresh && (
+            <button
+              onClick={onClearCacheAndRefresh}
+              title="Làm mới dữ liệu từ máy chủ & Xóa bộ nhớ đệm trình duyệt"
+              className="p-1.5 rounded-full transition-colors flex items-center gap-1 text-xs px-2.5 font-medium bg-white/15 hover:bg-white/25 text-white cursor-pointer active:scale-95"
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">Làm mới</span>
             </button>
           )}
 
