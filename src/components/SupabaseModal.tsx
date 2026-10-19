@@ -176,13 +176,13 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
               <div className="bg-white p-2.5 rounded-lg border border-slate-200">
                 <span className="text-slate-400 block mb-0.5 font-medium">Supabase Project URL:</span>
                 <span className="font-mono text-slate-800 font-semibold break-all">
-                  {status?.url || 'https://ceuwkkfwklxedzndsisu.supabase.co'}
+                  {status?.url || 'https://pirmwzflxvlxvjqlhbhw.supabase.co'}
                 </span>
               </div>
               <div className="bg-white p-2.5 rounded-lg border border-slate-200">
                 <span className="text-slate-400 block mb-0.5 font-medium">Khóa API (Anon Key):</span>
                 <span className="font-mono text-emerald-700 font-semibold break-all">
-                  sb_publishable_5nblBT8S82bUTXPp-wQwig_yRIDJXYF (Đã nạp)
+                  sb_publishable_TI9S6FVP-Vq_exOBAlFgyw_C60fz5mC (Đã nạp)
                 </span>
               </div>
             </div>
@@ -323,7 +323,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
                   </p>
                 </div>
                 <a
-                  href="https://supabase.com/dashboard/project/ceuwkkfwklxedzndsisu/sql/new"
+                  href="https://supabase.com/dashboard/project/pirmwzflxvlxvjqlhbhw/sql/new"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm"

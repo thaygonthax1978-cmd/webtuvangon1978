@@ -702,7 +702,7 @@ export const api = {
     } catch (e: any) {
       return {
         connected: false,
-        url: 'https://ceuwkkfwklxedzndsisu.supabase.co',
+        url: 'https://pirmwzflxvlxvjqlhbhw.supabase.co',
         hasAnonKey: true,
         tables: { folders: false, files: false, user_profile: false },
         storage: { bucketExists: false },

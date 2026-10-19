@@ -8,7 +8,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import { isRealDocx, generateValidDocx } from './src/services/docxHelper';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 const app = express();
 const PORT = 3000;
@@ -40,8 +40,8 @@ app.use(express.static(path.resolve(process.cwd(), 'public')));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Setup Supabase Client
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ceuwkkfwklxedzndsisu.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_5nblBT8S82bUTXPp-wQwig_yRIDJXYF';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pirmwzflxvlxvjqlhbhw.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_TI9S6FVP-Vq_exOBAlFgyw_C60fz5mC';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
