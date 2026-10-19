@@ -40,10 +40,10 @@ app.use(express.static(path.resolve(process.cwd(), 'public')));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Setup Supabase Client
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pirmwzflxvlxvjqlhbhw.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_TI9S6FVP-Vq_exOBAlFgyw_C60fz5mC';
+let SUPABASE_URL = process.env.SUPABASE_URL || 'https://pirmwzflxvlxvjqlhbhw.supabase.co';
+let SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_TI9S6FVP-Vq_exOBAlFgyw_C60fz5mC';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Setup Gemini AI Client
 const ai = new GoogleGenAI({
@@ -441,6 +441,31 @@ async function syncUserToSupabase(user: UserProfile) {
 // ================= API ROUTES =================
 
 // 0. Supabase Integration Endpoints
+app.post('/api/supabase/config', (req, res) => {
+  const { url, anonKey } = req.body;
+  if (!url || !anonKey) {
+    return res.status(400).json({ success: false, message: 'Vui lòng cung cấp đầy đủ URL và Anon Key' });
+  }
+
+  try {
+    SUPABASE_URL = url.trim();
+    SUPABASE_ANON_KEY = anonKey.trim();
+    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Save to .env
+    const envContent = `# Supabase Configuration\nVITE_SUPABASE_URL="${SUPABASE_URL}"\nVITE_SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"\nSUPABASE_URL="${SUPABASE_URL}"\nSUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"\n`;
+    fs.writeFileSync(path.resolve(process.cwd(), '.env'), envContent, 'utf-8');
+
+    res.json({
+      success: true,
+      message: 'Đã cập nhật cấu hình Supabase thành công!',
+      url: SUPABASE_URL,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật cấu hình: ' + err.message });
+  }
+});
+
 app.get('/api/supabase/status', async (_req, res) => {
   const status = {
     connected: false,
@@ -466,6 +491,18 @@ app.get('/api/supabase/status', async (_req, res) => {
       supabase.from('user_profile').select('id').limit(1),
       supabase.storage.listBuckets().catch(() => ({ data: [], error: null })),
     ]);
+
+    const errors = [foldersRes.error, filesRes.error, userRes.error].filter(Boolean);
+    const hasNetworkError = errors.some(
+      (err) => err?.message && (err.message.includes('fetch failed') || err.message.includes('ENOTFOUND'))
+    );
+
+    if (hasNetworkError) {
+      status.connected = false;
+      status.isFullyReady = false;
+      status.message = `Không thể kết nối đến máy chủ Supabase (${SUPABASE_URL}). Lỗi: Tên miền chưa tồn tại hoặc dự án đang Tạm dừng (Paused) / Chưa khởi tạo xong trên Supabase. Thầy kiểm tra lại URL hoặc chọn dùng dự án Supabase đang hoạt động.`;
+      return res.json({ success: true, status });
+    }
 
     status.tables.folders = !foldersRes.error;
     status.tables.files = !filesRes.error;
@@ -577,9 +614,14 @@ app.post('/api/supabase/pull', async (_req, res) => {
     ]);
 
     if (foldersRes.error || filesRes.error) {
+      const raw = foldersRes.error?.message || filesRes.error?.message || '';
+      let errMsg = raw;
+      if (raw.includes('fetch failed') || raw.includes('ENOTFOUND')) {
+        errMsg = `Không thể kết nối đến máy chủ Supabase (${SUPABASE_URL}). Lỗi: Không tìm thấy tên miền (ENOTFOUND). Dự án có thể chưa kích hoạt xong hoặc đang bị Tạm dừng (Paused) trên Supabase. Thầy kiểm tra lại URL hoặc chuyển sang dự án Supabase hoạt động sẵn.`;
+      }
       return res.status(400).json({
         success: false,
-        message: 'Lỗi tải dữ liệu từ Supabase: ' + (foldersRes.error?.message || filesRes.error?.message),
+        message: 'Lỗi tải dữ liệu từ Supabase: ' + errMsg,
       });
     }
 

@@ -736,6 +736,15 @@ export const api = {
     });
     return res.json();
   },
+
+  async updateSupabaseConfig(url: string, anonKey: string): Promise<{ success: boolean; message: string; url?: string }> {
+    const res = await fetch('/api/supabase/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, anonKey }),
+    });
+    return res.json();
+  },
 };
 
 export const SUPABASE_SQL_SCRIPT = `-- ==============================================================================
