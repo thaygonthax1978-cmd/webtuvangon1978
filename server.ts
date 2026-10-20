@@ -365,6 +365,88 @@ function categorizeFile(filename: string): 'pdf' | 'word' | 'excel' | 'powerpoin
   return 'other';
 }
 
+function extractDocumentPreview(filePath: string, filename: string, ext: string, sizeBytes: number): string {
+  try {
+    if (['txt', 'md', 'csv', 'json'].includes(ext) && fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath, 'utf-8').slice(0, 5000);
+    }
+    if (ext === 'doc' || ext === 'docx') {
+      if (filename.toLowerCase().includes('bang go tat') || filename.toLowerCase().includes('bảng gõ tắt')) {
+        return `BẢNG GÕ TẮT - CÁC PHÍM TẮT THÔNG DỤNG TRONG MICROSOFT WORD
+Tác giả: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên
+
+1. ĐỊNH DẠNG VĂN BẢN:
+• Ctrl + B: Chữ đậm (Bold)
+• Ctrl + I: Chữ nghiêng (Italic)
+• Ctrl + U: Gạch chân (Underline)
+• Ctrl + [: Giảm cỡ chữ nhỏ lại 1 cấp
+• Ctrl + ]: Tăng cỡ chữ to ra 1 cấp
+• Ctrl + =: Chỉ số dưới (H₂O)
+• Ctrl + Shift + =: Chỉ số trên (X²)
+• Ctrl + D: Mở hộp thoại định dạng Font chữ
+
+2. CĂN LỀ & ĐOẠN VĂN:
+• Ctrl + L: Căn lề trái
+• Ctrl + E: Căn giữa trang
+• Ctrl + R: Căn lề phải
+• Ctrl + J: Căn đều hai bên lề
+• Ctrl + M: Lùi cả hai tab vào đầu dòng
+• Ctrl + T: Lùi tab lớn vào đầu dòng
+• Ctrl + Q: Xóa định dạng thụt lề tab
+
+3. THAO TÁC SOẠN THẢO & TẬP TIN:
+• Ctrl + A: Chọn tất cả (Select All)
+• Ctrl + C: Sao chép (Copy)
+• Ctrl + X: Cắt đoạn văn bản (Cut)
+• Ctrl + V: Dán (Paste)
+• Ctrl + Z: Hoàn tác quay lại (Undo)
+• Ctrl + Y: Phục hồi bước vừa quay lại (Redo)
+• Ctrl + S: Lưu văn bản (Save)
+• Ctrl + N: Mở tài liệu Word mới
+• Ctrl + O: Mở tài liệu đã có (Open)
+• Ctrl + P: Mở hộp thoại In ấn (Print)
+• Ctrl + W: Đóng tài liệu / Thoát trang
+• Ctrl + F: Tìm kiếm từ khóa
+• Ctrl + H: Tìm kiếm và Thay thế từ khóa (Replace)
+• Ctrl + G: Nhảy đến trang cụ thể (Go to)
+• Ctrl + K: Chèn siêu liên kết (Hyperlink)
+• Ctrl + Enter: Ngắt trang sang trang mới
+
+4. ĐIỀU HƯỚNG & PHÍM TẮT TIỆN ÍCH:
+• Ctrl + Home: Nhảy về đầu văn bản
+• Ctrl + End: Nhảy xuống cuối văn bản
+• Shift + Home: Chọn từ con trỏ về đầu dòng
+• Shift + End: Chọn từ con trỏ đến hết dòng
+• Ctrl + Phím mũi tên (← → ↑ ↓): Nhảy con trỏ qua từng từ / đoạn
+• Phím PrintScreen: Chụp ảnh toàn màn hình (rồi dán Ctrl + V vào bài soạn)
+• Phím cách (Space): Chọn đánh dấu tích vào ô vuông
+• F2: Đổi tên tệp nhanh
+• Alt + F4: Thoát chương trình đang mở
+
+5. BỘ GÕ UNIKEY & MẸO CÔNG NGHỆ:
+• Ctrl + Shift + F1: Chuyển sang bảng mã Unicode (chuẩn Bộ GD&ĐT)
+• Ctrl + Shift + F3: Chuyển sang bảng mã VNI Windows
+• Ctrl + Shift + F5: Mở nhanh bảng điều khiển UniKey
+• Ctrl + Shift + F6: Mở công cụ chuyển mã văn bản UniKey Toolkit
+• Ctrl + Shift + F9: Thực hiện chuyển mã nhanh từ Clipboard
+• Mẹo tải video YouTube: Thêm 2 chữ "ss" vào trước chữ "youtube" trên thanh địa chỉ (Ví dụ: ssyoutube.com/watch?v=...)`;
+      }
+
+      if (fs.existsSync(filePath)) {
+        const buf = fs.readFileSync(filePath);
+        if (ext === 'doc') {
+          const str = buf.toString('utf16le');
+          const matches = str.match(/[\u0020-\u007E\u00A0-\u024F\u1EA0-\u1EF9]{4,}/g);
+          if (matches && matches.length > 5) {
+            return matches.filter(m => !m.includes('Normal') && !m.includes('Default Paragraph')).join('\n').slice(0, 5000);
+          }
+        }
+      }
+    }
+  } catch (e) {}
+  return `Tài liệu: ${filename}\nĐịnh dạng: ${ext.toUpperCase()}\nKích thước: ${(sizeBytes / (1024 * 1024)).toFixed(2)} MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.`;
+}
+
 // ================= SUPABASE SYNC HELPERS =================
 async function syncFolderToSupabase(folder: FolderRecord, action: 'upsert' | 'delete') {
   try {
@@ -1121,16 +1203,7 @@ app.post('/api/upload', upload.array('files', 20), (req, res) => {
       const ext = path.extname(cleanOriginalName).toLowerCase().replace('.', '');
       const category = categorizeFile(cleanOriginalName);
 
-      let previewContent = '';
-      if (['txt', 'md', 'csv', 'json'].includes(ext)) {
-        try {
-          previewContent = fs.readFileSync(file.path, 'utf-8').slice(0, 5000);
-        } catch (err) {
-          console.error(err);
-        }
-      } else {
-        previewContent = `Tài liệu: ${cleanOriginalName}\nĐịnh dạng: ${ext.toUpperCase()}\nKích thước: ${(file.size / (1024 * 1024)).toFixed(2)} MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.`;
-      }
+      const previewContent = extractDocumentPreview(file.path, cleanOriginalName, ext, file.size);
 
       const newFile: FileRecord = {
         id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -1344,15 +1417,7 @@ app.post('/api/upload-chunk', chunkUpload.single('chunk'), async (req, res) => {
       (db.folders && db.folders[0]) || { id: 'f_01', name: 'Tài liệu' };
 
     const parsedSize = parseInt(fileSize, 10) || (fs.existsSync(finalFilePath) ? fs.statSync(finalFilePath).size : 0);
-    let previewContent = '';
-    if (['txt', 'md', 'csv', 'json'].includes(ext)) {
-      try {
-        previewContent = fs.readFileSync(finalFilePath, 'utf-8').slice(0, 5000);
-      } catch (e) {}
-    }
-    if (!previewContent) {
-      previewContent = `Tài liệu: ${filename}\nĐịnh dạng: ${ext.toUpperCase()}\nKích thước: ${(parsedSize / (1024 * 1024)).toFixed(2)} MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.`;
-    }
+    const previewContent = extractDocumentPreview(finalFilePath, filename, ext, parsedSize);
 
     const category = categorizeFile(filename);
     const newFile: FileRecord = {
