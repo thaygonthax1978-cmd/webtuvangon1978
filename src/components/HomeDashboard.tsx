@@ -71,15 +71,14 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const usedPercent = stats?.usedPercentage || 38.6;
   const remainingBytes = Math.max(0, maxBytes - usedBytes);
 
-  // Filter root folders only - subfolders like ẢNH CẢ NHÀ & ẢNH DU LỊCH remain hidden inside 11. HÌNH ẢNH
-  const folderIdSet = new Set(folders.map((f) => f.id));
+  // Filter root folders only - subfolders stay strictly hidden inside their parent
   const rawRoots = folders.filter(
     (f) =>
       !f.parentId ||
       f.parentId === 'null' ||
       f.parentId === 'undefined' ||
       f.parentId === '' ||
-      !folderIdSet.has(f.parentId)
+      f.parentId === 'root'
   );
   const rootFolders = (rawRoots.length > 0 ? rawRoots : DEFAULT_FOLDERS.filter((f) => !f.parentId)).sort(
     (a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true, sensitivity: 'base' })
@@ -100,11 +99,11 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   // Subject quick tabs
   const subjectTabs = [
     { id: 'all', label: 'Tất cả tài liệu gần đây', count: recentFiles.length },
-    { id: 'f_03', label: '01. GIÁO ÁN TIẾNG VIỆT 1', count: recentFiles.filter((f) => f.folderId === 'f_03').length || 35, color: '#8257E5' },
-    { id: 'f_1792049102744', label: '02. GIÁO ÁN TOÁN 1', count: recentFiles.filter((f) => f.folderId === 'f_1792049102744').length || 35, color: '#0866E8' },
-    { id: 'f_01', label: '03. GIÁO ÁN ĐẠO ĐỨC 1', count: recentFiles.filter((f) => f.folderId === 'f_01').length || 35, color: '#0866E8' },
-    { id: 'f_02', label: '04. GIÁO ÁN TNXH 1', count: recentFiles.filter((f) => f.folderId === 'f_02').length || 35, color: '#16B875' },
-    { id: 'f_04', label: '05. GIÁO ÁN HĐTN 1', count: recentFiles.filter((f) => f.folderId === 'f_04').length || 35, color: '#0866E8' },
+    { id: 'f_1792477017092', label: '1. TIẾNG VIỆT 1', count: recentFiles.filter((f) => f.folderId === 'f_1792477017092').length || 36, color: '#8257E5' },
+    { id: 'f_1792477060603', label: '2. TOÁN 1', count: recentFiles.filter((f) => f.folderId === 'f_1792477060603').length || 36, color: '#0866E8' },
+    { id: 'f_1792477086352', label: '3. ĐẠO ĐỨC 1', count: recentFiles.filter((f) => f.folderId === 'f_1792477086352').length || 36, color: '#0866E8' },
+    { id: 'f_1792477101211', label: '4. TNXH 1', count: recentFiles.filter((f) => f.folderId === 'f_1792477101211').length || 36, color: '#16B875' },
+    { id: 'f_1792477113371', label: '5. HĐTN 1', count: recentFiles.filter((f) => f.folderId === 'f_1792477113371').length || 36, color: '#0866E8' },
   ];
 
   // File type categories
@@ -220,11 +219,11 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             </button>
             {onSelectFolder && (
               <button
-                onClick={() => onSelectFolder('f_03')}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition-all flex items-center gap-2 cursor-pointer border border-purple-400/50"
+                onClick={() => onSelectFolder('f_1792476597159')}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition-all flex items-center gap-2 cursor-pointer border border-blue-400/50"
               >
                 <BookOpen className="w-4 h-4" />
-                Mở Giáo Án Tiếng Việt 1 (35 tệp)
+                Mở Giáo Án Các Lớp (180 tệp)
               </button>
             )}
             <button
@@ -299,7 +298,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         {/* Folder Grid Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 pt-1">
           {rootFolders.map((folder) => {
-            const isTV1 = folder.id === 'f_03';
+            const isLessonPlans = folder.id === 'f_1792476597159' || folder.name.includes('GIÁO ÁN');
             const fileCount = folder.fileCount ?? 0;
 
             return (
@@ -307,8 +306,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 key={folder.id}
                 onClick={() => onSelectFolder && onSelectFolder(folder.id)}
                 className={`p-3.5 rounded-2xl border transition-all cursor-pointer group flex flex-col justify-between ${
-                  isTV1
-                    ? 'bg-gradient-to-br from-purple-50 via-white to-purple-50/40 border-purple-300 ring-2 ring-purple-200 shadow-sm hover:shadow-md hover:border-purple-500'
+                  isLessonPlans
+                    ? 'bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/40 border-blue-300 ring-2 ring-blue-200 shadow-sm hover:shadow-md hover:border-blue-500'
                     : 'bg-white hover:bg-blue-50/40 border-slate-200 hover:border-blue-300 shadow-xs hover:shadow-md'
                 }`}
               >
@@ -327,8 +326,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                     <div className="flex flex-col items-end gap-1">
                       <span
                         className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
-                          isTV1
-                            ? 'bg-purple-600 text-white shadow-xs'
+                          isLessonPlans
+                            ? 'bg-blue-600 text-white shadow-xs'
                             : fileCount > 0
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-slate-100 text-slate-500'
@@ -336,9 +335,9 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                       >
                         {fileCount} tệp
                       </span>
-                      {isTV1 && (
-                        <span className="text-[10px] font-bold text-purple-700 bg-purple-100/80 px-1.5 py-0.2 rounded">
-                          35 Tuần GDPT 2018
+                      {isLessonPlans && (
+                        <span className="text-[10px] font-bold text-blue-700 bg-blue-100/80 px-1.5 py-0.2 rounded">
+                          Lớp 1 - Lớp 5 GDPT 2018
                         </span>
                       )}
                     </div>
@@ -356,10 +355,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 <div className="pt-2.5 mt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span
                     className={`font-semibold flex items-center gap-1 ${
-                      isTV1 ? 'text-purple-700 font-bold' : 'text-blue-600 group-hover:translate-x-0.5 transition-transform'
+                      isLessonPlans ? 'text-blue-700 font-bold' : 'text-blue-600 group-hover:translate-x-0.5 transition-transform'
                     }`}
                   >
-                    {isTV1 ? 'Mở xem 35 tệp giáo án' : 'Mở xem tệp'}
+                    {isLessonPlans ? 'Mở xem giáo án các lớp' : 'Mở xem tệp'}
                     <ArrowUpRight className="w-3.5 h-3.5" />
                   </span>
                   <span className="text-[10px] text-slate-400">Mã: {folder.code}</span>

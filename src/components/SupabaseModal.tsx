@@ -337,7 +337,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
                 <div className="bg-white p-2.5 rounded-lg border border-slate-200">
                   <span className="text-slate-400 block mb-0.5 font-medium">Supabase Project URL:</span>
                   <span className="font-mono text-slate-800 font-semibold break-all">
-                    {status?.url || 'https://pirmwzflxvlxvjqlhbhw.supabase.co'}
+                    {status?.url || 'https://ceuwkkfwklxedzndsisu.supabase.co'}
                   </span>
                 </div>
                 <div className="bg-white p-2.5 rounded-lg border border-slate-200">

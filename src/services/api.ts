@@ -1,6 +1,6 @@
 import { FileItem, FolderItem, StatsData, UserProfile, SharedConfig, SupabaseStatus } from '../types';
 import { DEFAULT_FILES } from './defaultFiles';
-import { supabase } from './supabaseClient';
+import { supabase, updateClientSupabaseConfig, SUPABASE_CONFIG } from './supabaseClient';
 
 export { DEFAULT_FILES };
 
@@ -24,73 +24,17 @@ export const localStore = {
 
 export const DEFAULT_FOLDERS: FolderItem[] = [
   {
-    id: 'f_03',
-    name: '01. GIÁO ÁN TIẾNG VIỆT 1',
-    code: '03',
-    parentId: null,
-    color: '#8257E5',
-    createdAt: '2026-09-02T08:00:00+00:00',
-    updatedAt: '2026-10-15T07:25:21.976+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_1792049102744',
-    name: '02. GIÁO ÁN TOÁN 1',
-    code: '13',
+    id: 'f_1792476597159',
+    name: '1. GIÁO ÁN CÁC LỚP',
+    code: '165',
     parentId: null,
     color: '#0866E8',
-    createdAt: '2026-10-15T07:25:02.744+00:00',
-    updatedAt: '2026-10-15T07:25:02.744+00:00',
-    fileCount: 0,
+    createdAt: '2026-10-20T06:09:57.159+00:00',
+    updatedAt: '2026-10-20T06:09:57.159+00:00',
+    fileCount: 180,
     directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_01',
-    name: '03. GIÁO ÁN ĐẠO ĐỨC 1',
-    code: '01',
-    parentId: null,
-    color: '#0866E8',
-    createdAt: '2026-09-01T08:00:00+00:00',
-    updatedAt: '2026-10-15T07:26:13.679+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_02',
-    name: '04. GIÁO ÁN TỰ NHIÊN VÀ XÃ HỘI 1',
-    code: '02',
-    parentId: null,
-    color: '#16B875',
-    createdAt: '2026-09-01T08:15:00+00:00',
-    updatedAt: '2026-10-15T07:26:44.994+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_04',
-    name: '05. GIÁO ÁN HOẠT ĐỘNG TRẢI NGHIỆM 1',
-    code: '04',
-    parentId: null,
-    color: '#0866E8',
-    createdAt: '2026-09-05T09:00:00+00:00',
-    updatedAt: '2026-10-15T07:27:13.076+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
+    subfolderCount: 5,
+    subfolderNames: ['LỚP 1', 'LỚP 2', 'LỚP 3', 'LỚP 4', 'LỚP 5'],
     totalSize: 0,
   },
   {
@@ -154,7 +98,7 @@ export const DEFAULT_FOLDERS: FolderItem[] = [
     name: '10. VIDEO',
     code: '06',
     parentId: null,
-    color: '#F04444',
+    color: '#38BDF8',
     createdAt: '2026-09-06T11:00:00+00:00',
     updatedAt: '2026-10-15T07:29:32.218+00:00',
     fileCount: 0,
@@ -168,7 +112,7 @@ export const DEFAULT_FOLDERS: FolderItem[] = [
     name: '11. HÌNH ẢNH',
     code: '05',
     parentId: null,
-    color: '#FF9F1C',
+    color: '#EC4899',
     createdAt: '2026-09-05T10:30:00+00:00',
     updatedAt: '2026-10-15T07:28:10.042+00:00',
     fileCount: 0,
@@ -213,10 +157,10 @@ export const DEFAULT_FOLDERS: FolderItem[] = [
     color: '#0866E8',
     createdAt: '2026-10-18T11:05:07.695+00:00',
     updatedAt: '2026-10-18T11:05:07.695+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
+    fileCount: 34,
+    directFileCount: 4,
+    subfolderCount: 2,
+    subfolderNames: ['1. CHƯƠNG TRÌNH CÀI ĐẶT CHO MÁY TÍNH', '2. MỘT SỐ PHẦN MỀM KHÁC'],
     totalSize: 0,
   },
 ];
@@ -284,7 +228,7 @@ export const api = {
       console.warn('API getStats fallback:', e);
     }
     const currentFolders = localStore.get<FolderItem[]>('folders', DEFAULT_FOLDERS);
-    const rootCount = (currentFolders.filter((f) => !f.parentId).length) || 12;
+    const rootCount = (currentFolders.filter((f) => !f.parentId).length) || 8;
     return localStore.get('stats', {
       totalDocuments: 0,
       totalStorageBytes: 0,
@@ -317,9 +261,9 @@ export const api = {
 
     const cached = localStore.get<FolderItem[]>('folders', []);
     const cachedRoots = Array.isArray(cached) ? cached.filter((f) => !f.parentId) : [];
-    if (cachedRoots.length > 0) return cached;
+    if (cachedRoots.length > 0 && !cachedRoots.some((r) => r.id === 'f_03')) return cached;
 
-    // Use DEFAULT_FOLDERS as standard foundation (12 folders), cache to localStorage
+    // Use DEFAULT_FOLDERS as standard foundation, cache to localStorage
     localStore.set('folders', DEFAULT_FOLDERS);
     return DEFAULT_FOLDERS;
   },
@@ -731,15 +675,63 @@ export const api = {
   },
 
   async getSupabaseStatus(): Promise<SupabaseStatus> {
+    // 1. Try server-side status check first
     try {
       const res = await authFetch('/api/supabase/status');
-      const data = await res.json();
-      return data.status;
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data && data.status) {
+          return data.status;
+        }
+      }
+    } catch (e: any) {
+      console.warn('Backend /api/supabase/status check failed, verifying directly via Supabase client...', e);
+    }
+
+    // 2. Direct client-side ping to Supabase in case backend is busy or returning HTML proxy response
+    try {
+      const [foldersRes, filesRes, userRes] = await Promise.all([
+        supabase.from('folders').select('id').limit(1),
+        supabase.from('files').select('id').limit(1),
+        supabase.from('user_profile').select('id').limit(1),
+      ]);
+
+      const hasFolders = !foldersRes.error;
+      const hasFiles = !filesRes.error;
+      const hasUser = !userRes.error;
+      const isConnected = hasFolders || hasFiles;
+
+      if (isConnected) {
+        return {
+          connected: true,
+          url: SUPABASE_CONFIG.url,
+          hasAnonKey: Boolean(SUPABASE_CONFIG.anonKey),
+          tables: {
+            folders: hasFolders,
+            files: hasFiles,
+            user_profile: hasUser,
+          },
+          storage: { bucketExists: false },
+          isFullyReady: hasFolders && hasFiles,
+          message: 'Đã kết nối thành công đến máy chủ Supabase Cloud!',
+        };
+      }
+
+      return {
+        connected: false,
+        url: SUPABASE_CONFIG.url,
+        hasAnonKey: Boolean(SUPABASE_CONFIG.anonKey),
+        tables: { folders: false, files: false, user_profile: false },
+        storage: { bucketExists: false },
+        isFullyReady: false,
+        message: foldersRes.error?.message || filesRes.error?.message || 'Không thể kết nối đến máy chủ Supabase.',
+      };
     } catch (e: any) {
       return {
         connected: false,
-        url: 'https://pirmwzflxvlxvjqlhbhw.supabase.co',
-        hasAnonKey: true,
+        url: SUPABASE_CONFIG.url,
+        hasAnonKey: Boolean(SUPABASE_CONFIG.anonKey),
         tables: { folders: false, files: false, user_profile: false },
         storage: { bucketExists: false },
         isFullyReady: false,
@@ -765,12 +757,21 @@ export const api = {
   },
 
   async updateSupabaseConfig(url: string, anonKey: string): Promise<{ success: boolean; message: string; url?: string }> {
-    const res = await authFetch('/api/supabase/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, anonKey }),
-    });
-    return res.json();
+    updateClientSupabaseConfig(url, anonKey);
+    try {
+      const res = await authFetch('/api/supabase/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, anonKey }),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return {
+        success: true,
+        message: 'Đã cập nhật cấu hình Supabase trên máy khách thành công!',
+        url,
+      };
+    }
   },
 };
 

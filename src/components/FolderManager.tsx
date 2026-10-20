@@ -91,18 +91,17 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   // Color options
   const colorOptions = ['#0866E8', '#16B875', '#8257E5', '#FF9F1C', '#F04444', '#064AA8', '#38BDF8', '#64748B'];
 
-  // Root vs Subfolder separation - robust resolution
+  // Root vs Subfolder separation - strict resolution: subfolders always stay hidden inside
   const folderIdSet = new Set(folders.map((f) => f.id));
   const rawRootFolders = folders.filter((f) => {
-    if (!f.parentId || f.parentId === 'null' || f.parentId === 'undefined' || f.parentId === '') {
-      return true;
-    }
-    return !folderIdSet.has(f.parentId);
+    // Only folders with no parent are root folders
+    const isRoot = !f.parentId || f.parentId === 'null' || f.parentId === 'undefined' || f.parentId === '' || f.parentId === 'root';
+    return isRoot;
   });
 
-  // If no root folders found in current list, fallback to standard 12 default folders
+  // Root folders fallback if empty
   const rootFolders = rawRootFolders.length > 0 ? rawRootFolders : DEFAULT_FOLDERS.filter((f) => !f.parentId);
-  const subFolders = folders.filter((f) => Boolean(f.parentId) && f.parentId && folderIdSet.has(f.parentId));
+  const subFolders = folders.filter((f) => Boolean(f.parentId) && f.parentId !== 'null' && f.parentId !== 'undefined' && f.parentId !== '' && f.parentId !== 'root');
 
   const drillFolder = drillFolderId ? folders.find((f) => f.id === drillFolderId) : null;
   const childrenOfDrill = drillFolderId ? folders.filter((f) => f.parentId === drillFolderId) : [];

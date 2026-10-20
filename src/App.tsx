@@ -87,7 +87,8 @@ export default function App() {
     const cached = localStore.get<FolderItem[]>('folders', DEFAULT_FOLDERS);
     if (Array.isArray(cached)) {
       const roots = cached.filter((f) => !f.parentId);
-      if (roots.length > 0) return cached;
+      // If cached data contains stale obsolete root folders (like old f_03), discard and use updated defaults
+      if (roots.length > 0 && !roots.some((r) => r.id === 'f_03')) return cached;
     }
     return DEFAULT_FOLDERS;
   });
@@ -787,11 +788,11 @@ export default function App() {
                   </span>
                 </button>
                 {folders
-                  .filter((f) => !f.parentId)
+                  .filter((f) => !f.parentId || f.parentId === 'null' || f.parentId === 'undefined' || f.parentId === '' || f.parentId === 'root')
                   .sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true, sensitivity: 'base' }))
                   .map((folder) => {
                     const isSelected = selectedFolderId === folder.id;
-                    const isTV1 = folder.id === 'f_03';
+                    const isLessonPlans = folder.id === 'f_1792476597159' || folder.name.includes('GIÁO ÁN');
                     const count =
                       folder.fileCount ??
                       files.filter((f) => !f.isDeleted && f.folderId === folder.id).length;
@@ -802,8 +803,8 @@ export default function App() {
                         className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
                           isSelected
                             ? 'text-white shadow-xs'
-                            : isTV1
-                            ? 'bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100'
+                            : isLessonPlans
+                            ? 'bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100'
                             : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
                         }`}
                         style={isSelected ? { backgroundColor: folder.color || '#0866E8' } : undefined}
@@ -819,8 +820,8 @@ export default function App() {
                           className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                             isSelected
                               ? 'bg-white/20 text-white'
-                              : isTV1
-                              ? 'bg-purple-200 text-purple-900 font-extrabold'
+                              : isLessonPlans
+                              ? 'bg-blue-200 text-blue-900 font-extrabold'
                               : 'bg-slate-200 text-slate-700'
                           }`}
                         >

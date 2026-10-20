@@ -40,8 +40,10 @@ app.use(express.static(path.resolve(process.cwd(), 'public')));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Setup Supabase Client
-let SUPABASE_URL = process.env.SUPABASE_URL || 'https://pirmwzflxvlxvjqlhbhw.supabase.co';
-let SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_TI9S6FVP-Vq_exOBAlFgyw_C60fz5mC';
+let SUPABASE_URL = (process.env.SUPABASE_URL && !process.env.SUPABASE_URL.includes('pirmwzflxvlxvjqlhbhw'))
+  ? process.env.SUPABASE_URL
+  : 'https://ceuwkkfwklxedzndsisu.supabase.co';
+let SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_5nblBT8S82bUTXPp-wQwig_yRIDJXYF';
 
 export let supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -147,49 +149,13 @@ const initialUser: UserProfile = {
 
 const defaultFolders: FolderRecord[] = [
   {
-    id: 'f_03',
-    name: '01. GIÁO ÁN TIẾNG VIỆT 1',
-    code: '03',
-    parentId: null,
-    color: '#8257E5',
-    createdAt: '2026-09-02T08:00:00+00:00',
-    updatedAt: '2026-10-15T07:25:21.976+00:00',
-  },
-  {
-    id: 'f_1792049102744',
-    name: '02. GIÁO ÁN TOÁN 1',
-    code: '13',
+    id: 'f_1792476597159',
+    name: '1. GIÁO ÁN CÁC LỚP',
+    code: '165',
     parentId: null,
     color: '#0866E8',
-    createdAt: '2026-10-15T07:25:02.744+00:00',
-    updatedAt: '2026-10-15T07:25:02.744+00:00',
-  },
-  {
-    id: 'f_01',
-    name: '03. GIÁO ÁN ĐẠO ĐỨC 1',
-    code: '01',
-    parentId: null,
-    color: '#0866E8',
-    createdAt: '2026-09-01T08:00:00+00:00',
-    updatedAt: '2026-10-15T07:26:13.679+00:00',
-  },
-  {
-    id: 'f_02',
-    name: '04. GIÁO ÁN TỰ NHIÊN VÀ XÃ HỘI 1',
-    code: '02',
-    parentId: null,
-    color: '#16B875',
-    createdAt: '2026-09-01T08:15:00+00:00',
-    updatedAt: '2026-10-15T07:26:44.994+00:00',
-  },
-  {
-    id: 'f_04',
-    name: '05. GIÁO ÁN HOẠT ĐỘNG TRẢI NGHIỆM 1',
-    code: '04',
-    parentId: null,
-    color: '#0866E8',
-    createdAt: '2026-09-05T09:00:00+00:00',
-    updatedAt: '2026-10-15T07:27:13.076+00:00',
+    createdAt: '2026-10-20T06:09:57.159+00:00',
+    updatedAt: '2026-10-20T06:09:57.159+00:00',
   },
   {
     id: 'f_07',
