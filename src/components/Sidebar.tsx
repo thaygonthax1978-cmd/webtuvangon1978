@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const menuItems = [
     { id: 'home' as ViewTab, label: 'Trang chủ', icon: Home, badge: null },
     { id: 'my-files' as ViewTab, label: 'Tài liệu của tôi', icon: FileText, badge: stats?.totalDocuments },
-    { id: 'folders' as ViewTab, label: 'Thư mục', icon: FolderTree, badge: stats?.totalFolders },
+    { id: 'folders' as ViewTab, label: 'Thư mục', icon: FolderTree, badge: stats?.totalFolders ?? 12 },
     { id: 'share' as ViewTab, label: 'Chia sẻ', icon: Share2, badge: null },
     { id: 'favorites' as ViewTab, label: 'Yêu thích', icon: Star, badge: null },
     { id: 'trash' as ViewTab, label: 'Thùng rác', icon: Trash2, badge: stats?.trashCount ? stats.trashCount : null },

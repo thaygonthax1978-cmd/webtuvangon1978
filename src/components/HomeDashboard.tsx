@@ -23,7 +23,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { StatsData, FileItem, FolderItem } from '../types';
-import { formatBytes, formatDate } from '../services/api';
+import { formatBytes, formatDate, DEFAULT_FOLDERS } from '../services/api';
 
 interface HomeDashboardProps {
   stats: StatsData | null;
@@ -72,9 +72,18 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const remainingBytes = Math.max(0, maxBytes - usedBytes);
 
   // Filter root folders only - subfolders like ẢNH CẢ NHÀ & ẢNH DU LỊCH remain hidden inside 11. HÌNH ẢNH
-  const rootFolders = folders
-    .filter((f) => !f.parentId)
-    .sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true, sensitivity: 'base' }));
+  const folderIdSet = new Set(folders.map((f) => f.id));
+  const rawRoots = folders.filter(
+    (f) =>
+      !f.parentId ||
+      f.parentId === 'null' ||
+      f.parentId === 'undefined' ||
+      f.parentId === '' ||
+      !folderIdSet.has(f.parentId)
+  );
+  const rootFolders = (rawRoots.length > 0 ? rawRoots : DEFAULT_FOLDERS.filter((f) => !f.parentId)).sort(
+    (a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true, sensitivity: 'base' })
+  );
 
   // Filter files in table based on selected subject tab
   const displayedTableFiles = (() => {
@@ -267,7 +276,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 <FolderTree className="w-4 h-4" />
               </div>
               <h3 className="text-base font-bold text-slate-900">
-                11 Thư Mục Giáo Án & Tư Liệu Giảng Dạy Của Thầy Gọn
+                {rootFolders.length || 12} Thư Mục Giáo Án & Tư Liệu Giảng Dạy Của Thầy Gọn
               </h3>
               <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">
                 {rootFolders.length} thư mục chính
@@ -438,7 +447,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 <Folder className="w-3.5 h-3.5 text-blue-500" />
                 Tổng số thư mục chính
               </span>
-              <span className="font-bold text-slate-800">{stats?.totalFolders || 11} thư mục</span>
+              <span className="font-bold text-slate-800">{stats?.totalFolders || rootFolders.length || 12} thư mục</span>
             </div>
             <div className="flex items-center justify-between text-xs text-slate-600">
               <span className="flex items-center gap-1.5">

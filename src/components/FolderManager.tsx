@@ -22,7 +22,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { FolderItem } from '../types';
-import { formatBytes, formatDate, buildFolderTreeOptions, api } from '../services/api';
+import { formatBytes, formatDate, buildFolderTreeOptions, api, DEFAULT_FOLDERS } from '../services/api';
 
 interface FolderManagerProps {
   folders: FolderItem[];
@@ -91,9 +91,18 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   // Color options
   const colorOptions = ['#0866E8', '#16B875', '#8257E5', '#FF9F1C', '#F04444', '#064AA8', '#38BDF8', '#64748B'];
 
-  // Root vs Subfolder separation
-  const rootFolders = folders.filter((f) => !f.parentId);
-  const subFolders = folders.filter((f) => Boolean(f.parentId));
+  // Root vs Subfolder separation - robust resolution
+  const folderIdSet = new Set(folders.map((f) => f.id));
+  const rawRootFolders = folders.filter((f) => {
+    if (!f.parentId || f.parentId === 'null' || f.parentId === 'undefined' || f.parentId === '') {
+      return true;
+    }
+    return !folderIdSet.has(f.parentId);
+  });
+
+  // If no root folders found in current list, fallback to standard 12 default folders
+  const rootFolders = rawRootFolders.length > 0 ? rawRootFolders : DEFAULT_FOLDERS.filter((f) => !f.parentId);
+  const subFolders = folders.filter((f) => Boolean(f.parentId) && f.parentId && folderIdSet.has(f.parentId));
 
   const drillFolder = drillFolderId ? folders.find((f) => f.id === drillFolderId) : null;
   const childrenOfDrill = drillFolderId ? folders.filter((f) => f.parentId === drillFolderId) : [];
@@ -128,7 +137,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   let displayFolders: DisplayFolderItem[] = [];
 
   if (drillFolderId) {
-    // Inside a folder: display only its subfolders (e.g. ẢNH CẢ NHÀ, ẢNH DU LỊCH inside 11. HÌNH ẢNH)
+    // Inside a folder: display only its subfolders
     displayFolders = childrenOfDrill.map((child) => {
       const grandChildren = folders.filter((f) => f.parentId === child.id);
       return {
@@ -140,8 +149,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
       };
     });
   } else {
-    // Top-level / Thư mục chính: ALWAYS only display the 11 root folders!
-    // Subfolders stay hidden inside and do NOT appear outside.
+    // Top-level / Thư mục chính: ALWAYS display the 12 root folders
     displayFolders = rootFolders.map((root) => {
       const children = folders.filter((f) => f.parentId === root.id);
       return {
@@ -317,7 +325,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
           <p className="text-xs text-slate-500 mt-0.5">
             {drillFolder
               ? `Đang xem các thư mục bên trong ${drillFolder.name}`
-              : 'Hệ thống 11 thư mục giáo án, hồ sơ chuyên môn và tài liệu giảng dạy của Thầy Từ Văn Gọn'}
+              : `Hệ thống ${rootFolders.length || 12} thư mục giáo án, hồ sơ chuyên môn và tài liệu giảng dạy của Thầy Từ Văn Gọn`}
           </p>
         </div>
 
@@ -373,7 +381,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
             onClick={handleRestoreDefaults}
             disabled={isRestoring}
             className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-2.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1 transition-all cursor-pointer"
-            title="Khôi phục hoặc cập nhật lại cấu trúc 11 thư mục giáo án"
+            title="Khôi phục hoặc cập nhật lại cấu trúc 12 thư mục giáo án"
           >
             <RotateCcw className={`w-3.5 h-3.5 ${isRestoring ? 'animate-spin' : ''}`} />
             <span>Làm mới</span>
@@ -436,7 +444,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
           ) : (
             <span className="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
               <Folder className="w-3.5 h-3.5 text-blue-600" />
-              <span>Hệ thống 11 thư mục chính của Thầy Gọn</span>
+              <span>Hệ thống {rootFolders.length || 12} thư mục chính của Thầy Gọn</span>
             </span>
           )}
 
@@ -555,10 +563,10 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                         <p className="font-semibold text-slate-500">Không tìm thấy thư mục nào phù hợp.</p>
                         <button
                           onClick={handleRestoreDefaults}
-                          className="mt-1 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-bold text-xs flex items-center gap-1.5"
+                          className="mt-1 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Khôi phục hệ thống 11 thư mục giáo án & tài liệu của Thầy Gọn</span>
+                          <span>Khôi phục hệ thống 12 thư mục chính của Thầy Gọn</span>
                         </button>
                       </div>
                     </td>
@@ -1146,7 +1154,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
 
             {/* Hướng dẫn an toàn */}
             <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-100 text-[11px] text-blue-800 leading-relaxed mb-4">
-              💡 <strong>Lưu ý:</strong> Sau khi xóa, Thầy luôn có thể bấm nút <strong>"Làm mới"</strong> trên thanh công cụ để khôi phục lại đầy đủ hệ thống 11 thư mục giáo án mặc định của Thầy Gọn bất cứ lúc nào!
+              💡 <strong>Lưu ý:</strong> Sau khi xóa, Thầy luôn có thể bấm nút <strong>"Làm mới"</strong> trên thanh công cụ để khôi phục lại đầy đủ hệ thống 12 thư mục giáo án mặc định của Thầy Gọn bất cứ lúc nào!
             </div>
 
             {/* Nút hành động */}

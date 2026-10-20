@@ -83,7 +83,14 @@ export default function App() {
     return null;
   });
   const [stats, setStats] = useState<StatsData | null>(() => localStore.get('stats', null));
-  const [folders, setFolders] = useState<FolderItem[]>(() => localStore.get('folders', DEFAULT_FOLDERS));
+  const [folders, setFolders] = useState<FolderItem[]>(() => {
+    const cached = localStore.get<FolderItem[]>('folders', DEFAULT_FOLDERS);
+    if (Array.isArray(cached)) {
+      const roots = cached.filter((f) => !f.parentId);
+      if (roots.length > 0) return cached;
+    }
+    return DEFAULT_FOLDERS;
+  });
   const [files, setFiles] = useState<FileItem[]>(() => localStore.get('files_all', []));
   const [trashFiles, setTrashFiles] = useState<FileItem[]>(() => localStore.get('trash_files', []));
   const [isLoading, setIsLoading] = useState(false);
@@ -174,10 +181,18 @@ export default function App() {
       }
       if (statsData) setStats(statsData);
       if (Array.isArray(foldersData) && foldersData.length > 0) {
-        setFolders(foldersData);
-        localStore.set('folders', foldersData);
+        const roots = foldersData.filter((f) => !f.parentId);
+        if (roots.length > 0) {
+          setFolders(foldersData);
+          localStore.set('folders', foldersData);
+        } else {
+          const merged = [...DEFAULT_FOLDERS, ...foldersData.filter((f) => f.parentId)];
+          setFolders(merged);
+          localStore.set('folders', merged);
+        }
       } else {
-        setFolders((prev) => (prev && prev.length > 0 ? prev : DEFAULT_FOLDERS));
+        setFolders(DEFAULT_FOLDERS);
+        localStore.set('folders', DEFAULT_FOLDERS);
       }
       if (Array.isArray(filesData)) {
         setFiles(filesData);
@@ -189,7 +204,7 @@ export default function App() {
       }
 
       if (manualNotice) {
-        showToast('Đã làm mới và đồng bộ 11 thư mục giáo án thành công!');
+        showToast('Đã làm mới và đồng bộ 12 thư mục giáo án thành công!');
       }
     } catch (err) {
       console.error('Lỗi tải dữ liệu kho tài liệu:', err);

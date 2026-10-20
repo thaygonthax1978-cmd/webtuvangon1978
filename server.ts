@@ -264,13 +264,13 @@ const defaultFolders: FolderRecord[] = [
     updatedAt: '2026-10-17T08:43:47.426Z',
   },
   {
-    id: 'f_1792328783177',
-    name: '12. TÀI LIỆU LƯU TRỮ',
-    code: '20',
+    id: 'f_1792321507695',
+    name: '12. PHẦN MỀM CÀI ĐẶT',
+    code: '12',
     parentId: null,
     color: '#0866E8',
-    createdAt: '2026-10-18T05:00:00+00:00',
-    updatedAt: '2026-10-18T05:00:00+00:00',
+    createdAt: '2026-10-18T11:05:07.695+00:00',
+    updatedAt: '2026-10-18T11:05:07.695+00:00',
   },
 ];
 
@@ -796,23 +796,33 @@ app.post('/api/supabase/pull', async (_req, res) => {
 app.post('/api/database/restore', (_req, res) => {
   let existingUser = initialUser;
   let existingFiles: FileRecord[] = [];
+  let existingSubfolders: FolderRecord[] = [];
   if (fs.existsSync(DB_FILE)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
       if (parsed.user) existingUser = parsed.user;
       if (Array.isArray(parsed.files)) existingFiles = parsed.files;
+      if (Array.isArray(parsed.folders)) {
+        existingSubfolders = parsed.folders.filter((f: FolderRecord) => f.parentId);
+      }
     } catch {}
   }
 
+  // Combine 12 default root folders + existing subfolders
+  const mergedFolders = [
+    ...defaultFolders,
+    ...existingSubfolders.filter((sub) => !defaultFolders.some((df) => df.id === sub.id)),
+  ];
+
   const db: DatabaseSchema = {
     user: existingUser,
-    folders: defaultFolders,
+    folders: mergedFolders,
     files: existingFiles,
   };
   saveDB(db);
   res.json({
     success: true,
-    message: 'Đã khôi phục toàn bộ hệ thống 11 thư mục giáo án và tài liệu của Thầy Gọn!',
+    message: 'Đã khôi phục toàn bộ hệ thống 12 thư mục giáo án và tài liệu của Thầy Gọn!',
     folders: db.folders,
     files: db.files,
   });

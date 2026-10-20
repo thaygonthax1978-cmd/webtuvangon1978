@@ -206,13 +206,13 @@ export const DEFAULT_FOLDERS: FolderItem[] = [
     totalSize: 0,
   },
   {
-    id: 'f_1792328783177',
-    name: '12. TÀI LIỆU LƯU TRỮ',
-    code: '20',
+    id: 'f_1792321507695',
+    name: '12. PHẦN MỀM CÀI ĐẶT',
+    code: '12',
     parentId: null,
     color: '#0866E8',
-    createdAt: '2026-10-18T05:00:00+00:00',
-    updatedAt: '2026-10-18T05:00:00+00:00',
+    createdAt: '2026-10-18T11:05:07.695+00:00',
+    updatedAt: '2026-10-18T11:05:07.695+00:00',
     fileCount: 0,
     directFileCount: 0,
     subfolderCount: 0,
@@ -221,10 +221,18 @@ export const DEFAULT_FOLDERS: FolderItem[] = [
   },
 ];
 
+export async function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const options: RequestInit = {
+    ...init,
+    credentials: 'include',
+  };
+  return fetch(input, options);
+}
+
 export const api = {
   async getUser(): Promise<UserProfile> {
     try {
-      const res = await fetch('/api/user');
+      const res = await authFetch('/api/user');
       if (res.ok) {
         const data = await res.json();
         if (data.user) {
@@ -252,7 +260,7 @@ export const api = {
   },
 
   async updateUser(userData: Partial<UserProfile>): Promise<UserProfile> {
-    const res = await fetch('/api/user', {
+    const res = await authFetch('/api/user', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
@@ -264,7 +272,7 @@ export const api = {
 
   async getStats(): Promise<StatsData> {
     try {
-      const res = await fetch('/api/stats');
+      const res = await authFetch('/api/stats');
       if (res.ok) {
         const data = await res.json();
         if (data.stats) {
@@ -276,6 +284,7 @@ export const api = {
       console.warn('API getStats fallback:', e);
     }
     const currentFolders = localStore.get<FolderItem[]>('folders', DEFAULT_FOLDERS);
+    const rootCount = (currentFolders.filter((f) => !f.parentId).length) || 12;
     return localStore.get('stats', {
       totalDocuments: 0,
       totalStorageBytes: 0,
@@ -284,19 +293,22 @@ export const api = {
       counts: { word: 0, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
       sizes: { word: 0, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
       percentages: { word: 0, pdf: 0, excel: 0, powerpoint: 0, image: 0, video: 0, zip: 0, other: 0 },
-      totalFolders: (currentFolders.filter((f) => !f.parentId).length) || 11,
+      totalFolders: rootCount,
       trashCount: 0,
     });
   },
 
   async getFolders(): Promise<FolderItem[]> {
     try {
-      const res = await fetch('/api/folders');
+      const res = await authFetch('/api/folders');
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.folders) && data.folders.length > 0) {
-          localStore.set('folders', data.folders);
-          return data.folders;
+          const roots = data.folders.filter((f: FolderItem) => !f.parentId);
+          if (roots.length > 0) {
+            localStore.set('folders', data.folders);
+            return data.folders;
+          }
         }
       }
     } catch (e) {
@@ -304,23 +316,37 @@ export const api = {
     }
 
     const cached = localStore.get<FolderItem[]>('folders', []);
-    if (cached && cached.length > 0) return cached;
+    const cachedRoots = Array.isArray(cached) ? cached.filter((f) => !f.parentId) : [];
+    if (cachedRoots.length > 0) return cached;
 
-    // Use DEFAULT_FOLDERS as standard foundation, cache to localStorage
+    // Use DEFAULT_FOLDERS as standard foundation (12 folders), cache to localStorage
     localStore.set('folders', DEFAULT_FOLDERS);
     return DEFAULT_FOLDERS;
   },
 
   async restoreDatabase(): Promise<{ success: boolean; message: string; folders: FolderItem[]; files: FileItem[] }> {
-    const res = await fetch('/api/database/restore', { method: 'POST' });
-    const data = await res.json();
-    if (data.folders) localStore.set('folders', data.folders);
-    if (data.files) localStore.set('files_all', data.files);
-    return data;
+    try {
+      const res = await authFetch('/api/database/restore', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.folders) localStore.set('folders', data.folders);
+        if (data.files) localStore.set('files_all', data.files);
+        return data;
+      }
+    } catch (e) {
+      console.warn('API restoreDatabase fallback:', e);
+    }
+    localStore.set('folders', DEFAULT_FOLDERS);
+    return {
+      success: true,
+      message: 'Đã khôi phục toàn bộ hệ thống 12 thư mục giáo án và tài liệu của Thầy Gọn!',
+      folders: DEFAULT_FOLDERS,
+      files: localStore.get('files_all', []),
+    };
   },
 
   async createFolder(name: string, parentId?: string | null, color?: string): Promise<FolderItem> {
-    const res = await fetch('/api/folders', {
+    const res = await authFetch('/api/folders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, parentId, color }),
@@ -330,7 +356,7 @@ export const api = {
   },
 
   async updateFolder(id: string, update: { name?: string; color?: string; parentId?: string | null }): Promise<FolderItem> {
-    const res = await fetch(`/api/folders/${id}`, {
+    const res = await authFetch(`/api/folders/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(update),
@@ -341,7 +367,7 @@ export const api = {
 
   async deleteFolder(id: string): Promise<void> {
     try {
-      await fetch(`/api/folders/${id}`, { method: 'DELETE' });
+      await authFetch(`/api/folders/${id}`, { method: 'DELETE' });
     } catch (e) {
       console.warn('API deleteFolder error:', e);
     }
@@ -360,7 +386,7 @@ export const api = {
   }): Promise<{ success: boolean; count: number; message: string }> {
     let result = { success: true, count: 0, message: '' };
     try {
-      const res = await fetch('/api/folders/batch-delete', {
+      const res = await authFetch('/api/folders/batch-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(options),
@@ -404,7 +430,7 @@ export const api = {
     if (params?.trash) query.set('trash', 'true');
 
     try {
-      const res = await fetch(`/api/files?${query.toString()}`);
+      const res = await authFetch(`/api/files?${query.toString()}`);
       if (res.ok) {
         const data = await res.json();
         const files = data.files || [];
@@ -447,7 +473,7 @@ export const api = {
   },
 
   async getFile(id: string): Promise<FileItem> {
-    const res = await fetch(`/api/files/${id}`);
+    const res = await authFetch(`/api/files/${id}`);
     const data = await res.json();
     return data.file;
   },
@@ -494,7 +520,7 @@ export const api = {
   },
 
   async updateFile(id: string, data: { name?: string; isFavorite?: boolean; folderId?: string }): Promise<FileItem> {
-    const res = await fetch(`/api/files/${id}`, {
+    const res = await authFetch(`/api/files/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -505,7 +531,7 @@ export const api = {
 
   async deleteFile(id: string, permanent: boolean = false): Promise<void> {
     try {
-      await fetch(`/api/files/${id}?permanent=${permanent}`, {
+      await authFetch(`/api/files/${id}?permanent=${permanent}`, {
         method: 'DELETE',
       });
     } catch (e) {
@@ -551,7 +577,7 @@ export const api = {
   }): Promise<{ success: boolean; count: number; message: string }> {
     let result = { success: true, count: 0, message: '' };
     try {
-      const res = await fetch('/api/files/batch-delete', {
+      const res = await authFetch('/api/files/batch-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(options),
@@ -597,7 +623,7 @@ export const api = {
     ids?: string[];
     all?: boolean;
   }): Promise<{ success: boolean; count: number; message: string }> {
-    const res = await fetch('/api/files/batch-restore', {
+    const res = await authFetch('/api/files/batch-restore', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(options),
@@ -608,7 +634,7 @@ export const api = {
   async restoreFile(id: string): Promise<FileItem> {
     let restoredFile: FileItem | null = null;
     try {
-      const res = await fetch(`/api/files/${id}/restore`, { method: 'POST' });
+      const res = await authFetch(`/api/files/${id}/restore`, { method: 'POST' });
       const data = await res.json();
       restoredFile = data.file;
     } catch (e) {
@@ -635,7 +661,7 @@ export const api = {
 
   async emptyTrash(): Promise<void> {
     try {
-      await fetch('/api/trash/empty', { method: 'DELETE' });
+      await authFetch('/api/trash/empty', { method: 'DELETE' });
     } catch (e) {
       console.warn('API emptyTrash error:', e);
     }
@@ -652,7 +678,7 @@ export const api = {
   },
 
   async reorderFile(id: string, position: 'start' | 'end'): Promise<void> {
-    await fetch(`/api/files/${id}/reorder`, {
+    await authFetch(`/api/files/${id}/reorder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ position }),
@@ -662,7 +688,7 @@ export const api = {
   async uploadNewVersion(fileId: string, file: File): Promise<FileItem> {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch(`/api/files/${fileId}/version`, {
+    const res = await authFetch(`/api/files/${fileId}/version`, {
       method: 'POST',
       body: formData,
     });
@@ -671,7 +697,7 @@ export const api = {
   },
 
   async shareFile(fileId: string, shareData: Partial<SharedConfig>): Promise<SharedConfig> {
-    const res = await fetch(`/api/files/${fileId}/share`, {
+    const res = await authFetch(`/api/files/${fileId}/share`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(shareData),
@@ -681,7 +707,7 @@ export const api = {
   },
 
   async chatAI(message: string, fileContextId?: string, actionType?: string): Promise<string> {
-    const res = await fetch('/api/ai/chat', {
+    const res = await authFetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, fileContextId, actionType }),
@@ -691,7 +717,7 @@ export const api = {
   },
 
   async analyzeFileAI(fileId: string): Promise<string> {
-    const res = await fetch('/api/ai/analyze-file', {
+    const res = await authFetch('/api/ai/analyze-file', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fileId }),
@@ -706,7 +732,7 @@ export const api = {
 
   async getSupabaseStatus(): Promise<SupabaseStatus> {
     try {
-      const res = await fetch('/api/supabase/status');
+      const res = await authFetch('/api/supabase/status');
       const data = await res.json();
       return data.status;
     } catch (e: any) {
@@ -723,7 +749,7 @@ export const api = {
   },
 
   async syncToSupabase(): Promise<{ success: boolean; message: string; syncedFolders?: number; syncedFiles?: number }> {
-    const res = await fetch('/api/supabase/sync', {
+    const res = await authFetch('/api/supabase/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -731,7 +757,7 @@ export const api = {
   },
 
   async pullFromSupabase(): Promise<{ success: boolean; message: string; foldersCount?: number; filesCount?: number }> {
-    const res = await fetch('/api/supabase/pull', {
+    const res = await authFetch('/api/supabase/pull', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -739,7 +765,7 @@ export const api = {
   },
 
   async updateSupabaseConfig(url: string, anonKey: string): Promise<{ success: boolean; message: string; url?: string }> {
-    const res = await fetch('/api/supabase/config', {
+    const res = await authFetch('/api/supabase/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url, anonKey }),
