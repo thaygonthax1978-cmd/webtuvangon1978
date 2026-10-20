@@ -1305,20 +1305,37 @@ app.post('/api/upload-chunk', chunkUpload.single('chunk'), async (req, res) => {
     const physicalFilename = `${uniqueSuffix}.${ext || 'dat'}`;
     const finalFilePath = path.join(UPLOADS_DIR, physicalFilename);
 
-    const writeStream = fs.createWriteStream(finalFilePath);
-    for (let i = 0; i < tChunks; i++) {
-      const partPath = path.join(uploadSessionDir, `part_${i}`);
-      const partData = fs.readFileSync(partPath);
-      writeStream.write(partData);
-      try {
-        fs.unlinkSync(partPath);
-      } catch (e) {}
+    if (tChunks === 1) {
+      const singlePartPath = path.join(uploadSessionDir, 'part_0');
+      if (fs.existsSync(singlePartPath)) {
+        fs.copyFileSync(singlePartPath, finalFilePath);
+        try { fs.unlinkSync(singlePartPath); } catch (e) {}
+      }
+    } else {
+      await new Promise<void>((resolveAssemble, rejectAssemble) => {
+        const writeStream = fs.createWriteStream(finalFilePath);
+        writeStream.on('finish', () => resolveAssemble());
+        writeStream.on('error', (err) => rejectAssemble(err));
+
+        for (let i = 0; i < tChunks; i++) {
+          const partPath = path.join(uploadSessionDir, `part_${i}`);
+          if (fs.existsSync(partPath)) {
+            const partData = fs.readFileSync(partPath);
+            writeStream.write(partData);
+            try {
+              fs.unlinkSync(partPath);
+            } catch (e) {}
+          }
+        }
+        writeStream.end();
+      });
     }
-    writeStream.end();
 
     // Clean up session directory
     try {
-      fs.rmdirSync(uploadSessionDir);
+      if (fs.existsSync(uploadSessionDir)) {
+        fs.rmdirSync(uploadSessionDir);
+      }
     } catch (e) {}
 
     const db = getDB();

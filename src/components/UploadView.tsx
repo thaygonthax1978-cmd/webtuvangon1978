@@ -264,6 +264,43 @@ export const UploadView: React.FC<UploadViewProps> = ({
     }
   };
 
+  const uploadViaBase64 = (
+    item: UploadQueueItem,
+    targetFolderId: string
+  ): Promise<FileItem[]> => {
+    return new Promise((resolve, reject) => {
+      const file = item.file;
+      if (!file) return reject(new Error('Tệp không hợp lệ'));
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const res = await fetch('/api/upload-json', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: item.name,
+              size: file.size,
+              mimeType: file.type || 'application/octet-stream',
+              folderId: targetFolderId,
+              base64Content: reader.result as string,
+            }),
+          });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.message || 'Lỗi tải tệp qua kênh JSON');
+          }
+          const data = await res.json();
+          resolve(data.files || []);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      reader.onerror = () => reject(new Error('Không thể đọc tệp từ máy tính'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const uploadViaChunks = (
     item: UploadQueueItem,
     targetFolderId: string,
@@ -276,7 +313,8 @@ export const UploadView: React.FC<UploadViewProps> = ({
       return;
     }
 
-    const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB per chunk (safely under Cloud Run 32MB limit)
+    // 6MB per chunk: safely below Nginx client_max_body_size (32MB) and cloud proxy limits
+    const CHUNK_SIZE = 6 * 1024 * 1024;
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
     const uploadId = `up_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
@@ -288,7 +326,7 @@ export const UploadView: React.FC<UploadViewProps> = ({
       const chunkBlob = file.slice(start, end);
 
       const formData = new FormData();
-      formData.append('chunk', chunkBlob, item.name);
+      // Append metadata fields first for stream-friendly parsing
       formData.append('uploadId', uploadId);
       formData.append('chunkIndex', String(currentChunk));
       formData.append('totalChunks', String(totalChunks));
@@ -296,8 +334,11 @@ export const UploadView: React.FC<UploadViewProps> = ({
       formData.append('fileSize', String(file.size));
       formData.append('mimeType', file.type || 'application/octet-stream');
       formData.append('folderId', targetFolderId);
+      formData.append('chunk', chunkBlob, item.name);
 
       const xhr = new XMLHttpRequest();
+      xhr.withCredentials = true; // Essential for sending session cookies in iframe
+      xhr.timeout = 180000; // 3-minute timeout per chunk
       xhr.open('POST', '/api/upload-chunk', true);
 
       xhr.upload.onprogress = (e) => {
@@ -336,21 +377,26 @@ export const UploadView: React.FC<UploadViewProps> = ({
         }
       };
 
+      xhr.ontimeout = () => {
+        if (retryCount < 2) {
+          setTimeout(() => uploadNextChunk(retryCount + 1), 1500);
+        } else {
+          handleError(new Error('Hết thời gian chờ phản hồi từ máy chủ'));
+        }
+      };
+
       xhr.onerror = () => {
         if (retryCount < 2) {
-          setTimeout(() => uploadNextChunk(retryCount + 1), 1000);
+          setTimeout(() => uploadNextChunk(retryCount + 1), 1500);
         } else {
-          handleError(new Error('Lỗi kết nối mạng khi tải tệp'));
+          handleError(new Error('Lỗi kết nối mạng khi tải phân đoạn'));
         }
       };
 
       const handleError = (err: Error) => {
         if (retryCount < 2) {
-          setTimeout(() => uploadNextChunk(retryCount + 1), 1000);
+          setTimeout(() => uploadNextChunk(retryCount + 1), 1500);
         } else {
-          setQueue((prev) =>
-            prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: err.message } : q))
-          );
           reject(err);
         }
       };
@@ -361,46 +407,88 @@ export const UploadView: React.FC<UploadViewProps> = ({
     uploadNextChunk(0);
   };
 
-  const uploadSingleItem = (item: UploadQueueItem, targetFolderId: string): Promise<FileItem[]> => {
-    return new Promise((resolve, reject) => {
+  const uploadSingleItem = async (item: UploadQueueItem, targetFolderId: string): Promise<FileItem[]> => {
+    setQueue((prev) =>
+      prev.map((q) => (q.id === item.id ? { ...q, status: 'uploading', progress: 5, errorMessage: undefined } : q))
+    );
+
+    const file = item.file;
+    if (!file) {
       setQueue((prev) =>
-        prev.map((q) => (q.id === item.id ? { ...q, status: 'uploading', progress: 5, errorMessage: undefined } : q))
+        prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: 'Tệp không tồn tại' } : q))
       );
+      throw new Error('Tệp không hợp lệ');
+    }
 
-      // Primary strategy: Chunked upload (handles files of any size smoothly, byte-level progress, bypasses proxy limits)
-      uploadViaChunks(item, targetFolderId, resolve, (chunkErr) => {
-        console.warn('Chunk upload failed, attempting fallback to multipart upload:', chunkErr);
-        // Fallback: standard FormData upload
-        const formData = new FormData();
-        formData.append('files', item.file);
-        formData.append('folderId', targetFolderId);
+    // For large files (> 20MB), chunk upload is REQUIRED to stay under the 32MB proxy limit
+    if (file.size > 20 * 1024 * 1024) {
+      try {
+        return await new Promise<FileItem[]>((resolve, reject) => {
+          uploadViaChunks(item, targetFolderId, resolve, reject);
+        });
+      } catch (err: any) {
+        let msg = err.message || 'Lỗi tải tệp lớn';
+        if (msg === 'Failed to fetch' || msg.includes('kết nối')) {
+          msg = 'Mất kết nối mạng hoặc phiên làm việc gián đoạn (Thầy vui lòng F5 rồi bấm Thử lại)';
+        }
+        setQueue((prev) =>
+          prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: msg } : q))
+        );
+        throw err;
+      }
+    }
 
-        fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-          .then(async (res) => {
-            if (!res.ok) {
-              const errData = await res.json().catch(() => ({}));
-              throw new Error(errData.message || (res.status === 413 ? 'Tệp vượt quá giới hạn dung lượng tải lên' : 'Lỗi tải tệp'));
-            }
-            return res.json();
-          })
-          .then((data) => {
-            setQueue((prev) =>
-              prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
-            );
-            resolve(data.files || []);
-          })
-          .catch((err: any) => {
-            const errorMsg = err.message || 'Lỗi đường truyền mạng';
-            setQueue((prev) =>
-              prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: errorMsg } : q))
-            );
-            reject(err);
-          });
+    // For files <= 20MB (Word, Excel, PDF, Images...):
+    // Strategy 1: Chunk upload
+    // Strategy 2: Base64 JSON (immune to multipart stream drops)
+    // Strategy 3: Standard multipart upload with credentials
+    try {
+      return await new Promise<FileItem[]>((resolve, reject) => {
+        uploadViaChunks(item, targetFolderId, resolve, reject);
       });
-    });
+    } catch (chunkErr) {
+      console.warn(`[Tải tệp] Phân đoạn thất bại cho ${item.name}, chuyển sang kênh Base64 JSON:`, chunkErr);
+      try {
+        const files = await uploadViaBase64(item, targetFolderId);
+        setQueue((prev) =>
+          prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
+        );
+        return files;
+      } catch (base64Err) {
+        console.warn(`[Tải tệp] Kênh Base64 thất bại cho ${item.name}, thử kênh Multipart trực tiếp:`, base64Err);
+        try {
+          const formData = new FormData();
+          formData.append('files', item.file);
+          formData.append('folderId', targetFolderId);
+
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData,
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.message || (res.status === 413 ? 'Tệp vượt quá giới hạn dung lượng tải lên' : 'Lỗi tải tệp'));
+          }
+
+          const data = await res.json();
+          setQueue((prev) =>
+            prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
+          );
+          return data.files || [];
+        } catch (multipartErr: any) {
+          let finalMsg = multipartErr.message || 'Lỗi đường truyền tải tệp';
+          if (finalMsg === 'Failed to fetch' || finalMsg.includes('kết nối')) {
+            finalMsg = 'Mất kết nối mạng hoặc phiên làm việc gián đoạn (Thầy vui lòng F5 rồi bấm Thử lại)';
+          }
+          setQueue((prev) =>
+            prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: finalMsg } : q))
+          );
+          throw multipartErr;
+        }
+      }
+    }
   };
 
   const uploadSequential = async (items: UploadQueueItem[], targetFolderId: string) => {
@@ -421,7 +509,17 @@ export const UploadView: React.FC<UploadViewProps> = ({
   };
 
   const handleRetryItem = (item: UploadQueueItem) => {
-    uploadSequential([item], selectedFolderId);
+    uploadSequential([item], item.targetFolderId || selectedFolderId);
+  };
+
+  const handleRetryAllFailed = () => {
+    const failedItems = queue.filter((q) => q.status === 'error');
+    if (failedItems.length === 0) return;
+
+    setQueue((prev) =>
+      prev.map((q) => (q.status === 'error' ? { ...q, status: 'pending', progress: 0, errorMessage: undefined } : q))
+    );
+    uploadSequential(failedItems, selectedFolderId);
   };
 
   const removeItem = (id: string) => {
@@ -635,16 +733,44 @@ export const UploadView: React.FC<UploadViewProps> = ({
             )}
           </div>
 
-          {queue.length > 0 && (
-            <button
-              onClick={clearCompleted}
-              className="text-xs text-slate-500 hover:text-rose-600 font-semibold flex items-center gap-1 cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Xóa tệp đã hoàn thành
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {queue.some((q) => q.status === 'error') && (
+              <button
+                onClick={handleRetryAllFailed}
+                disabled={isUploading}
+                className="text-xs bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                title="Thử tải lại tất cả các tệp đang gặp lỗi"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+                <span>Thử lại tất cả ({queue.filter((q) => q.status === 'error').length} tệp lỗi)</span>
+              </button>
+            )}
+
+            {queue.length > 0 && (
+              <button
+                onClick={clearCompleted}
+                className="text-xs text-slate-500 hover:text-rose-600 font-semibold flex items-center gap-1 cursor-pointer px-2 py-1"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Xóa tệp đã hoàn thành
+              </button>
+            )}
+          </div>
         </div>
+
+        {queue.some((q) => q.status === 'error') && (
+          <div className="bg-amber-50 border-b border-amber-200 p-3 text-xs text-amber-900 flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="font-bold">
+                Có {queue.filter((q) => q.status === 'error').length} tệp tải lên gặp gián đoạn kết nối:
+              </p>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                Thầy chỉ cần bấm nút <strong>"Thử lại tất cả"</strong> màu vàng ở trên. Đối với tệp lớn (như file cài đặt .exe), hệ thống sẽ tự động băm nhỏ thành các gói 6MB an toàn để vượt qua giới hạn dung lượng tải lên. Nếu gặp chữ <em>Failed to fetch</em>, Thầy bấm phím <strong>F5</strong> tải lại trang rồi bấm thử lại là xong ngay.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="divide-y divide-slate-100">
           {queue.length === 0 ? (
