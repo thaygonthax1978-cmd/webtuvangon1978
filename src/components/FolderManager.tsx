@@ -23,9 +23,11 @@ import {
 } from 'lucide-react';
 import { FolderItem } from '../types';
 import { formatBytes, formatDate, buildFolderTreeOptions, api, DEFAULT_FOLDERS } from '../services/api';
+import { FileItem } from '../types';
 
 interface FolderManagerProps {
   folders: FolderItem[];
+  files?: FileItem[];
   onSelectFolder: (folderId: string) => void;
   onCreateFolder: (name: string, color?: string, parentId?: string | null) => Promise<void>;
   onRenameFolder: (folderId: string, newName: string, color?: string, parentId?: string | null) => Promise<void>;
@@ -39,6 +41,7 @@ interface FolderManagerProps {
 
 export const FolderManager: React.FC<FolderManagerProps> = ({
   folders,
+  files,
   onSelectFolder,
   onCreateFolder,
   onRenameFolder,
@@ -124,6 +127,33 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
     }));
   };
 
+  // Helper to find all descendant folder IDs recursively
+  const getDescendantFolderIds = (folderId: string): string[] => {
+    const directChildren = folders.filter((f) => f.parentId === folderId);
+    let ids: string[] = [];
+    for (const child of directChildren) {
+      ids.push(child.id);
+      ids = ids.concat(getDescendantFolderIds(child.id));
+    }
+    return ids;
+  };
+
+  const getFolderStats = (folderId: string, baseCount?: number, baseSize?: number) => {
+    if (files && files.length > 0) {
+      const descendantIds = [folderId, ...getDescendantFolderIds(folderId)];
+      const matching = files.filter((f) => !f.isDeleted && descendantIds.includes(f.folderId));
+      const size = matching.reduce((sum, f) => sum + (f.size || 0), 0);
+      return {
+        fileCount: matching.length,
+        totalSize: size,
+      };
+    }
+    return {
+      fileCount: baseCount || 0,
+      totalSize: baseSize || 0,
+    };
+  };
+
   // Build items to display:
   // Subfolders stay hidden inside their parent folder (e.g. ẢNH CẢ NHÀ & ẢNH DU LỊCH inside 11. HÌNH ẢNH)
   type DisplayFolderItem = FolderItem & {
@@ -139,24 +169,30 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
     // Inside a folder: display only its subfolders
     displayFolders = childrenOfDrill.map((child) => {
       const grandChildren = folders.filter((f) => f.parentId === child.id);
+      const stats = getFolderStats(child.id, child.fileCount, child.totalSize);
       return {
         ...child,
         isSubfolder: true,
         levelDepth: 0,
         hasChildren: grandChildren.length > 0,
         childrenCount: grandChildren.length,
+        fileCount: stats.fileCount,
+        totalSize: stats.totalSize,
       };
     });
   } else {
     // Top-level / Thư mục chính: ALWAYS display the 12 root folders
     displayFolders = rootFolders.map((root) => {
       const children = folders.filter((f) => f.parentId === root.id);
+      const stats = getFolderStats(root.id, root.fileCount, root.totalSize);
       return {
         ...root,
         isSubfolder: false,
         levelDepth: 0,
         hasChildren: children.length > 0,
         childrenCount: children.length,
+        fileCount: stats.fileCount,
+        totalSize: stats.totalSize,
       };
     });
   }

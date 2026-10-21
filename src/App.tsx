@@ -85,14 +85,15 @@ export default function App() {
   const [stats, setStats] = useState<StatsData | null>(() => localStore.get('stats', null));
   const [folders, setFolders] = useState<FolderItem[]>(() => {
     const cached = localStore.get<FolderItem[]>('folders', DEFAULT_FOLDERS);
-    if (Array.isArray(cached)) {
-      const roots = cached.filter((f) => !f.parentId);
-      // If cached data contains stale obsolete root folders (like old f_03), discard and use updated defaults
-      if (roots.length > 0 && !roots.some((r) => r.id === 'f_03')) return cached;
+    if (Array.isArray(cached) && cached.length >= 100) {
+      return cached;
     }
     return DEFAULT_FOLDERS;
   });
-  const [files, setFiles] = useState<FileItem[]>(() => localStore.get('files_all', []));
+  const [files, setFiles] = useState<FileItem[]>(() => {
+    const cached = localStore.get<FileItem[]>('files_all', []);
+    return (Array.isArray(cached) && cached.length > 0) ? cached : DEFAULT_FILES;
+  });
   const [trashFiles, setTrashFiles] = useState<FileItem[]>(() => localStore.get('trash_files', []));
   const [isLoading, setIsLoading] = useState(false);
   const [includeSubfolderFiles, setIncludeSubfolderFiles] = useState(true);
@@ -186,7 +187,7 @@ export default function App() {
         localStore.set('folders', foldersData);
       } else {
         const cachedFolders = localStore.get<FolderItem[]>('folders', []);
-        if (cachedFolders.length > 0) {
+        if (Array.isArray(cachedFolders) && cachedFolders.length >= 100) {
           setFolders(cachedFolders);
         } else {
           setFolders(DEFAULT_FOLDERS);
@@ -199,8 +200,11 @@ export default function App() {
         localStore.set('files_all', filesData);
       } else {
         const cachedFiles = localStore.get<FileItem[]>('files_all', []);
-        if (cachedFiles.length > 0) {
+        if (Array.isArray(cachedFiles) && cachedFiles.length > 0) {
           setFiles(cachedFiles);
+        } else {
+          setFiles(DEFAULT_FILES);
+          localStore.set('files_all', DEFAULT_FILES);
         }
       }
 
@@ -565,12 +569,12 @@ export default function App() {
           displayedFiles = displayedFiles.filter((f) => f.isFavorite);
         }
         if (selectedFolderId) {
-          const directCount = files.filter((f) => !f.isDeleted && f.folderId === selectedFolderId).length;
-          if (includeSubfolderFiles || directCount === 0) {
-            const descendantIds = [selectedFolderId, ...getDescendantFolderIds(selectedFolderId, folders)];
+          const descendantIds = [selectedFolderId, ...getDescendantFolderIds(selectedFolderId, folders)];
+          if (includeSubfolderFiles) {
             displayedFiles = displayedFiles.filter((f) => descendantIds.includes(f.folderId));
           } else {
-            displayedFiles = displayedFiles.filter((f) => f.folderId === selectedFolderId);
+            const directFiles = displayedFiles.filter((f) => f.folderId === selectedFolderId);
+            displayedFiles = directFiles.length > 0 ? directFiles : displayedFiles.filter((f) => descendantIds.includes(f.folderId));
           }
         }
         if (searchQuery.trim()) {
@@ -929,6 +933,7 @@ export default function App() {
         return (
           <FolderManager
             folders={folders}
+            files={files}
             onSelectFolder={handleSelectFolderToView}
             onCreateFolder={handleCreateFolder}
             onRenameFolder={handleRenameFolder}

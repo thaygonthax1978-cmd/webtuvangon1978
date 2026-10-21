@@ -439,15 +439,32 @@ export const UploadView: React.FC<UploadViewProps> = ({
     }
 
     // For files <= 20MB (Word, Excel, PDF, Images...):
-    // Strategy 1: Chunk upload
+    // Strategy 1: Standard direct upload with credentials (instant & reliable)
     // Strategy 2: Base64 JSON (immune to multipart stream drops)
-    // Strategy 3: Standard multipart upload with credentials
+    // Strategy 3: Chunk upload (fallback)
     try {
-      return await new Promise<FileItem[]>((resolve, reject) => {
-        uploadViaChunks(item, targetFolderId, resolve, reject);
+      const formData = new FormData();
+      formData.append('files', item.file);
+      formData.append('folderId', targetFolderId);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
       });
-    } catch (chunkErr) {
-      console.warn(`[Tải tệp] Phân đoạn thất bại cho ${item.name}, chuyển sang kênh Base64 JSON:`, chunkErr);
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || (res.status === 413 ? 'Tệp vượt quá giới hạn dung lượng tải lên' : 'Lỗi tải tệp'));
+      }
+
+      const data = await res.json();
+      setQueue((prev) =>
+        prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
+      );
+      return data.files || [];
+    } catch (directErr) {
+      console.warn(`[Tải tệp] Kênh trực tiếp thất bại cho ${item.name}, thử kênh Base64 JSON:`, directErr);
       try {
         const files = await uploadViaBase64(item, targetFolderId);
         setQueue((prev) =>
@@ -455,37 +472,20 @@ export const UploadView: React.FC<UploadViewProps> = ({
         );
         return files;
       } catch (base64Err) {
-        console.warn(`[Tải tệp] Kênh Base64 thất bại cho ${item.name}, thử kênh Multipart trực tiếp:`, base64Err);
+        console.warn(`[Tải tệp] Kênh Base64 thất bại cho ${item.name}, chuyển sang phân đoạn chunks:`, base64Err);
         try {
-          const formData = new FormData();
-          formData.append('files', item.file);
-          formData.append('folderId', targetFolderId);
-
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            credentials: 'include',
-            body: formData,
+          return await new Promise<FileItem[]>((resolve, reject) => {
+            uploadViaChunks(item, targetFolderId, resolve, reject);
           });
-
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.message || (res.status === 413 ? 'Tệp vượt quá giới hạn dung lượng tải lên' : 'Lỗi tải tệp'));
-          }
-
-          const data = await res.json();
-          setQueue((prev) =>
-            prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
-          );
-          return data.files || [];
-        } catch (multipartErr: any) {
-          let finalMsg = multipartErr.message || 'Lỗi đường truyền tải tệp';
+        } catch (chunkErr: any) {
+          let finalMsg = chunkErr.message || 'Lỗi đường truyền tải tệp';
           if (finalMsg === 'Failed to fetch' || finalMsg.includes('kết nối')) {
             finalMsg = 'Mất kết nối mạng hoặc phiên làm việc gián đoạn (Thầy vui lòng F5 rồi bấm Thử lại)';
           }
           setQueue((prev) =>
             prev.map((q) => (q.id === item.id ? { ...q, status: 'error', errorMessage: finalMsg } : q))
           );
-          throw multipartErr;
+          throw chunkErr;
         }
       }
     }
@@ -493,12 +493,13 @@ export const UploadView: React.FC<UploadViewProps> = ({
 
   const uploadSequential = async (items: UploadQueueItem[], targetFolderId: string) => {
     setIsUploading(true);
+    const successfullyUploaded: FileItem[] = [];
     for (const item of items) {
       try {
         const destFolderId = item.targetFolderId || targetFolderId;
         const uploadedFiles = await uploadSingleItem(item, destFolderId);
         if (uploadedFiles && uploadedFiles.length > 0) {
-          onUploadSuccess(uploadedFiles);
+          successfullyUploaded.push(...uploadedFiles);
         }
       } catch (err) {
         console.error('Upload error for item:', item.name, err);
@@ -506,6 +507,9 @@ export const UploadView: React.FC<UploadViewProps> = ({
       }
     }
     setIsUploading(false);
+    if (successfullyUploaded.length > 0) {
+      onUploadSuccess(successfullyUploaded);
+    }
   };
 
   const handleRetryItem = (item: UploadQueueItem) => {

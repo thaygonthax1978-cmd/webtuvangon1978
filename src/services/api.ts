@@ -1,8 +1,39 @@
 import { FileItem, FolderItem, StatsData, UserProfile, SharedConfig, SupabaseStatus } from '../types';
 import { DEFAULT_FILES } from './defaultFiles';
+import { DEFAULT_FOLDERS } from './defaultFolders';
 import { supabase, updateClientSupabaseConfig, SUPABASE_CONFIG } from './supabaseClient';
 
-export { DEFAULT_FILES };
+export { DEFAULT_FILES, DEFAULT_FOLDERS };
+
+export function enrichFoldersWithFiles(folderList: FolderItem[], fileList: FileItem[]): FolderItem[] {
+  const activeFiles = (fileList || []).filter((f) => !f.isDeleted);
+  const getDescendantFolderIds = (folderId: string): string[] => {
+    const directChildren = folderList.filter((f) => f.parentId === folderId);
+    let ids: string[] = [];
+    for (const child of directChildren) {
+      ids.push(child.id);
+      ids = ids.concat(getDescendantFolderIds(child.id));
+    }
+    return ids;
+  };
+
+  return folderList.map((folder) => {
+    const descendantIds = [folder.id, ...getDescendantFolderIds(folder.id)];
+    const filesInTree = activeFiles.filter((f) => descendantIds.includes(f.folderId));
+    const directFiles = activeFiles.filter((f) => f.folderId === folder.id);
+    const directChildren = folderList.filter((f) => f.parentId === folder.id);
+    const size = filesInTree.reduce((acc, f) => acc + (f.size || 0), 0);
+
+    return {
+      ...folder,
+      fileCount: filesInTree.length,
+      directFileCount: directFiles.length,
+      subfolderCount: directChildren.length,
+      subfolderNames: directChildren.map((c) => c.name),
+      totalSize: size,
+    };
+  });
+}
 
 export const localStore = {
   get<T>(key: string, defaultValue: T): T {
@@ -22,149 +53,6 @@ export const localStore = {
   },
 };
 
-export const DEFAULT_FOLDERS: FolderItem[] = [
-  {
-    id: 'f_1792476597159',
-    name: '1. GIÁO ÁN CÁC LỚP',
-    code: '165',
-    parentId: null,
-    color: '#0866E8',
-    createdAt: '2026-10-20T06:09:57.159+00:00',
-    updatedAt: '2026-10-20T06:09:57.159+00:00',
-    fileCount: 180,
-    directFileCount: 0,
-    subfolderCount: 5,
-    subfolderNames: ['LỚP 1', 'LỚP 2', 'LỚP 3', 'LỚP 4', 'LỚP 5'],
-    totalSize: 0,
-  },
-  {
-    id: 'f_07',
-    name: '06. WORD',
-    code: '07',
-    parentId: null,
-    color: '#0866E8',
-    createdAt: '2026-09-07T13:00:00+00:00',
-    updatedAt: '2026-10-15T07:28:45.624+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_08',
-    name: '07. EXCEL',
-    code: '08',
-    parentId: null,
-    color: '#16B875',
-    createdAt: '2026-09-08T14:00:00+00:00',
-    updatedAt: '2026-10-15T07:28:52.056+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_10',
-    name: '08. POWERPOINT',
-    code: '10',
-    parentId: null,
-    color: '#FF9F1C',
-    createdAt: '2026-09-10T10:00:00+00:00',
-    updatedAt: '2026-10-15T07:29:13.881+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_09',
-    name: '09. PDF',
-    code: '09',
-    parentId: null,
-    color: '#F04444',
-    createdAt: '2026-09-09T08:00:00+00:00',
-    updatedAt: '2026-10-15T07:20:00+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_06',
-    name: '10. VIDEO',
-    code: '06',
-    parentId: null,
-    color: '#38BDF8',
-    createdAt: '2026-09-06T11:00:00+00:00',
-    updatedAt: '2026-10-15T07:29:32.218+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_05',
-    name: '11. HÌNH ẢNH',
-    code: '05',
-    parentId: null,
-    color: '#EC4899',
-    createdAt: '2026-09-05T10:30:00+00:00',
-    updatedAt: '2026-10-15T07:28:10.042+00:00',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 2,
-    subfolderNames: ['ẢNH CẢ NHÀ', 'ẢNH DU LỊCH'],
-    totalSize: 0,
-  },
-  {
-    id: 'f_1792226614838',
-    name: 'ẢNH CẢ NHÀ',
-    code: '12',
-    parentId: 'f_05',
-    color: '#8257E5',
-    createdAt: '2026-10-17T08:43:34.838Z',
-    updatedAt: '2026-10-17T08:43:34.838Z',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_1792226627426',
-    name: 'ẢNH DU LỊCH',
-    code: '13',
-    parentId: 'f_05',
-    color: '#8257E5',
-    createdAt: '2026-10-17T08:43:47.426Z',
-    updatedAt: '2026-10-17T08:43:47.426Z',
-    fileCount: 0,
-    directFileCount: 0,
-    subfolderCount: 0,
-    subfolderNames: [],
-    totalSize: 0,
-  },
-  {
-    id: 'f_1792321507695',
-    name: '12. PHẦN MỀM CÀI ĐẶT',
-    code: '12',
-    parentId: null,
-    color: '#0866E8',
-    createdAt: '2026-10-18T11:05:07.695+00:00',
-    updatedAt: '2026-10-18T11:05:07.695+00:00',
-    fileCount: 34,
-    directFileCount: 4,
-    subfolderCount: 2,
-    subfolderNames: ['1. CHƯƠNG TRÌNH CÀI ĐẶT CHO MÁY TÍNH', '2. MỘT SỐ PHẦN MỀM KHÁC'],
-    totalSize: 0,
-  },
-];
-
 export async function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const options: RequestInit = {
     ...init,
@@ -172,6 +60,7 @@ export async function authFetch(input: RequestInfo | URL, init?: RequestInit): P
   };
   return fetch(input, options);
 }
+
 export function mapSupabaseFolderToFolderItem(row: any): FolderItem {
   return {
     id: row.id,
@@ -304,21 +193,27 @@ export const api = {
       const { data: sbFolders, error } = await supabase.from('folders').select('*');
       if (!error && Array.isArray(sbFolders) && sbFolders.length > 0) {
         const mapped = sbFolders.map(mapSupabaseFolderToFolderItem);
-        localStore.set('folders', mapped);
-        return mapped;
+        const cachedFiles = localStore.get<FileItem[]>('files_all', DEFAULT_FILES);
+        const enriched = enrichFoldersWithFiles(mapped, cachedFiles);
+        localStore.set('folders', enriched);
+        return enriched;
       }
     } catch (sbErr) {
       console.warn('Supabase getFolders direct query warning:', sbErr);
     }
 
-    // 3. Local cache fallback
+    // 3. Local cache fallback (must have full folder tree, not just 8 empty folders)
     const cached = localStore.get<FolderItem[]>('folders', []);
-    const cachedRoots = Array.isArray(cached) ? cached.filter((f) => !f.parentId) : [];
-    if (cachedRoots.length > 0 && !cachedRoots.some((r) => r.id === 'f_03')) return cached;
+    if (Array.isArray(cached) && cached.length >= 100) {
+      const cachedFiles = localStore.get<FileItem[]>('files_all', DEFAULT_FILES);
+      return enrichFoldersWithFiles(cached, cachedFiles);
+    }
 
     // 4. Default folders fallback
-    localStore.set('folders', DEFAULT_FOLDERS);
-    return DEFAULT_FOLDERS;
+    const cachedFiles = localStore.get<FileItem[]>('files_all', DEFAULT_FILES);
+    const enrichedDefaults = enrichFoldersWithFiles(DEFAULT_FOLDERS, cachedFiles);
+    localStore.set('folders', enrichedDefaults);
+    return enrichedDefaults;
   },
 
   async restoreDatabase(): Promise<{ success: boolean; message: string; folders: FolderItem[]; files: FileItem[] }> {
@@ -480,7 +375,8 @@ export const api = {
     if (params?.trash) {
       return localStore.get<FileItem[]>('trash_files', []);
     }
-    const all = localStore.get<FileItem[]>('files_all', []);
+    const cached = localStore.get<FileItem[]>('files_all', []);
+    const all = (cached && cached.length > 0) ? cached : DEFAULT_FILES;
     let filtered = all.filter((f) => !f.isDeleted);
     if (params?.folderId) {
       filtered = filtered.filter((f) => f.folderId === params.folderId);

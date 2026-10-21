@@ -271,7 +271,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="hidden lg:flex flex-col items-center text-center">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-extrabold tracking-tight drop-shadow-sm text-white">
-              KHO DỮ LIỆU CÁ NHÂN – TỪ VĂN GỌN
+              KHO DỮ LIỆU CÁ NHÂN – TỪ VĂN GỌN – THỨ NHẤT
             </h1>
           </div>
           <div className="flex items-center gap-3 text-xs text-blue-100 font-medium">
