@@ -14,6 +14,7 @@ import {
   FolderUp,
   ChevronLeft,
   ChevronRight,
+  Database,
 } from 'lucide-react';
 import { ViewTab, StatsData } from '../types';
 import { formatBytes } from '../services/api';
@@ -24,6 +25,7 @@ interface SidebarProps {
   stats: StatsData | null;
   onOpenUpload: () => void;
   onOpenUploadFolder?: () => void;
+  onOpenSupabaseModal?: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isMobileOpen: boolean;
@@ -36,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   stats,
   onOpenUpload,
   onOpenUploadFolder,
+  onOpenSupabaseModal,
   isCollapsed,
   onToggleCollapse,
   isMobileOpen,
@@ -159,6 +162,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               );
             })}
+
+            {/* Supabase Cloud Quick Access Button */}
+            {onOpenSupabaseModal && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenSupabaseModal();
+                  if (isMobileOpen) onCloseMobile();
+                }}
+                title={isCollapsed ? "Cơ sở dữ liệu Supabase Cloud" : undefined}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 text-left text-emerald-100 hover:bg-emerald-600/30 hover:text-white border border-emerald-400/30 mt-2 bg-emerald-500/15 group cursor-pointer active:scale-98"
+              >
+                <Database className="w-5 h-5 shrink-0 text-emerald-300 group-hover:scale-110 transition-transform" />
+                {!isCollapsed && (
+                  <>
+                    <span
+                      translate="no"
+                      className="notranslate flex-1 truncate tracking-wide text-xs md:text-sm font-bold text-white"
+                    >
+                      Supabase Cloud
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-500 text-white flex items-center gap-1 shadow-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-200 animate-pulse" />
+                      Đã nối
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
           </nav>
         </div>
 

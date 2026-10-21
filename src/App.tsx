@@ -23,6 +23,7 @@ import { TrashBin } from './components/TrashBin';
 import { SecuritySettings } from './components/SecuritySettings';
 import { MobileDeviceSimulator } from './components/MobileDeviceSimulator';
 import { SupabaseModal } from './components/SupabaseModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   FileText,
   Folder,
@@ -1138,6 +1139,7 @@ export default function App() {
           }}
           stats={stats}
           onOpenUpload={() => handleOpenUpload(selectedFolderId || undefined)}
+          onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isMobileOpen={isMobileSidebarOpen}
@@ -1221,11 +1223,13 @@ export default function App() {
       )}
 
       {/* Modal: Quản lý kết nối Supabase Cloud */}
-      <SupabaseModal
-        isOpen={isSupabaseModalOpen}
-        onClose={() => setIsSupabaseModalOpen(false)}
-        onSyncSuccess={loadData}
-      />
+      <ErrorBoundary fallbackTitle="Không thể mở hộp thoại Supabase" onReset={() => setIsSupabaseModalOpen(false)}>
+        <SupabaseModal
+          isOpen={isSupabaseModalOpen}
+          onClose={() => setIsSupabaseModalOpen(false)}
+          onSyncSuccess={loadData}
+        />
+      </ErrorBoundary>
 
       {/* Modal 12: Chế độ điện thoại (Mobile Device Simulator) */}
       {isMobileSimulatorActive && (
