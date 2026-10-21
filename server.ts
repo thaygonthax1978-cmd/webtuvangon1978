@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import { isRealDocx, generateValidDocx } from './src/services/docxHelper';
+import JSZip from 'jszip';
 
 dotenv.config({ override: true });
 
@@ -1761,6 +1762,206 @@ app.get('/api/files/:id/download', async (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.name)}"`);
   res.setHeader('Content-Type', file.mimeType || 'text/plain; charset=utf-8');
   res.send(file.previewContent || `Nội dung tài liệu ${file.name} - Thầy Từ Văn Gọn`);
+});
+
+// Helper for recursive folder zip generation
+async function addFolderRecursiveToZip(
+  zip: JSZip,
+  folderId: string,
+  basePath: string,
+  db: DatabaseSchema
+) {
+  const folder = db.folders.find((f) => f.id === folderId);
+  const activeFiles = db.files.filter((f) => !f.isDeleted && f.folderId === folderId);
+
+  // Add all files belonging to this folder
+  for (const file of activeFiles) {
+    const entryPath = basePath ? `${basePath}/${file.name}` : file.name;
+    const physicalPath = path.join(UPLOADS_DIR, file.filename);
+    const isDocx = (file.extension || '').toLowerCase() === 'docx' || file.name.toLowerCase().endsWith('.docx');
+
+    if (isDocx) {
+      if (isRealDocx(physicalPath)) {
+        zip.file(entryPath, fs.readFileSync(physicalPath));
+      } else {
+        try {
+          const docxBuf = await generateValidDocx(file.name, folder?.name || file.folderName, file.previewContent);
+          zip.file(entryPath, docxBuf);
+        } catch {
+          if (fs.existsSync(physicalPath)) {
+            zip.file(entryPath, fs.readFileSync(physicalPath));
+          } else {
+            zip.file(entryPath, file.previewContent || `Nội dung tài liệu ${file.name} - Thầy Từ Văn Gọn`);
+          }
+        }
+      }
+    } else if (fs.existsSync(physicalPath)) {
+      zip.file(entryPath, fs.readFileSync(physicalPath));
+    } else {
+      zip.file(entryPath, file.previewContent || `Nội dung tài liệu ${file.name} - Thầy Từ Văn Gọn`);
+    }
+  }
+
+  // Add child folders recursively
+  const subfolders = db.folders.filter((f) => f.parentId === folderId);
+  for (const sub of subfolders) {
+    const subPath = basePath ? `${basePath}/${sub.name}` : sub.name;
+    const subFiles = db.files.filter((f) => !f.isDeleted && f.folderId === sub.id);
+    const subChildren = db.folders.filter((f) => f.parentId === sub.id);
+    if (subFiles.length === 0 && subChildren.length === 0) {
+      zip.folder(subPath);
+    } else {
+      await addFolderRecursiveToZip(zip, sub.id, subPath, db);
+    }
+  }
+}
+
+// 9b. Download Folder as ZIP (Recursive with subfolders and files)
+app.get('/api/folders/:id/download-zip', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getDB();
+
+    if (id === 'all' || id === 'root') {
+      const zipFileName = 'Kho_Tai_Lieu_Thay_Tu_Van_Gon.zip';
+      const zip = new JSZip();
+
+      const rootFolders = db.folders.filter(
+        (f) => !f.parentId || f.parentId === 'null' || f.parentId === 'undefined' || f.parentId === '' || f.parentId === 'root'
+      );
+      for (const root of rootFolders) {
+        await addFolderRecursiveToZip(zip, root.id, root.name, db);
+      }
+
+      const buffer = await zip.generateAsync({
+        type: 'nodebuffer',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 },
+      });
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Length', buffer.length.toString());
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${encodeURIComponent(zipFileName)}"; filename*=UTF-8''${encodeURIComponent(zipFileName)}`
+      );
+      return res.send(buffer);
+    }
+
+    const folder = db.folders.find((f) => f.id === id);
+    if (!folder) {
+      return res.status(404).send('Không tìm thấy thư mục');
+    }
+
+    const safeName = folder.name.replace(/[/\\?%*:|"<>]/g, '_').trim() || 'Thu_muc';
+    const zipFileName = `${safeName}.zip`;
+
+    const zip = new JSZip();
+    await addFolderRecursiveToZip(zip, folder.id, folder.name, db);
+
+    const buffer = await zip.generateAsync({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+    });
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Length', buffer.length.toString());
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(zipFileName)}"; filename*=UTF-8''${encodeURIComponent(zipFileName)}`
+    );
+    res.send(buffer);
+  } catch (err: any) {
+    console.error('Lỗi nén tải thư mục:', err);
+    if (!res.headersSent) {
+      res.status(500).send('Lỗi khi nén tải thư mục: ' + err.message);
+    }
+  }
+});
+
+// 9c. Download Multiple Selected Folders as ZIP
+app.get('/api/folders-download-batch', async (req, res) => {
+  try {
+    const idsParam = req.query.ids as string;
+    if (!idsParam) return res.status(400).send('Thiếu danh sách thư mục');
+    const folderIds = idsParam.split(',').filter(Boolean);
+    const db = getDB();
+
+    const selectedFolders = db.folders.filter((f) => folderIds.includes(f.id));
+    if (selectedFolders.length === 0) {
+      return res.status(404).send('Không tìm thấy thư mục nào đã chọn');
+    }
+
+    const zipFileName = selectedFolders.length === 1 
+      ? `${selectedFolders[0].name.replace(/[/\\?%*:|"<>]/g, '_')}.zip`
+      : `Tai_ve_${selectedFolders.length}_thu_muc.zip`;
+
+    const zip = new JSZip();
+    for (const f of selectedFolders) {
+      await addFolderRecursiveToZip(zip, f.id, f.name, db);
+    }
+
+    const buffer = await zip.generateAsync({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+    });
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Length', buffer.length.toString());
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(zipFileName)}"; filename*=UTF-8''${encodeURIComponent(zipFileName)}`
+    );
+    res.send(buffer);
+  } catch (err: any) {
+    console.error('Lỗi tải nhiều thư mục zip:', err);
+    if (!res.headersSent) {
+      res.status(500).send('Lỗi tải nén thư mục');
+    }
+  }
+});
+
+app.post('/api/folders-download-batch', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).send('Thiếu danh sách thư mục');
+    const db = getDB();
+
+    const selectedFolders = db.folders.filter((f) => ids.includes(f.id));
+    if (selectedFolders.length === 0) {
+      return res.status(404).send('Không tìm thấy thư mục nào đã chọn');
+    }
+
+    const zipFileName = selectedFolders.length === 1 
+      ? `${selectedFolders[0].name.replace(/[/\\?%*:|"<>]/g, '_')}.zip`
+      : `Tai_ve_${selectedFolders.length}_thu_muc.zip`;
+
+    const zip = new JSZip();
+    for (const f of selectedFolders) {
+      await addFolderRecursiveToZip(zip, f.id, f.name, db);
+    }
+
+    const buffer = await zip.generateAsync({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+    });
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Length', buffer.length.toString());
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(zipFileName)}"; filename*=UTF-8''${encodeURIComponent(zipFileName)}`
+    );
+    res.send(buffer);
+  } catch (err: any) {
+    console.error('Lỗi tải nhiều thư mục zip:', err);
+    if (!res.headersSent) {
+      res.status(500).send('Lỗi tải nén thư mục');
+    }
+  }
 });
 
 // 10. AI Assistant with Gemini 3.8 Flash

@@ -13,6 +13,8 @@ import {
   ChevronRight,
   ChevronDown,
   FolderUp,
+  FolderDown,
+  Download,
   AlertTriangle,
   FolderTree,
   RotateCcw,
@@ -20,6 +22,7 @@ import {
   ArrowLeft,
   FileText,
   Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { FolderItem } from '../types';
 import { formatBytes, formatDate, buildFolderTreeOptions, api, DEFAULT_FOLDERS } from '../services/api';
@@ -37,6 +40,8 @@ interface FolderManagerProps {
   onOpenUpload: (targetFolderId?: string) => void;
   onOpenUploadFolder?: (targetFolderId?: string) => void;
   onRefreshData?: () => void;
+  onDownloadFolder?: (folder: FolderItem) => void;
+  onDownloadBatchFolders?: (folderIds: string[]) => void;
 }
 
 export const FolderManager: React.FC<FolderManagerProps> = ({
@@ -51,7 +56,10 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
   onOpenUpload,
   onOpenUploadFolder,
   onRefreshData,
+  onDownloadFolder,
+  onDownloadBatchFolders,
 }) => {
+  const [downloadingNotice, setDownloadingNotice] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [drillFolderId, setDrillFolderId] = useState<string | null>(null);
@@ -319,8 +327,56 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
     }
   };
 
+  const handleDownloadSingleFolder = (folder: FolderItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDownloadingNotice(`Đang nén và chuẩn bị tải xuống thư mục "${folder.name}" (.zip)...`);
+    setTimeout(() => setDownloadingNotice(null), 4500);
+
+    if (onDownloadFolder) {
+      onDownloadFolder(folder);
+    } else {
+      api.downloadFolder(folder.id, folder.name);
+    }
+  };
+
+  const handleDownloadCurrentFolder = () => {
+    if (drillFolder) {
+      setDownloadingNotice(`Đang nén và tải xuống thư mục "${drillFolder.name}" (.zip)...`);
+      setTimeout(() => setDownloadingNotice(null), 4500);
+      if (onDownloadFolder) {
+        onDownloadFolder(drillFolder);
+      } else {
+        api.downloadFolder(drillFolder.id, drillFolder.name);
+      }
+    } else {
+      setDownloadingNotice('Đang nén và tải xuống toàn bộ kho tài liệu của Thầy Gọn (.zip)...');
+      setTimeout(() => setDownloadingNotice(null), 4500);
+      api.downloadFolder('all', 'Kho_Tai_Lieu_Thay_Tu_Van_Gon');
+    }
+  };
+
+  const handleDownloadSelectedFolders = () => {
+    if (selectedFolderIds.length === 0) return;
+    setDownloadingNotice(`Đang nén và tải xuống ${selectedFolderIds.length} thư mục đã chọn (.zip)...`);
+    setTimeout(() => setDownloadingNotice(null), 4500);
+
+    if (onDownloadBatchFolders) {
+      onDownloadBatchFolders(selectedFolderIds);
+    } else {
+      api.downloadBatchFolders(selectedFolderIds);
+    }
+  };
+
   return (
     <div className="space-y-5">
+      {/* Toast thông báo tải thư mục xuống */}
+      {downloadingNotice && (
+        <div className="fixed top-5 right-5 z-50 bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-top-4">
+          <Loader2 className="w-4 h-4 text-sky-400 animate-spin shrink-0" />
+          <span className="text-xs font-semibold">{downloadingNotice}</span>
+        </div>
+      )}
+
       {/* Top action bar */}
       <div className="bg-white p-4 md:p-5 rounded-2xl shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -412,6 +468,21 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
             </button>
           )}
 
+          {/* Nút Tải thư mục xuống (.zip) */}
+          <button
+            type="button"
+            onClick={handleDownloadCurrentFolder}
+            className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+            title={
+              drillFolder
+                ? `Tải toàn bộ thư mục "${drillFolder.name}" và các tệp bên trong về máy tính dạng nén (.zip)`
+                : 'Tải toàn bộ hệ thống thư mục và tài liệu về máy tính (.zip)'
+            }
+          >
+            <FolderDown className="w-4 h-4" />
+            <span>Tải thư mục xuống</span>
+          </button>
+
           <button
             onClick={handleRestoreDefaults}
             disabled={isRestoring}
@@ -475,12 +546,32 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
               >
                 ← Quay lại
               </button>
+              <button
+                type="button"
+                onClick={handleDownloadCurrentFolder}
+                className="text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                title={`Tải toàn bộ thư mục "${drillFolder.name}" và các tệp bên trong (.zip)`}
+              >
+                <FolderDown className="w-3.5 h-3.5 text-sky-600" />
+                <span>Tải thư mục này xuống (.zip)</span>
+              </button>
             </div>
           ) : (
-            <span className="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-              <Folder className="w-3.5 h-3.5 text-blue-600" />
-              <span>Hệ thống {rootFolders.length || 12} thư mục chính của Thầy Gọn</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                <Folder className="w-3.5 h-3.5 text-blue-600" />
+                <span>Hệ thống {rootFolders.length || 12} thư mục chính của Thầy Gọn</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleDownloadCurrentFolder}
+                className="text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                title="Tải toàn bộ tài liệu và thư mục về máy tính dạng nén (.zip)"
+              >
+                <FolderDown className="w-3.5 h-3.5 text-sky-600" />
+                <span>Tải toàn bộ thư mục (.zip)</span>
+              </button>
+            </div>
           )}
 
           {folders.length > 0 && (
@@ -533,10 +624,10 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
 
       {/* Thanh công cụ khi đã tích chọn thư mục */}
       {selectedFolderIds.length > 0 && (
-        <div className="bg-rose-50 border border-rose-200 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs animate-in fade-in shadow-xs">
+        <div className="bg-sky-50 border border-sky-200 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs animate-in fade-in shadow-xs">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse"></span>
-            <span className="font-bold text-rose-900">
+            <span className="w-2.5 h-2.5 rounded-full bg-sky-600 animate-pulse"></span>
+            <span className="font-bold text-sky-900">
               Đã chọn {selectedFolderIds.length} / {sortedFolders.length} thư mục
             </span>
           </div>
@@ -544,9 +635,18 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
             <button
               type="button"
               onClick={() => setSelectedFolderIds([])}
-              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-xl hover:bg-rose-100/60 transition-colors cursor-pointer"
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-xl hover:bg-sky-100/60 transition-colors cursor-pointer"
             >
               Bỏ chọn
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadSelectedFolders}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-xs transition-colors cursor-pointer active:scale-95"
+              title={`Tải nén ${selectedFolderIds.length} thư mục đã chọn về máy`}
+            >
+              <FolderDown className="w-3.5 h-3.5" />
+              <span>Tải xuống {selectedFolderIds.length} thư mục đã chọn (.zip)</span>
             </button>
             <button
               type="button"
@@ -554,7 +654,7 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer active:scale-95"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Xóa {selectedFolderIds.length} thư mục đã chọn</span>
+              <span>Xóa {selectedFolderIds.length} thư mục</span>
             </button>
           </div>
         </div>
@@ -727,6 +827,15 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                               <UploadCloud className="w-4 h-4" />
                             </button>
 
+                            {/* Download folder as ZIP */}
+                            <button
+                              onClick={(e) => handleDownloadSingleFolder(folder, e)}
+                              className="p-1.5 text-sky-600 hover:bg-sky-100 rounded-lg transition-colors cursor-pointer"
+                              title={`Tải thư mục "${folder.name}" xuống máy tính (.zip)`}
+                            >
+                              <FolderDown className="w-4 h-4" />
+                            </button>
+
                             {/* Rename / Move */}
                             <button
                               onClick={() => {
@@ -827,6 +936,13 @@ export const FolderManager: React.FC<FolderManagerProps> = ({
                       title="Tải tệp vào đây"
                     >
                       <UploadCloud className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDownloadSingleFolder(folder, e)}
+                      className="p-1 text-slate-400 hover:text-sky-600 rounded cursor-pointer transition-colors"
+                      title={`Tải thư mục "${folder.name}" xuống (.zip)`}
+                    >
+                      <FolderDown className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => {

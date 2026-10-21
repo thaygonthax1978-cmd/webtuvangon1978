@@ -13,6 +13,7 @@ import {
   Trash2,
   Folder,
   FolderTree,
+  FolderDown,
   ArrowUpRight,
   Sparkles,
   UploadCloud,
@@ -23,7 +24,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { StatsData, FileItem, FolderItem } from '../types';
-import { formatBytes, formatDate, DEFAULT_FOLDERS } from '../services/api';
+import { formatBytes, formatDate, DEFAULT_FOLDERS, api } from '../services/api';
 
 interface HomeDashboardProps {
   stats: StatsData | null;
@@ -286,13 +287,25 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             </p>
           </div>
 
-          <button
-            onClick={() => onGoToTab('folders')}
-            className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 cursor-pointer bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors border border-blue-200"
-          >
-            <span>Quản lý chi tiết cây thư mục</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                api.downloadFolder('all', 'Kho_Tai_Lieu_Thay_Tu_Van_Gon');
+              }}
+              className="text-xs text-sky-700 hover:text-sky-900 font-bold flex items-center gap-1.5 cursor-pointer bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-xl transition-colors border border-sky-200 shadow-xs active:scale-95"
+              title="Tải toàn bộ kho tài liệu và giáo án về máy tính (.zip)"
+            >
+              <FolderDown className="w-3.5 h-3.5 text-sky-600" />
+              <span>Tải toàn bộ (.zip)</span>
+            </button>
+            <button
+              onClick={() => onGoToTab('folders')}
+              className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 cursor-pointer bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors border border-blue-200"
+            >
+              <span>Quản lý chi tiết cây thư mục</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Folder Grid Cards */}
@@ -361,7 +374,19 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                     {isLessonPlans ? 'Mở xem giáo án các lớp' : 'Mở xem tệp'}
                     <ArrowUpRight className="w-3.5 h-3.5" />
                   </span>
-                  <span className="text-[10px] text-slate-400">Mã: {folder.code}</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        api.downloadFolder(folder.id, folder.name);
+                      }}
+                      className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer"
+                      title={`Tải thư mục "${folder.name}" về máy (.zip)`}
+                    >
+                      <FolderDown className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-[10px] text-slate-400">Mã: {folder.code}</span>
+                  </div>
                 </div>
               </div>
             );

@@ -658,6 +658,35 @@ export const api = {
     return `/api/files/${fileId}/download`;
   },
 
+  getFolderDownloadUrl(folderId: string): string {
+    return `/api/folders/${folderId}/download-zip`;
+  },
+
+  getBatchFoldersDownloadUrl(folderIds: string[]): string {
+    return `/api/folders-download-batch?ids=${folderIds.map(encodeURIComponent).join(',')}`;
+  },
+
+  downloadFolder(folderId: string, folderName?: string): void {
+    const cleanName = (folderName || 'thu_muc').replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const link = document.createElement('a');
+    link.href = `/api/folders/${folderId}/download-zip`;
+    link.setAttribute('download', `${cleanName}.zip`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  },
+
+  downloadBatchFolders(folderIds: string[], zipName?: string): void {
+    if (folderIds.length === 0) return;
+    const cleanName = (zipName || (folderIds.length === 1 ? 'thu_muc' : `thu_muc_da_chon_${folderIds.length}`)).replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const link = document.createElement('a');
+    link.href = `/api/folders-download-batch?ids=${folderIds.map(encodeURIComponent).join(',')}`;
+    link.setAttribute('download', `${cleanName}.zip`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  },
+
   async getSupabaseStatus(): Promise<SupabaseStatus> {
     // 1. Try server-side status check first
     try {

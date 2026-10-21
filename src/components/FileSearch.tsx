@@ -367,11 +367,32 @@ export const FileSearch: React.FC<FileSearchProps> = ({
               </button>
               <button
                 type="button"
+                onClick={() => {
+                  const targets = sortedFiles.filter((f) => selectedFileIds.includes(f.id));
+                  targets.forEach((file, idx) => {
+                    setTimeout(() => {
+                      const link = document.createElement('a');
+                      link.href = api.getDownloadUrl(file.id);
+                      link.setAttribute('download', file.name);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }, idx * 250);
+                  });
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-xs transition-colors cursor-pointer active:scale-95"
+                title={`Tải xuống ${selectedFileIds.length} tệp đã chọn về máy tính`}
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Tải xuống {selectedFileIds.length} tệp</span>
+              </button>
+              <button
+                type="button"
                 onClick={handlePromptDeleteSelected}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs transition-colors cursor-pointer active:scale-95"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Xóa {selectedFileIds.length} file đã chọn</span>
+                <span>Xóa {selectedFileIds.length} file</span>
               </button>
             </div>
           </div>

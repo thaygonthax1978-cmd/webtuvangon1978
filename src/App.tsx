@@ -40,6 +40,7 @@ import {
   Filter,
   Edit2,
   FolderUp,
+  FolderDown,
   AlertTriangle,
   Loader2,
   RotateCcw,
@@ -735,6 +736,28 @@ export default function App() {
                   <span>Tải thư mục lên</span>
                 </button>
 
+                {/* 3b. Nút Tải thư mục xuống */}
+                <button
+                  onClick={() => {
+                    if (selectedFolderId) {
+                      api.downloadFolder(selectedFolderId, currentFolderObj?.name);
+                      showToast(`Đang nén và tải xuống thư mục "${currentFolderObj?.name || 'Tài liệu'}" dạng .zip...`);
+                    } else {
+                      api.downloadFolder('all', 'Kho_Tai_Lieu_Thay_Tu_Van_Gon');
+                      showToast('Đang nén và tải xuống toàn bộ kho tài liệu của Thầy Gọn dạng .zip...');
+                    }
+                  }}
+                  className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                  title={
+                    selectedFolderId
+                      ? `Tải toàn bộ thư mục "${currentFolderObj?.name}" về máy tính (.zip)`
+                      : 'Tải toàn bộ kho tài liệu về máy tính (.zip)'
+                  }
+                >
+                  <FolderDown className="w-4 h-4" />
+                  <span>{selectedFolderId ? 'Tải thư mục xuống' : 'Tải tất cả xuống (.zip)'}</span>
+                </button>
+
                 {/* 4. Nút Xóa tất cả file trong thư mục */}
                 {displayedFiles.length > 0 && (
                   <button
@@ -884,17 +907,32 @@ export default function App() {
                           </div>
                         </div>
 
-                      {/* Nút Đổi tên thư mục con */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenRenameFolderModal(sub);
-                        }}
-                        className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-100/60 rounded cursor-pointer shrink-0"
-                        title={`Đổi tên "${sub.name}"`}
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {/* Nút Tải thư mục con xuống (.zip) */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            api.downloadFolder(sub.id, sub.name);
+                            showToast(`Đang nén và tải xuống thư mục con "${sub.name}" dạng .zip...`);
+                          }}
+                          className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-100/60 rounded cursor-pointer"
+                          title={`Tải thư mục "${sub.name}" xuống máy tính (.zip)`}
+                        >
+                          <FolderDown className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Nút Đổi tên thư mục con */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenRenameFolderModal(sub);
+                          }}
+                          className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-100/60 rounded cursor-pointer"
+                          title={`Đổi tên "${sub.name}"`}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -943,6 +981,14 @@ export default function App() {
             onOpenUpload={(targetFolderId) => handleOpenUpload(targetFolderId, 'file')}
             onOpenUploadFolder={(targetFolderId) => handleOpenUpload(targetFolderId, 'folder')}
             onRefreshData={() => loadData(true)}
+            onDownloadFolder={(folder) => {
+              api.downloadFolder(folder.id, folder.name);
+              showToast(`Đang nén và tải xuống thư mục "${folder.name}" (.zip)...`);
+            }}
+            onDownloadBatchFolders={(folderIds) => {
+              api.downloadBatchFolders(folderIds);
+              showToast(`Đang nén và tải xuống ${folderIds.length} thư mục đã chọn (.zip)...`);
+            }}
           />
         );
 
