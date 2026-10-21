@@ -599,7 +599,11 @@ app.post('/api/supabase/sync', async (_req, res) => {
       last_login: db.user.lastLogin || new Date().toISOString(),
     });
 
-    // 2. Sync Folders
+    if (userErr) {
+      console.warn('Sync user error:', userErr);
+    }
+
+    // 2. Sync Folders in batches of 50 to prevent payload timeout
     const folderPayloads = db.folders.map((f) => ({
       id: f.id,
       name: f.name,
@@ -609,9 +613,18 @@ app.post('/api/supabase/sync', async (_req, res) => {
       created_at: f.createdAt,
       updated_at: f.updatedAt,
     }));
-    const { error: folderErr } = await supabase.from('folders').upsert(folderPayloads);
 
-    // 3. Sync Files
+    let folderErrors: string[] = [];
+    for (let i = 0; i < folderPayloads.length; i += 50) {
+      const chunk = folderPayloads.slice(i, i + 50);
+      const { error } = await supabase.from('folders').upsert(chunk);
+      if (error) {
+        console.warn(`Folder chunk ${i}-${i + 50} sync error:`, error.message);
+        folderErrors.push(error.message);
+      }
+    }
+
+    // 3. Sync Files in batches of 40 with safe preview content length
     const filePayloads = db.files.map((f) => ({
       id: f.id,
       name: f.name,
@@ -630,48 +643,72 @@ app.post('/api/supabase/sync', async (_req, res) => {
       deleted_at: f.deletedAt || null,
       versions: f.versions || [],
       share_config: f.shareConfig || null,
-      preview_content: f.previewContent || null,
+      preview_content: f.previewContent ? f.previewContent.slice(0, 3000) : null,
     }));
-    const { error: fileErr } = await supabase.from('files').upsert(filePayloads);
 
-    if (userErr || folderErr || fileErr) {
+    let fileErrors: string[] = [];
+    for (let i = 0; i < filePayloads.length; i += 40) {
+      const chunk = filePayloads.slice(i, i + 40);
+      const { error } = await supabase.from('files').upsert(chunk);
+      if (error) {
+        console.warn(`File chunk ${i}-${i + 40} sync error:`, error.message);
+        fileErrors.push(error.message);
+      }
+    }
+
+    if (folderErrors.length > 0 && fileErrors.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Lỗi khi đồng bộ lên Supabase: ' + (userErr?.message || folderErr?.message || fileErr?.message),
-        errors: { userErr, folderErr, fileErr },
+        message: `Lỗi đồng bộ Supabase: ${folderErrors[0] || fileErrors[0]}`,
       });
     }
 
     res.json({
       success: true,
-      message: `Đã đồng bộ thành công ${folderPayloads.length} thư mục và ${filePayloads.length} tài liệu lên Supabase!`,
+      message: `Đã đồng bộ thành công ${folderPayloads.length} thư mục và ${filePayloads.length} tài liệu lên Supabase Cloud!`,
       syncedFolders: folderPayloads.length,
       syncedFiles: filePayloads.length,
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, message: 'Lỗi xử lý đồng bộ: ' + err.message });
+    console.error('Lỗi API /api/supabase/sync:', err);
+    res.status(500).json({ success: false, message: 'Lỗi xử lý đồng bộ: ' + (err.message || 'Mạng bận') });
   }
 });
 
-// Pull all data from Supabase to local DB
+// Pull all data from Supabase to local DB (with pagination for large datasets)
 app.post('/api/supabase/pull', async (_req, res) => {
   try {
-    const [foldersRes, filesRes, userRes] = await Promise.all([
-      supabase.from('folders').select('*'),
-      supabase.from('files').select('*'),
-      supabase.from('user_profile').select('*').limit(1),
-    ]);
+    // 1. Fetch user profile
+    const userRes = await supabase.from('user_profile').select('*').limit(1);
 
-    if (foldersRes.error || filesRes.error) {
-      const raw = foldersRes.error?.message || filesRes.error?.message || '';
-      let errMsg = raw;
-      if (raw.includes('fetch failed') || raw.includes('ENOTFOUND')) {
-        errMsg = `Không thể kết nối đến máy chủ Supabase (${SUPABASE_URL}). Lỗi: Không tìm thấy tên miền (ENOTFOUND). Dự án có thể chưa kích hoạt xong hoặc đang bị Tạm dừng (Paused) trên Supabase. Thầy kiểm tra lại URL hoặc chuyển sang dự án Supabase hoạt động sẵn.`;
+    // 2. Fetch all folders with pagination
+    let allSbFolders: any[] = [];
+    let fFrom = 0;
+    while (true) {
+      const { data, error } = await supabase.from('folders').select('*').range(fFrom, fFrom + 999);
+      if (error) {
+        console.warn('Pull folders error:', error);
+        break;
       }
-      return res.status(400).json({
-        success: false,
-        message: 'Lỗi tải dữ liệu từ Supabase: ' + errMsg,
-      });
+      if (!data || data.length === 0) break;
+      allSbFolders.push(...data);
+      if (data.length < 1000) break;
+      fFrom += 1000;
+    }
+
+    // 3. Fetch all files with pagination
+    let allSbFiles: any[] = [];
+    let fiFrom = 0;
+    while (true) {
+      const { data, error } = await supabase.from('files').select('*').range(fiFrom, fiFrom + 999);
+      if (error) {
+        console.warn('Pull files error:', error);
+        break;
+      }
+      if (!data || data.length === 0) break;
+      allSbFiles.push(...data);
+      if (data.length < 1000) break;
+      fiFrom += 1000;
     }
 
     const db = getDB();
@@ -694,8 +731,8 @@ app.post('/api/supabase/pull', async (_req, res) => {
       };
     }
 
-    if (Array.isArray(foldersRes.data) && foldersRes.data.length > 0) {
-      for (const row of foldersRes.data) {
+    if (allSbFolders.length > 0) {
+      for (const row of allSbFolders) {
         const item: FolderRecord = {
           id: row.id,
           name: row.name,
@@ -714,8 +751,8 @@ app.post('/api/supabase/pull', async (_req, res) => {
       }
     }
 
-    if (Array.isArray(filesRes.data) && filesRes.data.length > 0) {
-      for (const row of filesRes.data) {
+    if (allSbFiles.length > 0) {
+      for (const row of allSbFiles) {
         const item: FileRecord = {
           id: row.id,
           name: row.name,
@@ -749,12 +786,13 @@ app.post('/api/supabase/pull', async (_req, res) => {
 
     res.json({
       success: true,
-      message: `Đã nạp thành công ${foldersRes.data?.length || 0} thư mục và ${filesRes.data?.length || 0} tài liệu từ Supabase!`,
+      message: `Đã nạp thành công ${allSbFolders.length} thư mục và ${allSbFiles.length} tài liệu từ Supabase Cloud!`,
       foldersCount: db.folders.length,
       filesCount: db.files.length,
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, message: 'Lỗi tải dữ liệu: ' + err.message });
+    console.error('Lỗi API /api/supabase/pull:', err);
+    res.status(500).json({ success: false, message: 'Lỗi tải dữ liệu: ' + (err.message || 'Mạng bận') });
   }
 });
 

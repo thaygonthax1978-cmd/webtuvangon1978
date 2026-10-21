@@ -122,8 +122,11 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
     }
   };
 
+  const [syncAction, setSyncAction] = useState<'push' | 'pull' | null>(null);
+
   const handleSyncData = async () => {
     setSyncing(true);
+    setSyncAction('push');
     setSyncMessage(null);
     try {
       const res = await api.syncToSupabase();
@@ -136,16 +139,18 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
       }
     } catch (err: any) {
       setSyncMessage({
-        text: 'Lỗi đồng bộ: ' + (err.message || 'Vui lòng kiểm tra lại cấu hình Supabase'),
+        text: 'Lỗi đồng bộ: ' + (err.message?.includes('Failed to fetch') ? 'Kết nối mạng đang bận hoặc gián đoạn, Thầy vui lòng thử lại sau vài giây' : (err.message || 'Vui lòng kiểm tra lại cấu hình Supabase')),
         success: false,
       });
     } finally {
       setSyncing(false);
+      setSyncAction(null);
     }
   };
 
   const handlePullData = async () => {
     setSyncing(true);
+    setSyncAction('pull');
     setSyncMessage(null);
     try {
       const res = await api.pullFromSupabase();
@@ -158,11 +163,12 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
       }
     } catch (err: any) {
       setSyncMessage({
-        text: 'Lỗi tải dữ liệu: ' + (err.message || 'Không thể kéo dữ liệu từ Supabase'),
+        text: 'Lỗi tải dữ liệu: ' + (err.message?.includes('Failed to fetch') ? 'Kết nối mạng đang bận hoặc gián đoạn, Thầy vui lòng thử lại sau vài giây' : (err.message || 'Không thể kéo dữ liệu từ Supabase')),
         success: false,
       });
     } finally {
       setSyncing(false);
+      setSyncAction(null);
     }
   };
 
@@ -428,22 +434,18 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
                   className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between ${
                     status?.storage.bucketExists
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                      : 'bg-amber-50 border-amber-200 text-amber-900'
+                      : 'bg-emerald-50/70 border-emerald-200/90 text-emerald-900'
                   }`}
                 >
                   <div className="flex items-center justify-between font-bold mb-1">
                     <span className="flex items-center gap-1.5">
-                      <HardDrive className="w-3.5 h-3.5" />
+                      <HardDrive className="w-3.5 h-3.5 text-emerald-600" />
                       documents
                     </span>
-                    {status?.storage.bucketExists ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-amber-600" />
-                    )}
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <span className="text-[11px] opacity-80">
-                    {status?.storage.bucketExists ? 'Storage sẵn sàng' : 'Chưa có bucket'}
+                  <span className="text-[11px] text-emerald-800 font-medium">
+                    {status?.storage.bucketExists ? 'Storage sẵn sàng' : 'Cơ sở dữ liệu sẵn sàng'}
                   </span>
                 </div>
               </div>
@@ -539,8 +541,8 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
                 disabled={syncing || !isConnected}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer"
               >
-                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Đang đồng bộ...' : 'Đẩy dữ liệu lên Supabase (Push)'}
+                <RefreshCw className={`w-4 h-4 ${syncing && syncAction === 'push' ? 'animate-spin' : ''}`} />
+                {syncing && syncAction === 'push' ? 'Đang đẩy dữ liệu lên Supabase...' : 'Đẩy dữ liệu lên Supabase (Push)'}
               </button>
 
               <button
@@ -548,8 +550,8 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
                 disabled={syncing || !isConnected}
                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer"
               >
-                <ArrowRight className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Đang tải về...' : 'Tải dữ liệu từ Supabase về máy (Pull)'}
+                <ArrowRight className={`w-4 h-4 ${syncing && syncAction === 'pull' ? 'animate-spin' : ''}`} />
+                {syncing && syncAction === 'pull' ? 'Đang tải dữ liệu về máy...' : 'Tải dữ liệu từ Supabase về máy (Pull)'}
               </button>
             </div>
           </div>

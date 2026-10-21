@@ -753,20 +753,174 @@ export const api = {
     }
   },
 
+  async syncToSupabaseDirect(): Promise<{ success: boolean; message: string; syncedFolders?: number; syncedFiles?: number }> {
+    try {
+      const user = await this.getUser();
+      const folders = await this.getFolders();
+      const files = await this.getFiles();
+
+      // 1. Sync User Profile
+      await supabase.from('user_profile').upsert({
+        id: user.id || 'user_gon_01',
+        full_name: user.fullName,
+        role: user.role,
+        school: user.school,
+        location: user.location,
+        email: user.email,
+        phone: user.phone,
+        storage_used_bytes: user.storageUsedBytes,
+        storage_max_bytes: user.storageMaxBytes,
+        avatar_url: user.avatarUrl,
+        two_factor_enabled: user.twoFactorEnabled,
+        last_login: new Date().toISOString(),
+      });
+
+      // 2. Sync Folders in batches of 40
+      const folderPayloads = folders.map((f) => ({
+        id: f.id,
+        name: f.name,
+        code: f.code || '',
+        parent_id: f.parentId || null,
+        color: f.color || '#0866E8',
+        created_at: f.createdAt || new Date().toISOString(),
+        updated_at: f.updatedAt || new Date().toISOString(),
+      }));
+
+      for (let i = 0; i < folderPayloads.length; i += 40) {
+        const chunk = folderPayloads.slice(i, i + 40);
+        await supabase.from('folders').upsert(chunk);
+      }
+
+      // 3. Sync Files in batches of 30
+      const activeFiles = files.filter((f) => !f.isDeleted);
+      const filePayloads = activeFiles.map((f) => ({
+        id: f.id,
+        name: f.name,
+        original_name: f.originalName || f.name,
+        mime_type: f.mimeType || 'application/octet-stream',
+        extension: f.extension || 'docx',
+        category: f.category || 'word',
+        size: f.size || 0,
+        folder_id: f.folderId,
+        folder_name: f.folderName || '',
+        filename: f.filename || `${f.id}.dat`,
+        upload_date: f.uploadDate || new Date().toISOString(),
+        updated_date: f.updatedDate || new Date().toISOString(),
+        is_favorite: Boolean(f.isFavorite),
+        is_deleted: Boolean(f.isDeleted),
+        deleted_at: f.deletedAt || null,
+        versions: f.versions || [],
+        share_config: f.shareConfig || null,
+        preview_content: f.previewContent ? f.previewContent.slice(0, 2000) : null,
+      }));
+
+      for (let i = 0; i < filePayloads.length; i += 30) {
+        const chunk = filePayloads.slice(i, i + 30);
+        await supabase.from('files').upsert(chunk);
+      }
+
+      return {
+        success: true,
+        message: `Đã đồng bộ thành công ${folders.length} thư mục và ${activeFiles.length} tài liệu lên Supabase Cloud!`,
+        syncedFolders: folders.length,
+        syncedFiles: activeFiles.length,
+      };
+    } catch (e: any) {
+      console.error('Lỗi syncToSupabaseDirect:', e);
+      return {
+        success: false,
+        message: 'Lỗi đồng bộ trực tiếp Supabase: ' + (e.message || 'Mạng bận'),
+      };
+    }
+  },
+
   async syncToSupabase(): Promise<{ success: boolean; message: string; syncedFolders?: number; syncedFiles?: number }> {
-    const res = await authFetch('/api/supabase/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return res.json();
+    try {
+      const res = await authFetch('/api/supabase/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend sync failed or timed out, executing direct client sync fallback...', e);
+    }
+    return await this.syncToSupabaseDirect();
+  },
+
+  async pullFromSupabaseDirect(): Promise<{ success: boolean; message: string; foldersCount?: number; filesCount?: number }> {
+    try {
+      let allSbFolders: any[] = [];
+      let fFrom = 0;
+      while (true) {
+        const { data, error } = await supabase.from('folders').select('*').range(fFrom, fFrom + 999);
+        if (error || !data || data.length === 0) break;
+        allSbFolders.push(...data);
+        if (data.length < 1000) break;
+        fFrom += 1000;
+      }
+
+      let allSbFiles: any[] = [];
+      let fiFrom = 0;
+      while (true) {
+        const { data, error } = await supabase.from('files').select('*').range(fiFrom, fiFrom + 999);
+        if (error || !data || data.length === 0) break;
+        allSbFiles.push(...data);
+        if (data.length < 1000) break;
+        fiFrom += 1000;
+      }
+
+      if (allSbFolders.length > 0) {
+        const mappedFolders = allSbFolders.map(mapSupabaseFolderToFolderItem);
+        localStore.set('folders', mappedFolders);
+      }
+      if (allSbFiles.length > 0) {
+        const mappedFiles = allSbFiles.map(mapSupabaseFileToFileItem);
+        localStore.set('files_all', mappedFiles);
+      }
+
+      return {
+        success: true,
+        message: `Đã nạp thành công ${allSbFolders.length} thư mục và ${allSbFiles.length} tài liệu từ Supabase Cloud!`,
+        foldersCount: allSbFolders.length,
+        filesCount: allSbFiles.length,
+      };
+    } catch (e: any) {
+      console.error('Lỗi pullFromSupabaseDirect:', e);
+      return {
+        success: false,
+        message: 'Lỗi tải trực tiếp từ Supabase: ' + (e.message || 'Mạng bận'),
+      };
+    }
   },
 
   async pullFromSupabase(): Promise<{ success: boolean; message: string; foldersCount?: number; filesCount?: number }> {
-    const res = await authFetch('/api/supabase/pull', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return res.json();
+    try {
+      const res = await authFetch('/api/supabase/pull', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          await this.getFolders();
+          await this.getFiles();
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend pull failed, executing direct client pull fallback...', e);
+    }
+    const directRes = await this.pullFromSupabaseDirect();
+    if (directRes.success) {
+      await this.getFolders();
+      await this.getFiles();
+    }
+    return directRes;
   },
 
   async updateSupabaseConfig(url: string, anonKey: string): Promise<{ success: boolean; message: string; url?: string }> {
