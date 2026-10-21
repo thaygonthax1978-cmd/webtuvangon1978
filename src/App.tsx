@@ -182,23 +182,28 @@ export default function App() {
       }
       if (statsData) setStats(statsData);
       if (Array.isArray(foldersData) && foldersData.length > 0) {
-        const roots = foldersData.filter((f) => !f.parentId);
-        if (roots.length > 0) {
-          setFolders(foldersData);
-          localStore.set('folders', foldersData);
-        } else {
-          const merged = [...DEFAULT_FOLDERS, ...foldersData.filter((f) => f.parentId)];
-          setFolders(merged);
-          localStore.set('folders', merged);
-        }
+        setFolders(foldersData);
+        localStore.set('folders', foldersData);
       } else {
-        setFolders(DEFAULT_FOLDERS);
-        localStore.set('folders', DEFAULT_FOLDERS);
+        const cachedFolders = localStore.get<FolderItem[]>('folders', []);
+        if (cachedFolders.length > 0) {
+          setFolders(cachedFolders);
+        } else {
+          setFolders(DEFAULT_FOLDERS);
+          localStore.set('folders', DEFAULT_FOLDERS);
+        }
       }
-      if (Array.isArray(filesData)) {
+
+      if (Array.isArray(filesData) && filesData.length > 0) {
         setFiles(filesData);
         localStore.set('files_all', filesData);
+      } else {
+        const cachedFiles = localStore.get<FileItem[]>('files_all', []);
+        if (cachedFiles.length > 0) {
+          setFiles(cachedFiles);
+        }
       }
+
       if (Array.isArray(trashData)) {
         setTrashFiles(trashData);
         localStore.set('trash_files', trashData);
@@ -560,7 +565,8 @@ export default function App() {
           displayedFiles = displayedFiles.filter((f) => f.isFavorite);
         }
         if (selectedFolderId) {
-          if (includeSubfolderFiles) {
+          const directCount = files.filter((f) => !f.isDeleted && f.folderId === selectedFolderId).length;
+          if (includeSubfolderFiles || directCount === 0) {
             const descendantIds = [selectedFolderId, ...getDescendantFolderIds(selectedFolderId, folders)];
             displayedFiles = displayedFiles.filter((f) => descendantIds.includes(f.folderId));
           } else {
@@ -793,9 +799,8 @@ export default function App() {
                   .map((folder) => {
                     const isSelected = selectedFolderId === folder.id;
                     const isLessonPlans = folder.id === 'f_1792476597159' || folder.name.includes('GIÁO ÁN');
-                    const count =
-                      folder.fileCount ??
-                      files.filter((f) => !f.isDeleted && f.folderId === folder.id).length;
+                    const descendantIds = [folder.id, ...getDescendantFolderIds(folder.id, folders)];
+                    const count = files.filter((f) => !f.isDeleted && descendantIds.includes(f.folderId)).length || (folder.fileCount ?? 0);
                     return (
                       <button
                         key={folder.id}
@@ -844,33 +849,36 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                  {subfoldersInCurrent.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-blue-50/60 hover:border-blue-300 transition-all cursor-pointer group flex items-center justify-between gap-2.5 relative"
-                    >
+                  {subfoldersInCurrent.map((sub) => {
+                    const subDescendants = [sub.id, ...getDescendantFolderIds(sub.id, folders)];
+                    const subCount = files.filter((f) => !f.isDeleted && subDescendants.includes(f.folderId)).length || (sub.fileCount ?? 0);
+                    return (
                       <div
-                        onClick={() => setSelectedFolderId(sub.id)}
-                        className="flex items-center gap-2.5 min-w-0 flex-1"
+                        key={sub.id}
+                        className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-blue-50/60 hover:border-blue-300 transition-all cursor-pointer group flex items-center justify-between gap-2.5 relative"
                       >
                         <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-xs"
-                          style={{
-                            backgroundColor: `${sub.color || '#8257E5'}20`,
-                            color: sub.color || '#8257E5',
-                          }}
+                          onClick={() => setSelectedFolderId(sub.id)}
+                          className="flex items-center gap-2.5 min-w-0 flex-1"
                         >
-                          <Folder className="w-4 h-4 fill-current" />
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-xs"
+                            style={{
+                              backgroundColor: `${sub.color || '#8257E5'}20`,
+                              color: sub.color || '#8257E5',
+                            }}
+                          >
+                            <Folder className="w-4 h-4 fill-current" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-800 group-hover:text-blue-600 truncate">
+                              {sub.name}
+                            </p>
+                            <p className="text-[10px] text-slate-500 font-semibold">
+                              {subCount} tệp
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-800 group-hover:text-blue-600 truncate">
-                            {sub.name}
-                          </p>
-                          <p className="text-[10px] text-slate-400">
-                            {sub.fileCount ?? 0} tệp
-                          </p>
-                        </div>
-                      </div>
 
                       {/* Nút Đổi tên thư mục con */}
                       <button
@@ -884,7 +892,8 @@ export default function App() {
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
               </div>
             )}

@@ -172,6 +172,45 @@ export async function authFetch(input: RequestInfo | URL, init?: RequestInit): P
   };
   return fetch(input, options);
 }
+export function mapSupabaseFolderToFolderItem(row: any): FolderItem {
+  return {
+    id: row.id,
+    name: row.name,
+    code: row.code || '',
+    parentId: row.parent_id || null,
+    color: row.color || '#0866E8',
+    createdAt: row.created_at || new Date().toISOString(),
+    updatedAt: row.updated_at || new Date().toISOString(),
+    fileCount: 0,
+    directFileCount: 0,
+    subfolderCount: 0,
+    subfolderNames: [],
+    totalSize: 0,
+  };
+}
+
+export function mapSupabaseFileToFileItem(row: any): FileItem {
+  return {
+    id: row.id,
+    name: row.name,
+    originalName: row.original_name || row.name,
+    mimeType: row.mime_type || 'application/octet-stream',
+    extension: row.extension || '',
+    category: row.category || 'other',
+    size: Number(row.size) || 0,
+    folderId: row.folder_id,
+    folderName: row.folder_name || '',
+    filename: row.filename || row.name,
+    uploadDate: row.upload_date || new Date().toISOString(),
+    updatedDate: row.updated_date || new Date().toISOString(),
+    isFavorite: Boolean(row.is_favorite),
+    isDeleted: Boolean(row.is_deleted),
+    deletedAt: row.deleted_at || undefined,
+    versions: Array.isArray(row.versions) ? row.versions : [],
+    shareConfig: row.share_config || undefined,
+    previewContent: row.preview_content || '',
+  };
+}
 
 export const api = {
   async getUser(): Promise<UserProfile> {
@@ -243,6 +282,7 @@ export const api = {
   },
 
   async getFolders(): Promise<FolderItem[]> {
+    // 1. Try server endpoint first
     try {
       const res = await authFetch('/api/folders');
       if (res.ok) {
@@ -256,14 +296,27 @@ export const api = {
         }
       }
     } catch (e) {
-      console.warn('API getFolders fallback:', e);
+      console.warn('API getFolders server fallback:', e);
     }
 
+    // 2. Direct Supabase fallback
+    try {
+      const { data: sbFolders, error } = await supabase.from('folders').select('*');
+      if (!error && Array.isArray(sbFolders) && sbFolders.length > 0) {
+        const mapped = sbFolders.map(mapSupabaseFolderToFolderItem);
+        localStore.set('folders', mapped);
+        return mapped;
+      }
+    } catch (sbErr) {
+      console.warn('Supabase getFolders direct query warning:', sbErr);
+    }
+
+    // 3. Local cache fallback
     const cached = localStore.get<FolderItem[]>('folders', []);
     const cachedRoots = Array.isArray(cached) ? cached.filter((f) => !f.parentId) : [];
     if (cachedRoots.length > 0 && !cachedRoots.some((r) => r.id === 'f_03')) return cached;
 
-    // Use DEFAULT_FOLDERS as standard foundation, cache to localStorage
+    // 4. Default folders fallback
     localStore.set('folders', DEFAULT_FOLDERS);
     return DEFAULT_FOLDERS;
   },
@@ -373,22 +426,57 @@ export const api = {
     if (params?.favorite) query.set('favorite', 'true');
     if (params?.trash) query.set('trash', 'true');
 
+    // 1. Try server endpoint
     try {
       const res = await authFetch(`/api/files?${query.toString()}`);
       if (res.ok) {
         const data = await res.json();
         const files = data.files || [];
-        if (!params || Object.keys(params).length === 0) {
-          localStore.set('files_all', files);
-        } else if (params.trash) {
-          localStore.set('trash_files', files);
+        if (files.length > 0) {
+          if (!params || Object.keys(params).length === 0) {
+            localStore.set('files_all', files);
+          } else if (params.trash) {
+            localStore.set('trash_files', files);
+          }
+          return files;
         }
-        return files;
       }
     } catch (e) {
-      console.warn('API getFiles fallback:', e);
+      console.warn('API getFiles server fallback:', e);
     }
 
+    // 2. Direct Supabase fallback
+    try {
+      let sbQuery = supabase.from('files').select('*');
+      if (params?.trash) {
+        sbQuery = sbQuery.eq('is_deleted', true);
+      } else {
+        sbQuery = sbQuery.eq('is_deleted', false);
+      }
+      if (params?.folderId && params.folderId !== 'all') {
+        sbQuery = sbQuery.eq('folder_id', params.folderId);
+      }
+      if (params?.category && params.category !== 'all') {
+        sbQuery = sbQuery.eq('category', params.category);
+      }
+      if (params?.favorite) {
+        sbQuery = sbQuery.eq('is_favorite', true);
+      }
+      const { data: sbFiles, error } = await sbQuery;
+      if (!error && Array.isArray(sbFiles) && sbFiles.length > 0) {
+        const mapped = sbFiles.map(mapSupabaseFileToFileItem);
+        if (!params || Object.keys(params).length === 0) {
+          localStore.set('files_all', mapped);
+        } else if (params.trash) {
+          localStore.set('trash_files', mapped);
+        }
+        return mapped;
+      }
+    } catch (sbErr) {
+      console.warn('Supabase getFiles direct query warning:', sbErr);
+    }
+
+    // 3. Local storage fallback
     if (params?.trash) {
       return localStore.get<FileItem[]>('trash_files', []);
     }
