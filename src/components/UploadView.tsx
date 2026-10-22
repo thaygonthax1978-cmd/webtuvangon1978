@@ -264,6 +264,58 @@ export const UploadView: React.FC<UploadViewProps> = ({
     }
   };
 
+  const uploadViaDirect = (
+    item: UploadQueueItem,
+    targetFolderId: string
+  ): Promise<FileItem[]> => {
+    return new Promise((resolve, reject) => {
+      const file = item.file;
+      if (!file) return reject(new Error('Tệp không hợp lệ'));
+
+      const formData = new FormData();
+      formData.append('files', file, item.name);
+      formData.append('folderId', targetFolderId);
+
+      const xhr = new XMLHttpRequest();
+      xhr.timeout = 180000;
+      xhr.open('POST', '/api/upload', true);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.min(99, Math.round((e.loaded / e.total) * 100));
+          setQueue((prev) =>
+            prev.map((q) => (q.id === item.id ? { ...q, progress: pct, status: 'uploading' } : q))
+          );
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            setQueue((prev) =>
+              prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
+            );
+            resolve(data.files || []);
+          } catch (e) {
+            reject(new Error('Phản hồi từ máy chủ không hợp lệ'));
+          }
+        } else {
+          try {
+            const errData = JSON.parse(xhr.responseText);
+            reject(new Error(errData.message || (xhr.status === 413 ? 'Tệp vượt quá giới hạn dung lượng tải lên' : `Lỗi tải tệp (${xhr.status})`)));
+          } catch {
+            reject(new Error(xhr.status === 413 ? 'Tệp vượt quá giới hạn dung lượng tải lên' : `Lỗi tải tệp (${xhr.status})`));
+          }
+        }
+      };
+
+      xhr.ontimeout = () => reject(new Error('Hết thời gian chờ phản hồi từ máy chủ'));
+      xhr.onerror = () => reject(new Error('Mạng bị lỗi hoặc kết nối gián đoạn'));
+      xhr.send(formData);
+    });
+  };
+
   const uploadViaBase64 = (
     item: UploadQueueItem,
     targetFolderId: string
@@ -276,7 +328,6 @@ export const UploadView: React.FC<UploadViewProps> = ({
         try {
           const res = await fetch('/api/upload-json', {
             method: 'POST',
-            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: item.name,
@@ -337,7 +388,6 @@ export const UploadView: React.FC<UploadViewProps> = ({
       formData.append('chunk', chunkBlob, item.name);
 
       const xhr = new XMLHttpRequest();
-      xhr.withCredentials = true; // Essential for sending session cookies in iframe
       xhr.timeout = 180000; // 3-minute timeout per chunk
       xhr.open('POST', '/api/upload-chunk', true);
 
@@ -428,7 +478,7 @@ export const UploadView: React.FC<UploadViewProps> = ({
         });
       } catch (err: any) {
         let msg = err.message || 'Lỗi tải tệp lớn';
-        if (msg === 'Failed to fetch' || msg.includes('kết nối')) {
+        if (msg === 'Failed to fetch' || msg.includes('kết nối') || msg.includes('Mạng')) {
           msg = 'Mất kết nối mạng hoặc phiên làm việc gián đoạn (Thầy vui lòng F5 rồi bấm Thử lại)';
         }
         setQueue((prev) =>
@@ -439,30 +489,11 @@ export const UploadView: React.FC<UploadViewProps> = ({
     }
 
     // For files <= 20MB (Word, Excel, PDF, Images...):
-    // Strategy 1: Standard direct upload with credentials (instant & reliable)
+    // Strategy 1: Direct multipart upload with real-time XHR progress tracking
     // Strategy 2: Base64 JSON (immune to multipart stream drops)
     // Strategy 3: Chunk upload (fallback)
     try {
-      const formData = new FormData();
-      formData.append('files', item.file);
-      formData.append('folderId', targetFolderId);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || (res.status === 413 ? 'Tệp vượt quá giới hạn dung lượng tải lên' : 'Lỗi tải tệp'));
-      }
-
-      const data = await res.json();
-      setQueue((prev) =>
-        prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
-      );
-      return data.files || [];
+      return await uploadViaDirect(item, targetFolderId);
     } catch (directErr) {
       console.warn(`[Tải tệp] Kênh trực tiếp thất bại cho ${item.name}, thử kênh Base64 JSON:`, directErr);
       try {
@@ -479,7 +510,7 @@ export const UploadView: React.FC<UploadViewProps> = ({
           });
         } catch (chunkErr: any) {
           let finalMsg = chunkErr.message || 'Lỗi đường truyền tải tệp';
-          if (finalMsg === 'Failed to fetch' || finalMsg.includes('kết nối')) {
+          if (finalMsg === 'Failed to fetch' || finalMsg.includes('kết nối') || finalMsg.includes('Mạng')) {
             finalMsg = 'Mất kết nối mạng hoặc phiên làm việc gián đoạn (Thầy vui lòng F5 rồi bấm Thử lại)';
           }
           setQueue((prev) =>

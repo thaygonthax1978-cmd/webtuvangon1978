@@ -15,9 +15,19 @@ const app = express();
 const PORT = 3000;
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', '*');
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, Authorization, Range, Cache-Control'
+  );
+  res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Disposition');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
@@ -1212,7 +1222,10 @@ app.post('/api/upload', upload.array('files', 20), (req, res) => {
     for (const file of uploadedFiles) {
       let cleanOriginalName = file.originalname;
       try {
-        cleanOriginalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        const candidate = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        if (!candidate.includes('\uFFFD') && candidate !== file.originalname) {
+          cleanOriginalName = candidate;
+        }
       } catch (e) {}
 
       const ext = path.extname(cleanOriginalName).toLowerCase().replace('.', '');

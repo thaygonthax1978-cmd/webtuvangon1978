@@ -417,7 +417,6 @@ export const api = {
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.withCredentials = true;
       xhr.open('POST', '/api/upload');
 
       if (xhr.upload && onProgress) {
