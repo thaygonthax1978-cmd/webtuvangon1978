@@ -10,8 +10,6 @@ import {
   BarChart3,
   Settings,
   HardDrive,
-  UploadCloud,
-  FolderUp,
   ChevronLeft,
   ChevronRight,
   Database,
@@ -23,7 +21,7 @@ interface SidebarProps {
   currentTab: ViewTab;
   onSelectTab: (tab: ViewTab) => void;
   stats: StatsData | null;
-  onOpenUpload: () => void;
+  onOpenUpload?: () => void;
   onOpenUploadFolder?: () => void;
   onOpenSupabaseModal?: () => void;
   isCollapsed: boolean;
@@ -79,35 +77,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {/* Top Section */}
         <div className="p-3">
-          {/* Quick Upload Buttons */}
-          <div className="space-y-1.5 mb-4">
-            <button
-              onClick={() => {
-                onOpenUpload();
-                if (isMobileOpen) onCloseMobile();
-              }}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-2 px-2.5 rounded-xl shadow-md transition-all group cursor-pointer"
-              title="Tải tệp lên"
-            >
-              <UploadCloud className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" />
-              {!isCollapsed && <span className="text-xs font-bold tracking-wide">Tải tệp lên</span>}
-            </button>
-
-            {onOpenUploadFolder && (
-              <button
-                onClick={() => {
-                  onOpenUploadFolder();
-                  if (isMobileOpen) onCloseMobile();
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-2 px-2.5 rounded-xl shadow-md transition-all group cursor-pointer"
-                title="Tải thư mục lên"
-              >
-                <FolderUp className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" />
-                {!isCollapsed && <span className="text-xs font-bold tracking-wide">Tải thư mục lên</span>}
-              </button>
-            )}
-          </div>
-
           {/* Navigation Menu */}
           <nav className="space-y-1">
             {menuItems.map((item) => {
