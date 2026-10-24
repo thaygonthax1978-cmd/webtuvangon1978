@@ -16,19 +16,25 @@ import {
   Database,
   Camera,
   Upload,
+  UserPlus,
+  Users,
+  AlertCircle,
 } from 'lucide-react';
 import { UserProfile } from '../types';
+import { api } from '../services/api';
 
 interface SecuritySettingsProps {
   user: UserProfile | null;
   onUpdateUser: (userData: Partial<UserProfile>) => Promise<void>;
   onOpenSupabaseModal?: () => void;
+  onOpenAuthModal?: (tab?: 'register' | 'login' | 'users') => void;
 }
 
 export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   user,
   onUpdateUser,
   onOpenSupabaseModal,
+  onOpenAuthModal,
 }) => {
   const [fullName, setFullName] = useState(user?.fullName || 'TỪ VĂN GỌN');
   const [role, setRole] = useState(user?.role || 'Giáo viên tiểu học');
@@ -106,17 +112,26 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
     setTimeout(() => setNotification(''), 3000);
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       alert('Mật khẩu xác nhận không khớp!');
       return;
     }
-    setNotification('Đổi mật khẩu thành công! Mật khẩu mới đã được cập nhật.');
-    setOldPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setTimeout(() => setNotification(''), 3000);
+    try {
+      const res = await api.changeAccountPassword(oldPassword, newPassword);
+      if (res.success) {
+        setNotification('Đổi mật khẩu thành công! Mật khẩu mới đã được lưu an toàn.');
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        alert(res.message || 'Lỗi đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu cũ.');
+      }
+    } catch (err: any) {
+      alert('Lỗi: ' + (err.message || 'Không thể đổi mật khẩu'));
+    }
+    setTimeout(() => setNotification(''), 3500);
   };
 
   const devices = [
@@ -232,6 +247,33 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
             <HardDrive className="w-4 h-4" />
             <span>Dung lượng lưu trữ</span>
           </button>
+
+          {onOpenAuthModal && (
+            <div className="pt-2 border-t border-slate-100 space-y-1">
+              <button
+                type="button"
+                onClick={() => onOpenAuthModal('register')}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between text-blue-900 bg-amber-50 hover:bg-amber-100 transition-all border border-amber-300 shadow-2xs cursor-pointer active:scale-98"
+              >
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-amber-600" />
+                  <span>Đăng ký tài khoản</span>
+                </div>
+                <span className="text-[10px] bg-amber-500 text-white font-bold px-1.5 py-0.2 rounded-full">
+                  Mới
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onOpenAuthModal('users')}
+                className="w-full text-left px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                <Users className="w-4 h-4 text-indigo-600" />
+                <span>Danh sách tài khoản</span>
+              </button>
+            </div>
+          )}
 
           {onOpenSupabaseModal && (
             <button

@@ -16,6 +16,9 @@ import {
   Check,
   Sparkles,
   RotateCw,
+  UserPlus,
+  LogIn,
+  Users,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -26,6 +29,7 @@ interface HeaderProps {
   onOpenNotifications: () => void;
   onOpenSupabaseModal?: () => void;
   onClearCacheAndRefresh?: () => void;
+  onOpenAuthModal?: (tab?: 'register' | 'login' | 'users') => void;
   toggleMobileSimulator: () => void;
   isMobileSimulatorActive: boolean;
   onToggleSidebarMobile: () => void;
@@ -38,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
   onOpenSupabaseModal,
   onClearCacheAndRefresh,
+  onOpenAuthModal,
   toggleMobileSimulator,
   isMobileSimulatorActive,
   onToggleSidebarMobile,
@@ -385,7 +390,20 @@ export const Header: React.FC<HeaderProps> = ({
             <Settings className="w-4 h-4" />
           </button>
 
-          {/* Menu Quản lý Tài khoản (Thay thế vị trí 'Thầy Gọn') */}
+          {/* Nút Đăng ký tài khoản mới bằng tên đăng nhập và mật khẩu */}
+          {onOpenAuthModal && (
+            <button
+              type="button"
+              onClick={() => onOpenAuthModal('register')}
+              title="Đăng ký tài khoản mới bằng tên đăng nhập và mật khẩu"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-900 transition-all font-bold text-xs shadow-md cursor-pointer active:scale-95 shrink-0 hover:ring-2 hover:ring-amber-200"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-slate-950 font-bold" />
+              <span className="font-extrabold tracking-wide">Đăng ký</span>
+            </button>
+          )}
+
+          {/* Menu Quản lý Tài khoản */}
           <div className="relative">
             <button
               onClick={() => setShowUserDropdown(!showUserDropdown)}
@@ -394,7 +412,7 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <User className="w-4 h-4 text-blue-100" />
               <span className="hidden md:inline text-xs font-semibold text-white whitespace-nowrap">
-                Tài khoản
+                {user?.fullName ? user.fullName.split(' ').slice(-1)[0] : 'Tài khoản'}
               </span>
               <span className="w-2 h-2 rounded-full bg-emerald-400" title="Trạng thái: Trực tuyến" />
             </button>
@@ -405,24 +423,70 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="flex items-center gap-2.5">
                     <img
                       src={currentAvatar}
-                      alt="Từ Văn Gọn"
+                      alt={user?.fullName || 'Người dùng'}
                       className="w-10 h-10 rounded-full object-cover border-2 border-blue-200"
                     />
                     <div>
-                      <p className="font-bold text-sm text-slate-900 leading-tight">Từ Văn Gọn</p>
-                      <p className="text-[11px] text-slate-500 truncate max-w-[170px]">{user?.email || 'thaygonthax1978@gmail.com'}</p>
+                      <p className="font-bold text-sm text-slate-900 leading-tight">
+                        {user?.fullName || 'Từ Văn Gọn'}
+                      </p>
+                      <p className="text-[11px] text-blue-600 font-semibold truncate max-w-[170px]">
+                        @{user?.username || 'thaygon'}
+                      </p>
                     </div>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[11px] bg-slate-50 px-2 py-1 rounded-lg">
                     <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      Chủ sở hữu
+                      {user?.role || 'Giáo viên'}
                     </span>
-                    <span className="text-slate-500">2FA Đã bật</span>
+                    <span className="text-slate-500">Trực tuyến</span>
                   </div>
                 </div>
 
                 <div className="py-1 text-xs">
+                  {onOpenAuthModal && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowUserDropdown(false);
+                          onOpenAuthModal('register');
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-amber-50 text-amber-800 flex items-center gap-2.5 font-bold transition-colors cursor-pointer"
+                      >
+                        <UserPlus className="w-4 h-4 text-amber-600" />
+                        <span>Đăng ký tài khoản mới</span>
+                        <span className="text-[10px] ml-auto bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
+                          Mới
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowUserDropdown(false);
+                          onOpenAuthModal('login');
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-blue-50 text-slate-700 flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
+                      >
+                        <LogIn className="w-4 h-4 text-emerald-600" />
+                        <span>Đăng nhập tài khoản khác</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowUserDropdown(false);
+                          onOpenAuthModal('users');
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-blue-50 text-slate-700 flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
+                      >
+                        <Users className="w-4 h-4 text-indigo-600" />
+                        <span>Danh sách & Chuyển tài khoản</span>
+                      </button>
+
+                      <div className="border-t border-slate-100 my-1" />
+                    </>
+                  )}
+
                   <button
                     onClick={() => {
                       setShowUserDropdown(false);
@@ -457,11 +521,14 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <div className="border-t border-slate-100 pt-1">
                   <button
-                    onClick={() => setShowUserDropdown(false)}
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      if (onOpenAuthModal) onOpenAuthModal('login');
+                    }}
                     className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-xs flex items-center gap-2 font-medium cursor-pointer"
                   >
                     <LogOut className="w-4 h-4 text-red-500" />
-                    <span>Đăng xuất an toàn</span>
+                    <span>Đăng xuất / Chuyển người dùng</span>
                   </button>
                 </div>
               </div>

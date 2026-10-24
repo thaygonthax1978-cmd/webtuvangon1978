@@ -78,6 +78,7 @@ export interface FolderItem {
 
 export interface UserProfile {
   id: string;
+  username?: string;
   fullName: string;
   role: string;
   school: string;
@@ -89,6 +90,41 @@ export interface UserProfile {
   avatarUrl: string;
   twoFactorEnabled: boolean;
   lastLogin: string;
+  createdAt?: string;
+}
+
+export interface UserAccount {
+  id: string;
+  username: string;
+  fullName: string;
+  role: string;
+  school: string;
+  location: string;
+  email: string;
+  phone: string;
+  avatarUrl: string;
+  storageUsedBytes: number;
+  storageMaxBytes: number;
+  twoFactorEnabled: boolean;
+  createdAt: string;
+  lastLogin: string;
+}
+
+export interface RegisterPayload {
+  username: string;
+  password: string;
+  fullName: string;
+  role?: string;
+  school?: string;
+  location?: string;
+  email?: string;
+  phone?: string;
+  avatarUrl?: string;
+}
+
+export interface LoginPayload {
+  username: string;
+  password: string;
 }
 
 export interface StatsData {

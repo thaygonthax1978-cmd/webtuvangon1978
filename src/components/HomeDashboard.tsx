@@ -22,6 +22,7 @@ import {
   BookOpen,
   CheckCircle2,
   Layers,
+  UserPlus,
 } from 'lucide-react';
 import { StatsData, FileItem, FolderItem } from '../types';
 import { formatBytes, formatDate, DEFAULT_FOLDERS, api } from '../services/api';
@@ -38,6 +39,7 @@ interface HomeDashboardProps {
   onRenameFile?: (file: FileItem) => void;
   onOpenUpload: (folderId?: string) => void;
   onGoToTab: (tab: any) => void;
+  onOpenAuthModal?: (tab?: 'register' | 'login' | 'users') => void;
 }
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({
@@ -52,6 +54,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   onRenameFile,
   onOpenUpload,
   onGoToTab,
+  onOpenAuthModal,
 }) => {
   const [activeSubjectTab, setActiveSubjectTab] = useState<string>('all');
 
@@ -234,6 +237,15 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               <Sparkles className="w-4 h-4 text-yellow-300" />
               Nhờ AI soạn giáo án & phân tích
             </button>
+            {onOpenAuthModal && (
+              <button
+                onClick={() => onOpenAuthModal('register')}
+                className="bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold px-4 py-2 rounded-xl text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer border border-amber-200 active:scale-95"
+              >
+                <UserPlus className="w-4 h-4 text-slate-900" />
+                Đăng ký tài khoản mới
+              </button>
+            )}
           </div>
         </div>
 

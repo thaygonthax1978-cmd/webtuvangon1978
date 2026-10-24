@@ -23,6 +23,7 @@ import { TrashBin } from './components/TrashBin';
 import { SecuritySettings } from './components/SecuritySettings';
 import { MobileDeviceSimulator } from './components/MobileDeviceSimulator';
 import { SupabaseModal } from './components/SupabaseModal';
+import { AuthModal } from './components/AuthModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   FileText,
@@ -113,6 +114,8 @@ export default function App() {
   const [uploadTargetFolderId, setUploadTargetFolderId] = useState<string | undefined>(undefined);
   const [uploadMode, setUploadMode] = useState<'file' | 'folder'>('file');
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'register' | 'login' | 'users'>('register');
 
   // Create Folder Modal State
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
@@ -543,6 +546,17 @@ export default function App() {
     setCurrentTab('ai-assistant');
   };
 
+  const handleOpenAuthModal = (tab: 'register' | 'login' | 'users' = 'register') => {
+    setAuthModalTab(tab);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleUserChanged = (newUser: UserProfile) => {
+    setUser(newUser);
+    localStore.set('user', newUser);
+    showToast(`Đang làm việc với tài khoản: ${newUser.fullName} (@${newUser.username || 'user'})`);
+  };
+
   // Render current tab content
   const renderTabContent = () => {
     switch (currentTab) {
@@ -560,6 +574,7 @@ export default function App() {
             onRenameFile={handleOpenRenameFileModal}
             onOpenUpload={() => handleOpenUpload()}
             onGoToTab={(tab) => setCurrentTab(tab)}
+            onOpenAuthModal={handleOpenAuthModal}
           />
         );
 
@@ -1090,6 +1105,7 @@ export default function App() {
               setUser(updated);
             }}
             onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+            onOpenAuthModal={handleOpenAuthModal}
           />
         );
 
@@ -1116,6 +1132,7 @@ export default function App() {
         onOpenNotifications={() => {}}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         onClearCacheAndRefresh={handleClearCacheAndRefresh}
+        onOpenAuthModal={handleOpenAuthModal}
         toggleMobileSimulator={() => setIsMobileSimulatorActive(!isMobileSimulatorActive)}
         isMobileSimulatorActive={isMobileSimulatorActive}
         onToggleSidebarMobile={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
@@ -1140,6 +1157,7 @@ export default function App() {
           stats={stats}
           onOpenUpload={() => handleOpenUpload(selectedFolderId || undefined)}
           onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+          onOpenAuthModal={handleOpenAuthModal}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isMobileOpen={isMobileSidebarOpen}
@@ -1682,6 +1700,15 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Modal Đăng ký tài khoản bằng tên đăng nhập và mật khẩu */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={user}
+        onUserChanged={handleUserChanged}
+        initialTab={authModalTab}
+      />
     </div>
   );
 }

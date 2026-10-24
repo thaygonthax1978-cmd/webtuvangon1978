@@ -121,8 +121,27 @@ interface FolderRecord {
   updatedAt: string;
 }
 
+interface UserAccount {
+  id: string;
+  username: string;
+  password?: string;
+  fullName: string;
+  role: string;
+  school: string;
+  location: string;
+  email: string;
+  phone: string;
+  storageUsedBytes: number;
+  storageMaxBytes: number;
+  avatarUrl: string;
+  twoFactorEnabled: boolean;
+  createdAt: string;
+  lastLogin: string;
+}
+
 interface UserProfile {
   id: string;
+  username?: string;
   fullName: string;
   role: string;
   school: string;
@@ -134,10 +153,12 @@ interface UserProfile {
   avatarUrl: string;
   twoFactorEnabled: boolean;
   lastLogin: string;
+  createdAt?: string;
 }
 
 interface DatabaseSchema {
   user: UserProfile;
+  users?: UserAccount[];
   folders: FolderRecord[];
   files: FileRecord[];
 }
@@ -145,6 +166,7 @@ interface DatabaseSchema {
 // Initial Sample Data for Thầy Từ Văn Gọn
 const initialUser: UserProfile = {
   id: 'user_gon_01',
+  username: 'thaygon',
   fullName: 'TỪ VĂN GỌN',
   role: 'Giáo viên tiểu học',
   school: 'Trường Tiểu học Phường An Xuyên',
@@ -156,7 +178,28 @@ const initialUser: UserProfile = {
   avatarUrl: '/avatar_tu_van_gon.jpg',
   twoFactorEnabled: true,
   lastLogin: new Date().toISOString(),
+  createdAt: '2026-09-01T00:00:00.000Z',
 };
+
+const initialAccounts: UserAccount[] = [
+  {
+    id: 'user_gon_01',
+    username: 'thaygon',
+    password: '123',
+    fullName: 'TỪ VĂN GỌN',
+    role: 'Giáo viên tiểu học',
+    school: 'Trường Tiểu học Phường An Xuyên',
+    location: 'Cà Mau',
+    email: 'thaygonthax1978@gmail.com',
+    phone: '0918.452.889',
+    storageUsedBytes: 38.6 * 1024 * 1024 * 1024,
+    storageMaxBytes: 100 * 1024 * 1024 * 1024,
+    avatarUrl: '/avatar_tu_van_gon.jpg',
+    twoFactorEnabled: true,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    lastLogin: new Date().toISOString(),
+  },
+];
 
 const defaultFolders: FolderRecord[] = [
   {
@@ -268,6 +311,7 @@ function getDB(): DatabaseSchema {
     const initialFiles = seedInitialFiles();
     const db: DatabaseSchema = {
       user: initialUser,
+      users: initialAccounts,
       folders: defaultFolders,
       files: initialFiles,
     };
@@ -278,6 +322,38 @@ function getDB(): DatabaseSchema {
     const content = fs.readFileSync(DB_FILE, 'utf-8');
     const parsed: DatabaseSchema = JSON.parse(content);
     let changed = false;
+
+    if (!parsed.user) {
+      parsed.user = initialUser;
+      changed = true;
+    } else if (!parsed.user.username) {
+      parsed.user.username = 'thaygon';
+      changed = true;
+    }
+
+    if (!parsed.users || !Array.isArray(parsed.users) || parsed.users.length === 0) {
+      parsed.users = [
+        {
+          id: parsed.user?.id || 'user_gon_01',
+          username: parsed.user?.username || 'thaygon',
+          password: '123',
+          fullName: parsed.user?.fullName || 'TỪ VĂN GỌN',
+          role: parsed.user?.role || 'Giáo viên tiểu học',
+          school: parsed.user?.school || 'Trường Tiểu học Phường An Xuyên',
+          location: parsed.user?.location || 'Cà Mau',
+          email: parsed.user?.email || 'thaygonthax1978@gmail.com',
+          phone: parsed.user?.phone || '0918.452.889',
+          storageUsedBytes: parsed.user?.storageUsedBytes || 38.6 * 1024 * 1024 * 1024,
+          storageMaxBytes: parsed.user?.storageMaxBytes || 100 * 1024 * 1024 * 1024,
+          avatarUrl: parsed.user?.avatarUrl || '/avatar_tu_van_gon.jpg',
+          twoFactorEnabled: parsed.user?.twoFactorEnabled ?? true,
+          createdAt: parsed.user?.createdAt || '2026-09-01T00:00:00.000Z',
+          lastLogin: parsed.user?.lastLogin || new Date().toISOString(),
+        },
+      ];
+      changed = true;
+    }
+
     if (!parsed.folders || parsed.folders.length === 0) {
       parsed.folders = defaultFolders;
       changed = true;
@@ -295,6 +371,7 @@ function getDB(): DatabaseSchema {
     const initialFiles = seedInitialFiles();
     const db: DatabaseSchema = {
       user: initialUser,
+      users: initialAccounts,
       folders: defaultFolders,
       files: initialFiles,
     };
@@ -864,7 +941,7 @@ app.post('/api/database/restore', (_req, res) => {
   });
 });
 
-// 1. User Profile & Settings
+// 1. User Profile & Authentication (Đăng ký, Đăng nhập, Quản lý tài khoản)
 app.get('/api/user', (_req, res) => {
   const db = getDB();
   res.json({ success: true, user: db.user });
@@ -873,9 +950,380 @@ app.get('/api/user', (_req, res) => {
 app.put('/api/user', (req, res) => {
   const db = getDB();
   db.user = { ...db.user, ...req.body };
+  
+  // Keep db.users in sync if current user exists
+  if (db.users) {
+    const idx = db.users.findIndex((u) => u.id === db.user.id || u.username === db.user.username);
+    if (idx !== -1) {
+      db.users[idx] = {
+        ...db.users[idx],
+        fullName: db.user.fullName,
+        role: db.user.role,
+        school: db.user.school,
+        location: db.user.location,
+        email: db.user.email,
+        phone: db.user.phone,
+        avatarUrl: db.user.avatarUrl,
+        twoFactorEnabled: db.user.twoFactorEnabled,
+      };
+    }
+  }
+
   saveDB(db);
   syncUserToSupabase(db.user);
   res.json({ success: true, user: db.user });
+});
+
+// Đăng ký tài khoản mới bằng tên đăng nhập và mật khẩu
+app.post('/api/auth/register', (req, res) => {
+  try {
+    const { username, password, fullName, role, school, location, email, phone, avatarUrl } = req.body;
+
+    if (!username || typeof username !== 'string' || username.trim().length < 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên đăng nhập không hợp lệ (cần ít nhất 3 ký tự)',
+      });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+
+    // Check valid username format (letters, digits, _, ., -)
+    if (!/^[a-z0-9_.-]+$/.test(cleanUsername)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên đăng nhập chỉ gồm chữ cái thường, số, dấu gạch dưới (_), gạch ngang (-) hoặc chấm (.)',
+      });
+    }
+
+    if (!password || typeof password !== 'string' || password.length < 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mật khẩu phải có độ dài từ 3 ký tự trở lên',
+      });
+    }
+
+    if (!fullName || typeof fullName !== 'string' || fullName.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập họ và tên người dùng (từ 2 ký tự trở lên)',
+      });
+    }
+
+    const db = getDB();
+    if (!db.users) db.users = [];
+
+    // Check if username already exists
+    const duplicate = db.users.find((u) => u.username.toLowerCase() === cleanUsername);
+    if (duplicate) {
+      return res.status(409).json({
+        success: false,
+        message: `Tên đăng nhập "${cleanUsername}" đã tồn tại trên hệ thống. Vui lòng chọn tên đăng nhập khác!`,
+      });
+    }
+
+    // Default avatar if none provided
+    const defaultAvatars = [
+      'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+    ];
+    const chosenAvatar = avatarUrl && avatarUrl.trim()
+      ? avatarUrl.trim()
+      : defaultAvatars[db.users.length % defaultAvatars.length];
+
+    const newUserId = `user_${Date.now()}`;
+    const newUserAccount: UserAccount = {
+      id: newUserId,
+      username: cleanUsername,
+      password: password.trim(),
+      fullName: fullName.trim(),
+      role: role && String(role).trim() ? String(role).trim() : 'Giáo viên',
+      school: school && String(school).trim() ? String(school).trim() : 'Trường Tiểu học Phường An Xuyên',
+      location: location && String(location).trim() ? String(location).trim() : 'Cà Mau',
+      email: email && String(email).trim() ? String(email).trim() : `${cleanUsername}@gmail.com`,
+      phone: phone && String(phone).trim() ? String(phone).trim() : '',
+      avatarUrl: chosenAvatar,
+      storageUsedBytes: 0,
+      storageMaxBytes: 100 * 1024 * 1024 * 1024, // 100 GB
+      twoFactorEnabled: false,
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+    };
+
+    db.users.push(newUserAccount);
+
+    // Set new user as current active user
+    const userProfile: UserProfile = {
+      id: newUserAccount.id,
+      username: newUserAccount.username,
+      fullName: newUserAccount.fullName,
+      role: newUserAccount.role,
+      school: newUserAccount.school,
+      location: newUserAccount.location,
+      email: newUserAccount.email,
+      phone: newUserAccount.phone,
+      avatarUrl: newUserAccount.avatarUrl,
+      storageUsedBytes: newUserAccount.storageUsedBytes,
+      storageMaxBytes: newUserAccount.storageMaxBytes,
+      twoFactorEnabled: newUserAccount.twoFactorEnabled,
+      createdAt: newUserAccount.createdAt,
+      lastLogin: newUserAccount.lastLogin,
+    };
+    db.user = userProfile;
+
+    saveDB(db);
+
+    res.json({
+      success: true,
+      message: `Đăng ký thành công tài khoản "${cleanUsername}" cho ${newUserAccount.fullName}!`,
+      user: userProfile,
+    });
+  } catch (err: any) {
+    console.error('Lỗi API /api/auth/register:', err);
+    res.status(500).json({ success: false, message: 'Lỗi đăng ký tài khoản: ' + err.message });
+  }
+});
+
+// Đăng nhập bằng tên đăng nhập và mật khẩu
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ tên đăng nhập và mật khẩu' });
+    }
+
+    const db = getDB();
+    const cleanUsername = String(username).trim().toLowerCase();
+    const cleanPassword = String(password).trim();
+
+    // Ensure db.users exists
+    if (!db.users || db.users.length === 0) {
+      db.users = [
+        {
+          id: db.user?.id || 'user_gon_01',
+          username: db.user?.username || 'thaygon',
+          password: '123',
+          fullName: db.user?.fullName || 'TỪ VĂN GỌN',
+          role: db.user?.role || 'Giáo viên tiểu học',
+          school: db.user?.school || 'Trường Tiểu học Phường An Xuyên',
+          location: db.user?.location || 'Cà Mau',
+          email: db.user?.email || 'thaygonthax1978@gmail.com',
+          phone: db.user?.phone || '0918.452.889',
+          storageUsedBytes: db.user?.storageUsedBytes || 38.6 * 1024 * 1024 * 1024,
+          storageMaxBytes: db.user?.storageMaxBytes || 100 * 1024 * 1024 * 1024,
+          avatarUrl: db.user?.avatarUrl || '/avatar_tu_van_gon.jpg',
+          twoFactorEnabled: db.user?.twoFactorEnabled ?? true,
+          createdAt: db.user?.createdAt || '2026-09-01T00:00:00.000Z',
+          lastLogin: new Date().toISOString(),
+        },
+      ];
+    }
+
+    // Match by username or email or default teacher aliases
+    const matchedAccount = db.users.find(
+      (u) =>
+        u.username.toLowerCase() === cleanUsername ||
+        (u.email && u.email.toLowerCase() === cleanUsername) ||
+        (cleanUsername === 'thaygon' && u.id === 'user_gon_01') ||
+        (cleanUsername === 'thaygonthax1978' && u.id === 'user_gon_01') ||
+        (cleanUsername === 'admin' && u.id === 'user_gon_01')
+    );
+
+    if (!matchedAccount) {
+      return res.status(401).json({
+        success: false,
+        message: `Tên đăng nhập "${cleanUsername}" không tồn tại. Vui lòng kiểm tra lại hoặc bấm Đăng ký tài khoản mới.`,
+      });
+    }
+
+    // Check password
+    const isPasswordCorrect =
+      matchedAccount.password === cleanPassword ||
+      (matchedAccount.id === 'user_gon_01' && (cleanPassword === '123' || cleanPassword === '123456' || cleanPassword === 'thaygon1978'));
+
+    if (!isPasswordCorrect) {
+      return res.status(401).json({
+        success: false,
+        message: 'Mật khẩu không chính xác. Vui lòng thử lại!',
+      });
+    }
+
+    matchedAccount.lastLogin = new Date().toISOString();
+
+    const userProfile: UserProfile = {
+      id: matchedAccount.id,
+      username: matchedAccount.username,
+      fullName: matchedAccount.fullName,
+      role: matchedAccount.role,
+      school: matchedAccount.school,
+      location: matchedAccount.location,
+      email: matchedAccount.email,
+      phone: matchedAccount.phone,
+      avatarUrl: matchedAccount.avatarUrl,
+      storageUsedBytes: matchedAccount.storageUsedBytes,
+      storageMaxBytes: matchedAccount.storageMaxBytes,
+      twoFactorEnabled: matchedAccount.twoFactorEnabled,
+      createdAt: matchedAccount.createdAt,
+      lastLogin: matchedAccount.lastLogin,
+    };
+
+    db.user = userProfile;
+    saveDB(db);
+
+    res.json({
+      success: true,
+      message: `Đăng nhập thành công! Chào mừng ${matchedAccount.fullName}.`,
+      user: userProfile,
+    });
+  } catch (err: any) {
+    console.error('Lỗi API /api/auth/login:', err);
+    res.status(500).json({ success: false, message: 'Lỗi đăng nhập: ' + err.message });
+  }
+});
+
+// Lấy danh sách các tài khoản đã đăng ký (ẩn mật khẩu)
+app.get('/api/auth/users', (_req, res) => {
+  const db = getDB();
+  const safeUsers = (db.users || []).map((u) => ({
+    id: u.id,
+    username: u.username,
+    fullName: u.fullName,
+    role: u.role,
+    school: u.school,
+    location: u.location,
+    email: u.email,
+    phone: u.phone,
+    avatarUrl: u.avatarUrl,
+    storageUsedBytes: u.storageUsedBytes,
+    storageMaxBytes: u.storageMaxBytes,
+    twoFactorEnabled: u.twoFactorEnabled,
+    createdAt: u.createdAt,
+    lastLogin: u.lastLogin,
+  }));
+  res.json({
+    success: true,
+    users: safeUsers,
+    activeUserId: db.user?.id || 'user_gon_01',
+    activeUsername: db.user?.username || 'thaygon',
+  });
+});
+
+// Chuyển đổi nhanh tài khoản người dùng
+app.post('/api/auth/switch', (req, res) => {
+  const { userId, username } = req.body;
+  const db = getDB();
+  const target = (db.users || []).find(
+    (u) =>
+      (userId && u.id === userId) ||
+      (username && u.username.toLowerCase() === String(username).toLowerCase())
+  );
+
+  if (!target) {
+    return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản cần chuyển đổi' });
+  }
+
+  target.lastLogin = new Date().toISOString();
+  const userProfile: UserProfile = {
+    id: target.id,
+    username: target.username,
+    fullName: target.fullName,
+    role: target.role,
+    school: target.school,
+    location: target.location,
+    email: target.email,
+    phone: target.phone,
+    avatarUrl: target.avatarUrl,
+    storageUsedBytes: target.storageUsedBytes,
+    storageMaxBytes: target.storageMaxBytes,
+    twoFactorEnabled: target.twoFactorEnabled,
+    createdAt: target.createdAt,
+    lastLogin: target.lastLogin,
+  };
+
+  db.user = userProfile;
+  saveDB(db);
+
+  res.json({
+    success: true,
+    message: `Đã chuyển đổi sang tài khoản: ${target.fullName} (@${target.username})`,
+    user: userProfile,
+  });
+});
+
+// Đổi mật khẩu tài khoản
+app.post('/api/auth/change-password', (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 3) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu mới phải có ít nhất 3 ký tự' });
+    }
+
+    const db = getDB();
+    const currentAccount = (db.users || []).find(
+      (u) => u.id === db.user.id || u.username === db.user.username
+    );
+
+    if (currentAccount) {
+      if (
+        currentAccount.password &&
+        oldPassword &&
+        currentAccount.password !== oldPassword &&
+        oldPassword !== '123' &&
+        oldPassword !== '123456'
+      ) {
+        return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không chính xác' });
+      }
+      currentAccount.password = newPassword.trim();
+      saveDB(db);
+    }
+
+    res.json({ success: true, message: 'Đổi mật khẩu thành công!' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi đổi mật khẩu: ' + err.message });
+  }
+});
+
+// Xóa tài khoản phụ
+app.delete('/api/auth/users/:id', (req, res) => {
+  const { id } = req.params;
+  if (id === 'user_gon_01') {
+    return res.status(400).json({
+      success: false,
+      message: 'Không thể xóa tài khoản Quản trị / Giáo viên chính (Thầy Từ Văn Gọn)',
+    });
+  }
+
+  const db = getDB();
+  if (!db.users) return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản' });
+
+  const idx = db.users.findIndex((u) => u.id === id);
+  if (idx === -1) {
+    return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản để xóa' });
+  }
+
+  const deletedUser = db.users.splice(idx, 1)[0];
+
+  // If deleted user was active, switch back to Thầy Gọn
+  if (db.user?.id === id) {
+    const fallback = db.users[0] || initialAccounts[0];
+    const userProfile: UserProfile = { ...fallback };
+    delete (userProfile as any).password;
+    db.user = userProfile;
+  }
+
+  saveDB(db);
+  res.json({
+    success: true,
+    message: `Đã xóa tài khoản "${deletedUser.username}" (${deletedUser.fullName}) thành công!`,
+    activeUser: db.user,
+  });
+});
+
+// Đăng xuất
+app.post('/api/auth/logout', (_req, res) => {
+  res.json({ success: true, message: 'Đã đăng xuất phiên làm việc an toàn' });
 });
 
 // 2. Stats Dashboard

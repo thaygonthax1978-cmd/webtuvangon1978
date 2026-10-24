@@ -1,4 +1,14 @@
-import { FileItem, FolderItem, StatsData, UserProfile, SharedConfig, SupabaseStatus } from '../types';
+import {
+  FileItem,
+  FolderItem,
+  StatsData,
+  UserProfile,
+  SharedConfig,
+  SupabaseStatus,
+  UserAccount,
+  RegisterPayload,
+  LoginPayload,
+} from '../types';
 import { DEFAULT_FILES } from './defaultFiles';
 import { DEFAULT_FOLDERS } from './defaultFolders';
 import { supabase, updateClientSupabaseConfig, SUPABASE_CONFIG } from './supabaseClient';
@@ -140,6 +150,104 @@ export const api = {
     const data = await res.json();
     if (data.user) localStore.set('user', data.user);
     return data.user;
+  },
+
+  async register(payload: RegisterPayload): Promise<{ success: boolean; user?: UserProfile; message: string }> {
+    const res = await authFetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success && data.user) {
+      localStore.set('user', data.user);
+    }
+    return data;
+  },
+
+  async login(payload: LoginPayload): Promise<{ success: boolean; user?: UserProfile; message: string }> {
+    const res = await authFetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success && data.user) {
+      localStore.set('user', data.user);
+    }
+    return data;
+  },
+
+  async getRegisteredUsers(): Promise<{ success: boolean; users: UserAccount[]; activeUserId: string; activeUsername: string }> {
+    try {
+      const res = await authFetch('/api/auth/users');
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.warn('API getRegisteredUsers error:', e);
+    }
+    return {
+      success: true,
+      users: [
+        {
+          id: 'user_gon_01',
+          username: 'thaygon',
+          fullName: 'TỪ VĂN GỌN',
+          role: 'Giáo viên tiểu học',
+          school: 'Trường Tiểu học Phường An Xuyên',
+          location: 'Cà Mau',
+          email: 'thaygonthax1978@gmail.com',
+          phone: '0918.452.889',
+          storageUsedBytes: 41446434406,
+          storageMaxBytes: 107374182400,
+          avatarUrl: '/avatar_tu_van_gon.jpg',
+          twoFactorEnabled: true,
+          createdAt: '2026-09-01T00:00:00.000Z',
+          lastLogin: new Date().toISOString(),
+        },
+      ],
+      activeUserId: 'user_gon_01',
+      activeUsername: 'thaygon',
+    };
+  },
+
+  async switchUser(userId: string): Promise<{ success: boolean; user?: UserProfile; message: string }> {
+    const res = await authFetch('/api/auth/switch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    const data = await res.json();
+    if (data.success && data.user) {
+      localStore.set('user', data.user);
+    }
+    return data;
+  },
+
+  async deleteUser(userId: string): Promise<{ success: boolean; message: string; activeUser?: UserProfile }> {
+    const res = await authFetch(`/api/auth/users/${userId}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json();
+    if (data.activeUser) {
+      localStore.set('user', data.activeUser);
+    }
+    return data;
+  },
+
+  async changeAccountPassword(oldPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const res = await authFetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPassword, newPassword }),
+    });
+    return await res.json();
+  },
+
+  async logout(): Promise<{ success: boolean; message: string }> {
+    const res = await authFetch('/api/auth/logout', { method: 'POST' });
+    return await res.json();
   },
 
   async getStats(): Promise<StatsData> {
