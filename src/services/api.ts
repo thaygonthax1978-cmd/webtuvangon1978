@@ -939,7 +939,60 @@ export const api = {
       };
     }
   },
+
+  async createDocumentsBucket(): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await authFetch('/api/supabase/create-bucket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data;
+      }
+    } catch (e) {
+      // client-side fallback
+    }
+    try {
+      const { data, error } = await supabase.storage.createBucket('documents', {
+        public: true,
+      });
+      if (!error) {
+        return { success: true, message: 'Đã tạo bucket "documents" thành công!' };
+      }
+      return { success: false, message: error.message || 'Không thể tạo bucket tự động' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Không thể tạo bucket tự động' };
+    }
+  },
 };
+
+export const SUPABASE_STORAGE_SQL_SCRIPT = `-- ==============================================================================
+-- TẠO STORAGE BUCKET "documents" CHO THẦY TỪ VĂN GỌN TRÊN SUPABASE
+-- Dán đoạn mã này vào Supabase -> SQL Editor -> Nhấn RUN
+-- ==============================================================================
+
+-- 1. Tạo bucket documents công khai (Public)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('documents', 'documents', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- 2. Cấp quyền tải/xem tài liệu công khai
+DROP POLICY IF EXISTS "Public access to documents" ON storage.objects;
+CREATE POLICY "Public access to documents" ON storage.objects FOR SELECT USING (bucket_id = 'documents');
+
+-- 3. Cấp quyền tải lên tài liệu mới
+DROP POLICY IF EXISTS "Public upload to documents" ON storage.objects;
+CREATE POLICY "Public upload to documents" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'documents');
+
+-- 4. Cấp quyền cập nhật tài liệu
+DROP POLICY IF EXISTS "Public update to documents" ON storage.objects;
+CREATE POLICY "Public update to documents" ON storage.objects FOR UPDATE USING (bucket_id = 'documents');
+
+-- 5. Cấp quyền xóa tài liệu
+DROP POLICY IF EXISTS "Public delete to documents" ON storage.objects;
+CREATE POLICY "Public delete to documents" ON storage.objects FOR DELETE USING (bucket_id = 'documents');
+`;
 
 export const SUPABASE_SQL_SCRIPT = `-- ==============================================================================
 -- KHO DỮ LIỆU CÁ NHÂN THẦY TỪ VĂN GỌN - SUPABASE DATABASE INITIALIZATION SCRIPT

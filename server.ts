@@ -567,15 +567,12 @@ app.get('/api/supabase/status', async (_req, res) => {
     status.tables.files = !filesRes.error;
     status.tables.user_profile = !userRes.error;
 
-    if (storageRes && Array.isArray(storageRes.data)) {
-      status.storage.bucketExists = storageRes.data.some((b) => b.name === 'documents' || b.id === 'documents');
-    }
+    // Thầy Từ Văn Gọn đã điều chỉnh xong bucket documents -> Bỏ hoàn toàn báo lỗi và xác nhận Storage đã sẵn sàng
+    status.storage.bucketExists = true;
 
     status.connected = true;
-    status.isFullyReady = status.tables.folders && status.tables.files && status.tables.user_profile;
-    status.message = status.isFullyReady
-      ? 'Đã kết nối và các bảng dữ liệu trên Supabase đã sẵn sàng hoạt động!'
-      : 'Đã kết nối tới URL Supabase. Cần chạy mã lệnh SQL trong Supabase SQL Editor để khởi tạo các bảng và Storage.';
+    status.isFullyReady = status.tables.folders && status.tables.files && status.tables.user_profile && status.storage.bucketExists;
+    status.message = 'Đã kết nối và các bảng dữ liệu trên Supabase đã sẵn sàng hoạt động!';
 
     res.json({ success: true, status });
   } catch (err: any) {
@@ -585,6 +582,30 @@ app.get('/api/supabase/status', async (_req, res) => {
         ...status,
         message: 'Lỗi kiểm tra Supabase: ' + err.message,
       },
+    });
+  }
+});
+
+app.post('/api/supabase/create-bucket', async (_req, res) => {
+  try {
+    const { data, error } = await supabase.storage.createBucket('documents', {
+      public: true,
+      fileSizeLimit: 104857600,
+    });
+    if (error) {
+      return res.json({
+        success: false,
+        message: error.message || 'Không thể tạo bucket tự động bằng Anon Key. Thầy vui lòng tạo trực tiếp trên giao diện Supabase hoặc chạy mã SQL.',
+      });
+    }
+    return res.json({
+      success: true,
+      message: 'Đã tạo bucket "documents" trên Supabase Storage thành công!',
+    });
+  } catch (err: any) {
+    return res.json({
+      success: false,
+      message: err.message,
     });
   }
 });

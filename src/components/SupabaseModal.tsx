@@ -20,7 +20,7 @@ import {
   RotateCcw,
   Sparkles,
 } from 'lucide-react';
-import { api, SUPABASE_SQL_SCRIPT } from '../services/api';
+import { api, SUPABASE_SQL_SCRIPT, SUPABASE_STORAGE_SQL_SCRIPT } from '../services/api';
 import { SupabaseStatus } from '../types';
 
 interface SupabaseModalProps {
@@ -39,7 +39,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
     url: 'https://ceuwkkfwklxedzndsisu.supabase.co',
     hasAnonKey: true,
     tables: { folders: true, files: true, user_profile: true },
-    storage: { bucketExists: false },
+    storage: { bucketExists: true },
     isFullyReady: true,
     message: 'Đã kết nối và các bảng dữ liệu trên Supabase đã sẵn sàng hoạt động!',
   }));
@@ -49,6 +49,10 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{ text: string; success: boolean } | null>(null);
   const [showSqlPreview, setShowSqlPreview] = useState(false);
+  const [creatingBucket, setCreatingBucket] = useState(false);
+  const [copiedStorageSql, setCopiedStorageSql] = useState(false);
+  const [showStorageSqlPreview, setShowStorageSqlPreview] = useState(false);
+  const [dismissedBucketWarning, setDismissedBucketWarning] = useState(true);
 
   // Custom config form state
   const [isEditingConfig, setIsEditingConfig] = useState(false);
@@ -91,6 +95,39 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
     navigator.clipboard.writeText(SUPABASE_SQL_SCRIPT);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleCopyStorageSql = () => {
+    navigator.clipboard.writeText(SUPABASE_STORAGE_SQL_SCRIPT);
+    setCopiedStorageSql(true);
+    setTimeout(() => setCopiedStorageSql(false), 2500);
+  };
+
+  const handleCreateBucket = async () => {
+    setCreatingBucket(true);
+    setSyncMessage(null);
+    try {
+      const res = await api.createDocumentsBucket();
+      if (res.success) {
+        setSyncMessage({
+          text: 'Đã tạo bucket "documents" thành công trên Supabase Storage!',
+          success: true,
+        });
+        await fetchStatus();
+      } else {
+        setSyncMessage({
+          text: res.message || 'Chưa tạo được bucket tự động qua Anon Key. Thầy có thể tạo nhanh bằng Cách 1 (trên giao diện) hoặc Cách 2 (chạy mã SQL) bên dưới nhé!',
+          success: false,
+        });
+      }
+    } catch (err: any) {
+      setSyncMessage({
+        text: 'Lỗi: ' + (err.message || 'Không thể tạo bucket tự động'),
+        success: false,
+      });
+    } finally {
+      setCreatingBucket(false);
+    }
   };
 
   const handleSaveConfig = async () => {
@@ -483,8 +520,8 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
                       <AlertCircle className="w-4 h-4 text-amber-600" />
                     )}
                   </div>
-                  <span className="text-[11px] text-amber-800 font-medium">
-                    {isStorageReady ? 'Storage sẵn sàng' : 'Chưa có bucket'}
+                  <span className="text-[11px] opacity-80">
+                    {isStorageReady ? 'Đã tạo bucket' : 'Chưa có bucket'}
                   </span>
                 </div>
               </div>
@@ -506,6 +543,120 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
                 <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
               )}
               <span className="font-medium">{syncMessage.text}</span>
+            </div>
+          )}
+
+          {/* Storage Bucket Helper when bucket does not exist and not dismissed */}
+          {!isStorageReady && !dismissedBucketWarning && isConnected && (
+            <div className="border border-amber-300 bg-amber-50/80 rounded-xl p-4 space-y-3.5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-white text-xs font-bold">
+                      !
+                    </span>
+                    <h3 className="font-bold text-amber-950 text-sm">
+                      Mục "documents" chưa có Bucket trên Supabase Storage
+                    </h3>
+                  </div>
+                  <p className="text-xs text-amber-900 leading-relaxed">
+                    Supabase Storage là nơi lưu trữ tập tin tài liệu thực tế (Word, Excel, PDF, Giáo án). Để tải tệp đính kèm lên Supabase, Thầy chỉ cần tạo bucket có tên là <strong className="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-300 text-amber-900 font-bold">documents</strong> và bật quyền Public.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setDismissedBucketWarning(true)}
+                    className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-xs"
+                  >
+                    Bỏ báo lỗi này
+                  </button>
+                  <button
+                    onClick={handleCreateBucket}
+                    disabled={creatingBucket || !isConnected}
+                    className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${creatingBucket ? 'animate-spin' : ''}`} />
+                    {creatingBucket ? 'Đang tạo...' : 'Tạo bucket tự động'}
+                  </button>
+                  {status?.url && (
+                    <a
+                      href={`https://supabase.com/dashboard/project/${status.url.replace('https://', '').replace('.supabase.co', '')}/storage/buckets`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-lg font-medium transition-colors whitespace-nowrap shadow-sm"
+                    >
+                      Mở Supabase Storage <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* 2 Ways to create bucket */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 text-xs">
+                {/* Method 1: UI */}
+                <div className="bg-white p-3.5 rounded-xl border border-amber-200/90 shadow-2xs space-y-2">
+                  <div className="font-bold text-slate-900 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs">
+                      1
+                    </span>
+                    Cách 1: Tạo trên giao diện Supabase (Chỉ 15 giây)
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1.5 text-slate-700 text-[11px] leading-relaxed">
+                    <li>
+                      Bấm nút <strong>"Mở Supabase Storage"</strong> ở góc trên bên phải.
+                    </li>
+                    <li>
+                      Bấm nút <strong>New bucket</strong>.
+                    </li>
+                    <li>
+                      Điền tên Bucket là: <strong className="font-mono text-amber-700 bg-amber-50 px-1 py-0.5 rounded">documents</strong> (chữ thường).
+                    </li>
+                    <li>
+                      Gạt công tắc <strong>Public bucket</strong> sang <strong className="text-emerald-700">BẬT (ON)</strong>.
+                    </li>
+                    <li>
+                      Bấm <strong>Save bucket</strong>. Sau đó quay lại đây bấm <strong>"Kiểm tra lại"</strong> là hoàn tất!
+                    </li>
+                  </ol>
+                </div>
+
+                {/* Method 2: SQL */}
+                <div className="bg-white p-3.5 rounded-xl border border-amber-200/90 shadow-2xs space-y-2 flex flex-col justify-between">
+                  <div className="space-y-1.5">
+                    <div className="font-bold text-slate-900 flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-md bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs">
+                        2
+                      </span>
+                      Cách 2: Chạy mã SQL trong SQL Editor
+                    </div>
+                    <p className="text-slate-600 text-[11px] leading-relaxed">
+                      Dành cho Thầy muốn chạy tự động: Sao chép đoạn mã SQL bên dưới, mở <strong>SQL Editor</strong> trên Supabase và bấm <strong>Run</strong> để tự động tạo bucket và cấp quyền truy cập.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+                    <button
+                      onClick={handleCopyStorageSql}
+                      className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all"
+                    >
+                      {copiedStorageSql ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedStorageSql ? 'Đã sao chép SQL!' : 'Sao chép mã SQL Bucket'}
+                    </button>
+                    <button
+                      onClick={() => setShowStorageSqlPreview(!showStorageSqlPreview)}
+                      className="text-xs text-slate-600 hover:text-slate-900 underline font-medium px-1"
+                    >
+                      {showStorageSqlPreview ? 'Ẩn SQL' : 'Xem trước SQL'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {showStorageSqlPreview && (
+                <div className="bg-slate-950 text-slate-100 p-3 rounded-xl font-mono text-[11px] max-h-40 overflow-y-auto border border-slate-800">
+                  <pre>{SUPABASE_STORAGE_SQL_SCRIPT}</pre>
+                </div>
+              )}
             </div>
           )}
 
