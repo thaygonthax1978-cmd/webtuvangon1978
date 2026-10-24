@@ -233,7 +233,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
   const isFoldersReady = Boolean(status?.tables?.folders);
   const isFilesReady = Boolean(status?.tables?.files);
   const isUserProfileReady = Boolean(status?.tables?.user_profile);
-  const isStorageReady = Boolean(status?.storage?.bucketExists);
+  const isStorageReady = status?.storage?.bucketExists !== false;
   const modalContent = (
     <div
       role="dialog"

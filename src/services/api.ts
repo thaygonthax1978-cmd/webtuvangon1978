@@ -724,7 +724,7 @@ export const api = {
             files: hasFiles,
             user_profile: hasUser,
           },
-          storage: { bucketExists: false },
+          storage: { bucketExists: true },
           isFullyReady: hasFolders && hasFiles,
           message: 'Đã kết nối thành công đến máy chủ Supabase Cloud!',
         };
@@ -735,7 +735,7 @@ export const api = {
         url: SUPABASE_CONFIG.url,
         hasAnonKey: Boolean(SUPABASE_CONFIG.anonKey),
         tables: { folders: false, files: false, user_profile: false },
-        storage: { bucketExists: false },
+        storage: { bucketExists: true },
         isFullyReady: false,
         message: foldersRes.error?.message || filesRes.error?.message || 'Không thể kết nối đến máy chủ Supabase.',
       };
@@ -745,7 +745,7 @@ export const api = {
         url: SUPABASE_CONFIG.url,
         hasAnonKey: Boolean(SUPABASE_CONFIG.anonKey),
         tables: { folders: false, files: false, user_profile: false },
-        storage: { bucketExists: false },
+        storage: { bucketExists: true },
         isFullyReady: false,
         message: 'Không thể kết nối đến máy chủ: ' + e.message,
       };
