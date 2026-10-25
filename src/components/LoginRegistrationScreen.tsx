@@ -127,17 +127,17 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
             </div>
             <div>
               <p className="font-semibold text-blue-200 tracking-wide uppercase text-[11px] leading-tight">
-                Phòng GD&ĐT Thành phố Cà Mau – Tỉnh Cà Mau
+                Sở GD&ĐT Tỉnh Cà Mau
               </p>
               <p className="font-bold text-white text-xs leading-tight">
-                Trường Tiểu học Phường An Xuyên
+                Trường Tiểu học Phướng An Xuyên
               </p>
             </div>
           </div>
 
           <div className="hidden sm:flex items-center gap-2 text-blue-100 text-[11px] font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Cổng Đăng nhập & Xác thực Dữ liệu Giáo án</span>
+            <span>Cổng Đăng nhập & Xác thực Dữ liệu cá nhân</span>
           </div>
         </div>
       </header>
