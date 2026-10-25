@@ -30,7 +30,7 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
 }) => {
   // Login form state
   const [loginUsername, setLoginUsername] = useState('thaygon');
-  const [loginPassword, setLoginPassword] = useState('Gon1978@');
+  const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   // Change password drawer state
@@ -43,22 +43,6 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [savedAccounts, setSavedAccounts] = useState<UserAccount[]>([]);
-
-  useEffect(() => {
-    // Load accounts to display quick account switcher
-    const fetchUsers = async () => {
-      try {
-        const data = await api.getRegisteredUsers();
-        if (data.users && data.users.length > 0) {
-          setSavedAccounts(data.users);
-        }
-      } catch (err) {
-        console.warn('Lỗi tải danh sách người dùng:', err);
-      }
-    };
-    fetchUsers();
-  }, []);
 
   // Handle Login submission
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -141,39 +125,6 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
     }
   };
 
-  // Quick 1-click teacher login
-  const handleQuickTeacherLogin = async (presetPassword = 'Gon1978@') => {
-    setLoginUsername('thaygon');
-    setLoginPassword(presetPassword);
-    setIsLoading(true);
-    setErrorMsg('');
-    setSuccessMsg('Đang đăng nhập nhanh cho Thầy Từ Văn Gọn...');
-
-    try {
-      const result = await api.login({
-        username: 'thaygon',
-        password: presetPassword,
-      });
-      if (result.success && result.user) {
-        setTimeout(() => {
-          onLoginSuccess(result.user!);
-        }, 400);
-      } else {
-        const fallback = await api.getUser();
-        setTimeout(() => {
-          onLoginSuccess(fallback);
-        }, 400);
-      }
-    } catch {
-      const fallback = await api.getUser();
-      setTimeout(() => {
-        onLoginSuccess(fallback);
-      }, 400);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Handle inline change password directly on login screen
   const handleInlineChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,8 +148,8 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
         loginUsername || 'thaygon'
       );
       if (res.success) {
-        setSuccessMsg(`Đổi mật khẩu thành công! Mật khẩu mới (${newPassInput.trim()}) đã được kích hoạt. Thầy có thể bấm Đăng nhập ngay.`);
-        setLoginPassword(newPassInput.trim());
+        setSuccessMsg(`Đổi mật khẩu thành công! Mật khẩu mới đã được cập nhật. Thầy có thể nhập mật khẩu mới và bấm Đăng nhập.`);
+        setLoginPassword('');
         setShowChangePassword(false);
         setNewPassInput('');
         setConfirmPassInput('');
@@ -210,12 +161,6 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
     } finally {
       setIsChangingPass(false);
     }
-  };
-
-  // Quick account click from list
-  const handleQuickAccountSelect = (account: UserAccount) => {
-    setLoginUsername(account.username);
-    setLoginPassword((account as any).password || 'Gon1978@');
   };
 
   return (
@@ -311,9 +256,9 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
               </div>
             </div>
 
-            {/* Quick Login Bar for Teacher Thầy Gọn */}
+            {/* Teacher Profile Card */}
             <div className="pt-2">
-              <div className="p-3.5 rounded-2xl bg-yellow-400/15 border border-yellow-300/30 flex items-center justify-between gap-3 flex-wrap">
+              <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3">
                   <img
                     src="/avatar_tu_van_gon.jpg"
@@ -324,40 +269,18 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm text-yellow-300">TỪ VĂN GỌN</span>
                       <span className="text-[10px] bg-yellow-400 text-slate-950 px-1.5 py-0.2 rounded font-extrabold">
-                        Chủ sở hữu
+                        Giáo viên Phụ trách
                       </span>
                     </div>
                     <p className="text-[11px] text-blue-100">
-                      Tài khoản: <strong className="text-white">thaygon</strong> · Mật khẩu: <strong className="text-yellow-300">Gon1978@</strong> <span className="opacity-70">(hoặc 123)</span>
+                      Trường Tiểu học Phường An Xuyên – TP. Cà Mau
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickTeacherLogin('Gon1978@')}
-                    disabled={isLoading}
-                    className="px-3.5 py-2 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <>
-                        <span>Vào ngay (Gon1978@)</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickTeacherLogin('123')}
-                    disabled={isLoading}
-                    title="Đăng nhập bằng mật khẩu 123"
-                    className="px-2.5 py-2 bg-white/20 hover:bg-white/30 text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center cursor-pointer active:scale-95 disabled:opacity-50"
-                  >
-                    Mật khẩu 123
-                  </button>
+                <div className="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-950/30 px-3 py-1.5 rounded-xl border border-emerald-500/30">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Dữ liệu bảo mật an toàn</span>
                 </div>
               </div>
             </div>
@@ -448,32 +371,7 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
                     </div>
                   </div>
 
-                  {/* Presets for Teacher Thầy Từ Văn Gọn */}
-                  <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs pt-0.5">
-                    <span className="text-[11px] text-slate-500 font-medium">Mẫu nhanh:</span>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLoginUsername('thaygon');
-                          setLoginPassword('Gon1978@');
-                        }}
-                        className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md font-bold text-[11px] transition-colors cursor-pointer border border-blue-200"
-                      >
-                        Gon1978@
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLoginUsername('thaygon');
-                          setLoginPassword('123');
-                        }}
-                        className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-medium text-[11px] transition-colors cursor-pointer border border-slate-200"
-                      >
-                        123
-                      </button>
-                    </div>
-                  </div>
+
 
                   {/* Inline Change Password Box */}
                   {showChangePassword && (
@@ -485,7 +383,7 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <input
                           type="password"
-                          placeholder="Mật khẩu mới (vd: Gon1978@)..."
+                          placeholder="Nhập mật khẩu mới..."
                           value={newPassInput}
                           onChange={(e) => setNewPassInput(e.target.value)}
                           className="w-full px-3 py-1.5 text-xs bg-white border border-amber-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
@@ -546,43 +444,7 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
                     )}
                   </button>
 
-                  {/* Existing Accounts Quick Switcher (if any other accounts registered) */}
-                  {savedAccounts.length > 0 && (
-                    <div className="pt-3 border-t border-slate-100">
-                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                        Chọn tài khoản đăng nhập nhanh:
-                      </p>
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                        {savedAccounts.map((acc) => (
-                          <button
-                            key={acc.id}
-                            type="button"
-                            onClick={() => handleQuickAccountSelect(acc)}
-                            className="w-full text-left p-2 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 transition-all flex items-center justify-between gap-2 cursor-pointer group"
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <img
-                                src={acc.avatarUrl || '/avatar_tu_van_gon.jpg'}
-                                alt={acc.fullName}
-                                className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
-                              />
-                              <div>
-                                <p className="font-bold text-xs text-slate-800 group-hover:text-blue-700">
-                                  {acc.fullName}
-                                </p>
-                                <p className="text-[10px] text-slate-400">
-                                  @{acc.username} · {acc.role}
-                                </p>
-                              </div>
-                            </div>
-                            <span className="text-[11px] text-blue-600 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                              Đăng nhập <ArrowRight className="w-3 h-3" />
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+
                 </form>
               </div>
             </div>

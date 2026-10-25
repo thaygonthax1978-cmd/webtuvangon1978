@@ -429,7 +429,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               <div className="text-xs space-y-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Mật khẩu hiện tại <span className="text-slate-400 font-normal">(tùy chọn hoặc 123 / Gon1978@)</span>
+                    Mật khẩu hiện tại <span className="text-slate-400 font-normal">(tùy chọn)</span>
                   </label>
                   <input
                     type="password"

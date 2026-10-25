@@ -31,7 +31,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   // Form states - Login
   const [loginUsername, setLoginUsername] = useState('thaygon');
-  const [loginPassword, setLoginPassword] = useState('Gon1978@');
+  const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   // Change password inline state
@@ -45,15 +45,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Reset errors when modal opens
+  // Reset errors and password when modal opens
   useEffect(() => {
     if (isOpen) {
       setErrorMsg('');
       setSuccessMsg('');
       setShowChangePassword(false);
+      setLoginPassword('');
       if (!loginUsername) {
         setLoginUsername('thaygon');
-        setLoginPassword('Gon1978@');
       }
     }
   }, [isOpen]);
@@ -321,7 +321,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       type="password"
                       value={newPassInput}
                       onChange={(e) => setNewPassInput(e.target.value)}
-                      placeholder="Mật khẩu mới (vd: Gon1978@)..."
+                      placeholder="Nhập mật khẩu mới..."
                       className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -356,39 +356,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             )}
 
-            {/* Quick Preset login for teacher Thầy Gọn */}
-            <div className="pt-1">
-              <span className="text-[11px] font-semibold text-slate-500 block mb-1.5">
-                Tài khoản mẫu / gợi ý nhanh:
-              </span>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginUsername('thaygon');
-                    setLoginPassword('Gon1978@');
-                  }}
-                  className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-semibold text-blue-900 flex items-center gap-1.5 cursor-pointer transition-colors"
-                  title="Đăng nhập với mật khẩu Gon1978@"
-                >
-                  <img src="/avatar_tu_van_gon.jpg" alt="Từ Văn Gọn" className="w-4 h-4 rounded-full object-cover" />
-                  <span>Thầy Từ Văn Gọn (Gon1978@)</span>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginUsername('thaygon');
-                    setLoginPassword('123');
-                  }}
-                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 flex items-center gap-1.5 cursor-pointer transition-colors"
-                  title="Đăng nhập với mật khẩu 123"
-                >
-                  <img src="/avatar_tu_van_gon.jpg" alt="Từ Văn Gọn" className="w-4 h-4 rounded-full object-cover" />
-                  <span>Thầy Gọn (123)</span>
-                </button>
-              </div>
-            </div>
 
             {/* Submit Button */}
             <div className="pt-2 flex items-center justify-between gap-3">
