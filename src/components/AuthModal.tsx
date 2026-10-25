@@ -145,12 +145,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <LogIn className="w-5 h-5 text-yellow-300" />
             </div>
             <div>
-              <h2 className="font-bold text-base md:text-lg leading-tight">
-                Đăng nhập Tài khoản
+              <h2 className="font-bold text-sm sm:text-base leading-tight uppercase tracking-wide">
+                KHO DỮ LIỆU CÁ NHÂN - TỪ VĂN GỌN - THỨ NHẤT
               </h2>
-              <p className="text-xs text-blue-100">
-                Kho dữ liệu cá nhân – Giáo viên Từ Văn Gọn
-              </p>
             </div>
           </div>
           <button
@@ -160,14 +157,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Tab Selection: Chỉ giữ lại mục Đăng nhập */}
-        <div className="flex border-b border-slate-200 bg-slate-50 text-xs sm:text-sm font-semibold">
-          <div className="flex-1 py-3 px-4 flex items-center justify-center gap-2 border-b-2 border-blue-600 text-blue-600 bg-white font-bold shadow-2xs">
-            <LogIn className="w-4 h-4 text-emerald-600" />
-            <span>Đăng nhập</span>
-          </div>
         </div>
 
         {/* Status Notification Alerts */}
@@ -188,15 +177,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Modal Body: Biểu mẫu Đăng nhập */}
         <div className="p-6 max-h-[72vh] overflow-y-auto">
           <form onSubmit={handleLogin} className="space-y-4">
-            <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900">
-              <p className="font-bold flex items-center gap-1.5 text-emerald-950">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                Đăng nhập tài khoản cá nhân
-              </p>
-              <p className="text-emerald-700 mt-0.5 leading-relaxed">
-                Đăng nhập bằng tên đăng nhập và mật khẩu bạn đã đăng ký để quản lý tài liệu và giáo án của mình.
-              </p>
-            </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">

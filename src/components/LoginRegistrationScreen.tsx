@@ -1,24 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   User,
   KeyRound,
   Eye,
   EyeOff,
   LogIn,
-  School,
-  ShieldCheck,
   CheckCircle,
   AlertCircle,
   Loader2,
-  BookOpen,
-  FolderTree,
-  Database,
-  Sparkles,
-  ArrowRight,
-  Lock,
 } from 'lucide-react';
-import { UserProfile, UserAccount, LoginPayload } from '../types';
-import { api, localStore } from '../services/api';
+import { UserProfile, LoginPayload } from '../types';
+import { api } from '../services/api';
 
 interface LoginRegistrationScreenProps {
   onLoginSuccess: (user: UserProfile) => void;
@@ -150,108 +142,18 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
         </div>
       </header>
 
-      {/* Main Center Area: Split Grid Layout */}
-      <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 py-6 md:py-10 flex items-center justify-center">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
-          {/* Left Hero Column: App introduction and Highlights */}
-          <div className="lg:col-span-6 space-y-6 text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-400/20 border border-yellow-300/40 text-yellow-300 text-xs font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-              <span>Năm học 2026 - 2027 · Cổng quản lý thông tin</span>
+      {/* Main Center Area: Single Login Dialog */}
+      <main className="relative z-10 flex-1 max-w-lg mx-auto w-full px-4 py-8 md:py-12 flex items-center justify-center">
+        <div className="w-full bg-white text-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+          {/* Card Header with requested title */}
+          <div className="bg-gradient-to-r from-[#064AA8] via-[#0866E8] to-[#0a75f0] text-white p-6 text-center shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 mx-auto flex items-center justify-center mb-3 shadow-inner">
+              <LogIn className="w-6 h-6 text-yellow-300" />
             </div>
-
-            <div className="space-y-3">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight">
-                KHO DỮ LIỆU & GIÁO ÁN ĐIỆN TỬ
-              </h1>
-              <p className="text-sm sm:text-base text-blue-100/90 leading-relaxed max-w-xl">
-                Hệ thống lưu trữ, soạn giảng và chia sẻ tài liệu dạy học của Giáo viên <strong className="text-yellow-300">Từ Văn Gọn</strong> – Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.
-              </p>
-            </div>
-
-            {/* Feature Highlights Badges */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/30 flex items-center justify-center shrink-0">
-                  <FolderTree className="w-5 h-5 text-yellow-300" />
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-white">40+ Thư mục giáo án</p>
-                  <p className="text-[11px] text-blue-200">Đầy đủ khối 1 đến 5</p>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/30 flex items-center justify-center shrink-0">
-                  <BookOpen className="w-5 h-5 text-emerald-300" />
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-white">Xem trước đa định dạng</p>
-                  <p className="text-[11px] text-blue-200">Word, Excel, PDF, PPT</p>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/30 flex items-center justify-center shrink-0">
-                  <Database className="w-5 h-5 text-purple-300" />
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-white">Lưu trữ đám mây an toàn</p>
-                  <p className="text-[11px] text-blue-200">Đồng bộ tự động liên tục</p>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/30 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-5 h-5 text-amber-300" />
-                </div>
-                <div>
-                  <p className="font-bold text-xs text-white">Trợ lý AI Giáo dục</p>
-                  <p className="text-[11px] text-blue-200">Hỗ trợ soạn giáo án nhanh</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Teacher Profile Card */}
-            <div className="pt-2">
-              <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3">
-                  <img
-                    src="/avatar_tu_van_gon.jpg"
-                    alt="Từ Văn Gọn"
-                    className="w-11 h-11 rounded-full object-cover border-2 border-yellow-300 shadow-md shrink-0"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-yellow-300">TỪ VĂN GỌN</span>
-                      <span className="text-[10px] bg-yellow-400 text-slate-950 px-1.5 py-0.2 rounded font-extrabold">
-                        Giáo viên Phụ trách
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-blue-100">
-                      Trường Tiểu học Phường An Xuyên – TP. Cà Mau
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-950/30 px-3 py-1.5 rounded-xl border border-emerald-500/30">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Dữ liệu bảo mật an toàn</span>
-                </div>
-              </div>
-            </div>
+            <h1 className="text-sm sm:text-base font-black tracking-wide uppercase leading-snug">
+              KHO DỮ LIỆU CÁ NHÂN - TỪ VĂN GỌN - THỨ NHẤT
+            </h1>
           </div>
-
-          {/* Right Column: Interactive Login Card */}
-          <div className="lg:col-span-6 w-full">
-            <div className="bg-white text-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
-              {/* Card Header: Chỉ có mục Đăng nhập */}
-              <div className="flex border-b border-slate-200 bg-slate-50 text-xs sm:text-sm font-bold">
-                <div className="flex-1 py-3.5 px-4 flex items-center justify-center gap-2 border-b-2 border-blue-600 text-blue-600 bg-white shadow-2xs font-bold">
-                  <LogIn className="w-4 h-4 text-emerald-600" />
-                  <span>Đăng nhập hệ thống</span>
-                </div>
-              </div>
 
               {/* Status Alert feedback */}
               <div className="px-6 pt-4">
@@ -340,9 +242,7 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
                 </form>
               </div>
             </div>
-          </div>
-        </div>
-      </main>
+          </main>
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/10 bg-black/20 backdrop-blur-md px-4 py-3 text-center text-xs text-blue-200">
