@@ -34,12 +34,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
-  // Change password inline state
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [newPassInput, setNewPassInput] = useState('');
-  const [confirmPassInput, setConfirmPassInput] = useState('');
-  const [isChangingPass, setIsChangingPass] = useState(false);
-
   // Status & loading state
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -50,7 +44,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (isOpen) {
       setErrorMsg('');
       setSuccessMsg('');
-      setShowChangePassword(false);
       setLoginPassword('');
       if (!loginUsername) {
         setLoginUsername('thaygon');
@@ -142,44 +135,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Handle Change Password directly in modal
-  const handleInlineChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    if (newPassInput !== confirmPassInput) {
-      setErrorMsg('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
-      return;
-    }
-    if (newPassInput.trim().length < 3) {
-      setErrorMsg('Mật khẩu mới phải có ít nhất 3 ký tự!');
-      return;
-    }
-
-    setIsChangingPass(true);
-    try {
-      const res = await api.changeAccountPassword(
-        loginPassword,
-        newPassInput.trim(),
-        loginUsername || 'thaygon'
-      );
-      if (res.success) {
-        setSuccessMsg(`Đổi mật khẩu thành công! Mật khẩu mới (${newPassInput.trim()}) đã được lưu an toàn. Thầy có thể bấm Đăng nhập ngay.`);
-        setLoginPassword(newPassInput.trim());
-        setShowChangePassword(false);
-        setNewPassInput('');
-        setConfirmPassInput('');
-      } else {
-        setErrorMsg(res.message || 'Không thể đổi mật khẩu. Vui lòng thử lại!');
-      }
-    } catch (err: any) {
-      setErrorMsg('Lỗi đổi mật khẩu: ' + (err.message || 'Vui lòng kiểm tra lại'));
-    } finally {
-      setIsChangingPass(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-100 text-slate-800 my-auto">
@@ -261,19 +216,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-bold text-slate-700">
-                  Mật khẩu
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowChangePassword(!showChangePassword)}
-                  className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 cursor-pointer"
-                >
-                  <KeyRound className="w-3 h-3" />
-                  <span>{showChangePassword ? 'Đóng đổi mật khẩu' : 'Đổi mật khẩu?'}</span>
-                </button>
-              </div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Mật khẩu
+              </label>
 
               <div className="relative">
                 <KeyRound className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -294,67 +239,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </button>
               </div>
             </div>
-
-            {/* Change Password Inline Drawer */}
-            {showChangePassword && (
-              <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-3 animate-in fade-in">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                    <KeyRound className="w-3.5 h-3.5 text-blue-600" />
-                    Đổi / Cập nhật mật khẩu cho: {loginUsername || 'thaygon'}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setShowChangePassword(false)}
-                    className="text-[11px] text-slate-500 hover:text-slate-800 cursor-pointer"
-                  >
-                    Đóng
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Mật khẩu mới
-                    </label>
-                    <input
-                      type="password"
-                      value={newPassInput}
-                      onChange={(e) => setNewPassInput(e.target.value)}
-                      placeholder="Nhập mật khẩu mới..."
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Xác nhận mật khẩu mới
-                    </label>
-                    <input
-                      type="password"
-                      value={confirmPassInput}
-                      onChange={(e) => setConfirmPassInput(e.target.value)}
-                      placeholder="Nhập lại mật khẩu mới..."
-                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleInlineChangePassword}
-                  disabled={isChangingPass}
-                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {isChangingPass ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <CheckCircle className="w-3.5 h-3.5" />
-                  )}
-                  <span>Lưu mật khẩu mới này</span>
-                </button>
-              </div>
-            )}
 
 
 

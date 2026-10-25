@@ -33,12 +33,6 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
-  // Change password drawer state
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [newPassInput, setNewPassInput] = useState('');
-  const [confirmPassInput, setConfirmPassInput] = useState('');
-  const [isChangingPass, setIsChangingPass] = useState(false);
-
   // Feedback states
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -122,44 +116,6 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
       }
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Handle inline change password directly on login screen
-  const handleInlineChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    if (newPassInput !== confirmPassInput) {
-      setErrorMsg('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
-      return;
-    }
-    if (newPassInput.trim().length < 3) {
-      setErrorMsg('Mật khẩu mới phải có ít nhất 3 ký tự!');
-      return;
-    }
-
-    setIsChangingPass(true);
-    try {
-      const res = await api.changeAccountPassword(
-        loginPassword,
-        newPassInput.trim(),
-        loginUsername || 'thaygon'
-      );
-      if (res.success) {
-        setSuccessMsg(`Đổi mật khẩu thành công! Mật khẩu mới đã được cập nhật. Thầy có thể nhập mật khẩu mới và bấm Đăng nhập.`);
-        setLoginPassword('');
-        setShowChangePassword(false);
-        setNewPassInput('');
-        setConfirmPassInput('');
-      } else {
-        setErrorMsg(res.message || 'Không thể đổi mật khẩu. Vui lòng thử lại!');
-      }
-    } catch (err: any) {
-      setErrorMsg('Lỗi đổi mật khẩu: ' + (err.message || 'Vui lòng kiểm tra lại'));
-    } finally {
-      setIsChangingPass(false);
     }
   };
 
@@ -337,19 +293,9 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
 
                   {/* Mật khẩu */}
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Mật khẩu
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowChangePassword(!showChangePassword)}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-semibold cursor-pointer flex items-center gap-1"
-                      >
-                        <Lock className="w-3 h-3" />
-                        <span>{showChangePassword ? 'Thu gọn' : 'Đổi mật khẩu?'}</span>
-                      </button>
-                    </div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Mật khẩu
+                    </label>
                     <div className="relative">
                       <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
                       <input
@@ -370,60 +316,6 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
                       </button>
                     </div>
                   </div>
-
-
-
-                  {/* Inline Change Password Box */}
-                  {showChangePassword && (
-                    <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-1 text-left">
-                      <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                        <Lock className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Đổi mật khẩu trực tiếp cho tài khoản: {loginUsername || 'thaygon'}</span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <input
-                          type="password"
-                          placeholder="Nhập mật khẩu mới..."
-                          value={newPassInput}
-                          onChange={(e) => setNewPassInput(e.target.value)}
-                          className="w-full px-3 py-1.5 text-xs bg-white border border-amber-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        />
-                        <input
-                          type="password"
-                          placeholder="Xác nhận mật khẩu mới..."
-                          value={confirmPassInput}
-                          onChange={(e) => setConfirmPassInput(e.target.value)}
-                          className="w-full px-3 py-1.5 text-xs bg-white border border-amber-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        />
-                      </div>
-                      <div className="flex items-center justify-end gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowChangePassword(false);
-                            setNewPassInput('');
-                            setConfirmPassInput('');
-                          }}
-                          className="px-3 py-1 text-xs text-slate-600 hover:bg-slate-200/60 rounded-lg cursor-pointer"
-                        >
-                          Đóng
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleInlineChangePassword}
-                          disabled={isChangingPass || !newPassInput.trim()}
-                          className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer disabled:opacity-50 flex items-center gap-1"
-                        >
-                          {isChangingPass ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <CheckCircle className="w-3 h-3" />
-                          )}
-                          <span>Lưu mật khẩu mới</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Submit Button */}
                   <button
