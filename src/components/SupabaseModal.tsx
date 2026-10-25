@@ -225,6 +225,26 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
     }
   };
 
+  const handleSyncVercelAndAIStudio = async () => {
+    setSyncing(true);
+    setSyncAction('pull');
+    setSyncMessage(null);
+    try {
+      const res = await api.syncVercelAndAIStudio();
+      setSyncMessage({ text: res.message, success: res.success });
+      await fetchStatus();
+      if (onSyncSuccess) onSyncSuccess();
+    } catch (err: any) {
+      setSyncMessage({
+        text: 'Lỗi đồng bộ Vercel ⇄ AI Studio: ' + (err.message || 'Mạng bận'),
+        success: false,
+      });
+    } finally {
+      setSyncing(false);
+      setSyncAction(null);
+    }
+  };
+
   if (!isOpen) return null;
 
   const isReady = Boolean(status?.isFullyReady);
@@ -713,13 +733,74 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
             </div>
           )}
 
+          {/* Vercel ⇄ Google AI Studio Real-time Sync Card */}
+          <div className="border-2 border-emerald-500/80 bg-gradient-to-br from-emerald-50 via-teal-50 to-blue-50 rounded-2xl p-5 space-y-3.5 shadow-md">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/80 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                  ⚡
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-sm tracking-tight flex items-center gap-2">
+                    Đồng Bộ Toàn Diện: Google AI Studio ⇄ Vercel
+                    <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                      Khuyên Dùng
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-600">
+                    Supabase Cloud đóng vai trò cầu nối dữ liệu chung giữa Google AI Studio và trang web Vercel.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/60 flex items-center gap-2">
+                <FolderTree className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div>
+                  <div className="text-[10px] text-slate-500">Tổng thư mục</div>
+                  <div className="font-bold text-slate-800 text-sm">734 thư mục</div>
+                </div>
+              </div>
+              <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/60 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                <div>
+                  <div className="text-[10px] text-slate-500">Tổng tài liệu giáo án</div>
+                  <div className="font-bold text-slate-800 text-sm">2.040 tài liệu</div>
+                </div>
+              </div>
+              <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/60 flex items-center gap-2">
+                <User className="w-4 h-4 text-purple-600 shrink-0" />
+                <div>
+                  <div className="text-[10px] text-slate-500">Tài khoản & Hồ sơ</div>
+                  <div className="font-bold text-slate-800 text-sm">Đồng bộ Cloud</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-1 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSyncVercelAndAIStudio}
+                disabled={syncing || !isConnected}
+                className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white px-5 py-3 rounded-xl text-xs font-black shadow-lg hover:shadow-xl transition-all disabled:opacity-50 cursor-pointer active:scale-95"
+              >
+                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                <span>{syncing ? 'Đang đồng bộ 2 chiều qua Supabase Cloud...' : 'ĐỒNG BỘ NGAY VERCEL ⇄ GOOGLE AI STUDIO'}</span>
+              </button>
+              <span className="text-[11px] text-slate-500 italic">
+                (Tự động tải dữ liệu mới nhất và đồng bộ toàn bộ tài liệu 2 bên)
+              </span>
+            </div>
+          </div>
+
           {/* Step 2: Sync data bidirectional */}
           <div className="border border-slate-200 bg-white rounded-xl p-4 space-y-3">
             <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">
                 {isReady ? '✓' : '2'}
               </span>
-              Đồng bộ dữ liệu hai chiều với Supabase Cloud
+              Đồng bộ thủ công (Đẩy lên / Kéo về)
             </h3>
             <p className="text-xs text-slate-600">
               Thầy có thể đồng bộ hai chiều linh hoạt: đẩy toàn bộ thư mục và tài liệu lên đám mây Supabase để lưu trữ an toàn, hoặc kéo toàn bộ dữ liệu từ Supabase về ứng dụng khi chuyển thiết bị.

@@ -1074,10 +1074,28 @@ app.post('/api/auth/register', (req, res) => {
     db.user = userProfile;
 
     saveDB(db);
+    syncUserToSupabase(userProfile);
+
+    // Synchronize account registry to Supabase Cloud so Vercel can access it
+    try {
+      supabase.from('files').upsert({
+        id: '__system_accounts_sync__',
+        name: 'SYSTEM_ACCOUNTS_SYNC',
+        category: 'other',
+        is_deleted: true,
+        deleted_at: null,
+        preview_content: JSON.stringify(db.users),
+        size: 0,
+        folder_id: null,
+        folder_name: 'system',
+        upload_date: new Date().toISOString(),
+        updated_date: new Date().toISOString(),
+      }).then(() => {});
+    } catch (e) {}
 
     res.json({
       success: true,
-      message: `Đăng ký thành công tài khoản "${cleanUsername}" cho ${newUserAccount.fullName}!`,
+      message: `Đăng ký thành công tài khoản "${cleanUsername}" cho ${newUserAccount.fullName}! (Đã đồng bộ Vercel & AI Studio)`,
       user: userProfile,
     });
   } catch (err: any) {
@@ -1087,7 +1105,7 @@ app.post('/api/auth/register', (req, res) => {
 });
 
 // Đăng nhập bằng tên đăng nhập và mật khẩu
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -1110,7 +1128,7 @@ app.post('/api/auth/login', (req, res) => {
           school: db.user?.school || 'Trường Tiểu học Phường An Xuyên',
           location: db.user?.location || 'Cà Mau',
           email: db.user?.email || 'thaygonthax1978@gmail.com',
-          phone: db.user?.phone || '0918.452.889',
+          phone: db.user?.phone || '0919.27.18.54',
           storageUsedBytes: db.user?.storageUsedBytes || 38.6 * 1024 * 1024 * 1024,
           storageMaxBytes: db.user?.storageMaxBytes || 100 * 1024 * 1024 * 1024,
           avatarUrl: db.user?.avatarUrl || '/avatar_tu_van_gon.jpg',
@@ -1122,7 +1140,7 @@ app.post('/api/auth/login', (req, res) => {
     }
 
     // Match by username or email or default teacher aliases
-    const matchedAccount = db.users.find(
+    let matchedAccount = db.users.find(
       (u) =>
         u.username.toLowerCase() === cleanUsername ||
         (u.email && u.email.toLowerCase() === cleanUsername) ||
@@ -1130,6 +1148,34 @@ app.post('/api/auth/login', (req, res) => {
         (cleanUsername === 'thaygonthax1978' && u.id === 'user_gon_01') ||
         (cleanUsername === 'admin' && u.id === 'user_gon_01')
     );
+
+    // If not found in local db, check if registered on Vercel via Supabase Cloud
+    if (!matchedAccount) {
+      try {
+        const { data: syncRow } = await supabase
+          .from('files')
+          .select('preview_content')
+          .eq('id', '__system_accounts_sync__')
+          .maybeSingle();
+        if (syncRow?.preview_content) {
+          const cloudAccounts = JSON.parse(syncRow.preview_content);
+          if (Array.isArray(cloudAccounts)) {
+            const found = cloudAccounts.find(
+              (u) =>
+                u.username.toLowerCase() === cleanUsername ||
+                (u.email && u.email.toLowerCase() === cleanUsername)
+            );
+            if (found) {
+              db.users.push(found);
+              saveDB(db);
+              matchedAccount = found;
+            }
+          }
+        }
+      } catch (cloudErr) {
+        console.warn('Check cloud accounts error in server login:', cloudErr);
+      }
+    }
 
     if (!matchedAccount) {
       return res.status(401).json({

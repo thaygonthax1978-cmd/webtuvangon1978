@@ -312,11 +312,11 @@ export const Header: React.FC<HeaderProps> = ({
                 e.stopPropagation();
                 onOpenSupabaseModal();
               }}
-              title="Cơ sở dữ liệu Supabase Cloud (Bấm để xem trạng thái và đồng bộ)"
+              title="Đồng bộ dữ liệu chung giữa Google AI Studio & Vercel qua Supabase Cloud"
               className="p-1.5 rounded-full transition-all flex items-center gap-1.5 text-xs px-2.5 font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-300/40 cursor-pointer active:scale-95 shrink-0"
             >
               <Database className="w-3.5 h-3.5 shrink-0" />
-              <span className="font-bold">Supabase</span>
+              <span className="font-bold">Đồng bộ Vercel ⇄ AI Studio</span>
               <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse shrink-0" />
             </button>
           )}
