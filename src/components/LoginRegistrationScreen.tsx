@@ -21,7 +21,7 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
   onLoginSuccess,
 }) => {
   // Login form state
-  const [loginUsername, setLoginUsername] = useState('thaygon');
+  const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
@@ -178,7 +178,7 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
                   {/* Tên đăng nhập */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Tên đăng nhập hoặc Email
+                      Tên đăng nhập
                     </label>
                     <div className="relative">
                       <User className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
@@ -187,7 +187,7 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
                         required
                         value={loginUsername}
                         onChange={(e) => setLoginUsername(e.target.value)}
-                        placeholder="vd: thaygon hoặc email..."
+                        placeholder="Nhập tên đăng nhập..."
                         className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 transition-all font-medium"
                       />
                     </div>

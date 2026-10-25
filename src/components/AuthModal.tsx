@@ -30,7 +30,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onUserChanged,
 }) => {
   // Form states - Login
-  const [loginUsername, setLoginUsername] = useState('thaygon');
+  const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
@@ -39,15 +39,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Reset errors and password when modal opens
+  // Reset errors and fields when modal opens
   useEffect(() => {
     if (isOpen) {
       setErrorMsg('');
       setSuccessMsg('');
+      setLoginUsername('');
       setLoginPassword('');
-      if (!loginUsername) {
-        setLoginUsername('thaygon');
-      }
     }
   }, [isOpen]);
 
@@ -180,7 +178,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Tên đăng nhập hoặc Email
+                Tên đăng nhập
               </label>
               <div className="relative">
                 <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -189,7 +187,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   required
                   value={loginUsername}
                   onChange={(e) => setLoginUsername(e.target.value)}
-                  placeholder="vd: thaygon hoặc tên tài khoản bạn đã tạo"
+                  placeholder="Nhập tên đăng nhập..."
                   className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 />
               </div>
