@@ -13,7 +13,8 @@
     "storageMaxBytes": 107374182400,
     "twoFactorEnabled": true,
     "createdAt": "2026-09-01T00:00:00.000Z",
-    "lastLogin": "2026-10-25T06:54:03.088Z"
+    "lastLogin": "2026-10-25T12:03:29.472Z",
+    "password": "Gon1978@"
   },
   "folders": [
     {
@@ -61679,7 +61680,7 @@
     {
       "id": "user_gon_01",
       "username": "thaygon",
-      "password": "123",
+      "password": "Gon1978@",
       "fullName": "TỪ VĂN GỌN",
       "role": "TIỂU HỌC",
       "school": "PHƯỜNG AN XUYÊN",
@@ -61691,7 +61692,7 @@
       "avatarUrl": "/avatar_tu_van_gon.jpg",
       "twoFactorEnabled": true,
       "createdAt": "2026-09-01T00:00:00.000Z",
-      "lastLogin": "2026-10-25T06:54:03.088Z"
+      "lastLogin": "2026-10-25T12:03:29.472Z"
     }
   ]
 }

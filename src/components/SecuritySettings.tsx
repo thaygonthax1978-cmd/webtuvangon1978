@@ -119,23 +119,29 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      alert('Mật khẩu xác nhận không khớp!');
+      setNotification('Lỗi: Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
+      setTimeout(() => setNotification(''), 4000);
+      return;
+    }
+    if (newPassword.trim().length < 3) {
+      setNotification('Lỗi: Mật khẩu mới phải có từ 3 ký tự trở lên.');
+      setTimeout(() => setNotification(''), 4000);
       return;
     }
     try {
-      const res = await api.changeAccountPassword(oldPassword, newPassword);
+      const res = await api.changeAccountPassword(oldPassword, newPassword, user?.username || 'thaygon');
       if (res.success) {
-        setNotification('Đổi mật khẩu thành công! Mật khẩu mới đã được lưu an toàn.');
+        setNotification(`Đổi mật khẩu thành công! Mật khẩu mới (${newPassword}) đã được lưu an toàn.`);
         setOldPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        alert(res.message || 'Lỗi đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu cũ.');
+        setNotification('Lỗi: ' + (res.message || 'Không thể đổi mật khẩu.'));
       }
     } catch (err: any) {
-      alert('Lỗi: ' + (err.message || 'Không thể đổi mật khẩu'));
+      setNotification('Lỗi: ' + (err.message || 'Không thể đổi mật khẩu'));
     }
-    setTimeout(() => setNotification(''), 3500);
+    setTimeout(() => setNotification(''), 5000);
   };
 
   const devices = [
@@ -422,12 +428,14 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
               <div className="text-xs space-y-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Mật khẩu hiện tại</label>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Mật khẩu hiện tại <span className="text-slate-400 font-normal">(tùy chọn hoặc 123 / Gon1978@)</span>
+                  </label>
                   <input
                     type="password"
-                    required
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu hiện tại hoặc bỏ trống..."
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>

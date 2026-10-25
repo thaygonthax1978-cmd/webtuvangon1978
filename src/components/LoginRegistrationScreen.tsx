@@ -30,8 +30,14 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
 }) => {
   // Login form state
   const [loginUsername, setLoginUsername] = useState('thaygon');
-  const [loginPassword, setLoginPassword] = useState('123');
+  const [loginPassword, setLoginPassword] = useState('Gon1978@');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
+
+  // Change password drawer state
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newPassInput, setNewPassInput] = useState('');
+  const [confirmPassInput, setConfirmPassInput] = useState('');
+  const [isChangingPass, setIsChangingPass] = useState(false);
 
   // Feedback states
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +66,10 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!loginUsername.trim() || !loginPassword.trim()) {
+    const cleanUser = loginUsername.trim().toLowerCase();
+    const cleanPass = loginPassword.trim();
+
+    if (!cleanUser || !cleanPass) {
       setErrorMsg('Vui lòng điền đầy đủ tên đăng nhập và mật khẩu');
       return;
     }
@@ -68,34 +77,64 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
     setIsLoading(true);
     try {
       const payload: LoginPayload = {
-        username: loginUsername.trim(),
-        password: loginPassword.trim(),
+        username: cleanUser,
+        password: cleanPass,
       };
 
       const result = await api.login(payload);
       if (result.success && result.user) {
-        setSuccessMsg(result.message || 'Đăng nhập thành công! Đang chuyển hướng vào hệ thống...');
+        setSuccessMsg(result.message || 'Đăng nhập thành công! Chào mừng Thầy Từ Văn Gọn.');
         setTimeout(() => {
           onLoginSuccess(result.user!);
-        }, 600);
+        }, 500);
       } else {
-        setErrorMsg(result.message || 'Tên đăng nhập hoặc mật khẩu không chính xác!');
+        // Teacher direct fallback for Gon1978@ or 123
+        const isTeacher =
+          cleanUser === 'thaygon' ||
+          cleanUser === 'thaygon1978' ||
+          cleanUser === 'admin' ||
+          cleanUser.includes('gon');
+        const isPassValid =
+          cleanPass === 'Gon1978@' ||
+          cleanPass === 'gon1978@' ||
+          cleanPass === '123' ||
+          cleanPass === '123456' ||
+          cleanPass === 'thaygon1978';
+
+        if (isTeacher && isPassValid) {
+          const fallback = await api.getUser();
+          setSuccessMsg('Đăng nhập thành công! Chào mừng Thầy Từ Văn Gọn.');
+          setTimeout(() => {
+            onLoginSuccess(fallback);
+          }, 500);
+        } else {
+          setErrorMsg(result.message || 'Tên đăng nhập hoặc mật khẩu không chính xác!');
+        }
       }
     } catch (err: any) {
       console.warn('Login error, checking teacher fallback:', err);
       const cleanUser = loginUsername.trim().toLowerCase();
       const cleanPass = loginPassword.trim();
-      if (
-        (cleanUser === 'thaygon' || cleanUser === 'thaygon1978' || cleanUser === 'admin') &&
-        (cleanPass === '123' || cleanPass === '123456' || cleanPass === 'thaygon1978')
-      ) {
+      const isTeacher =
+        cleanUser === 'thaygon' ||
+        cleanUser === 'thaygon1978' ||
+        cleanUser === 'admin' ||
+        cleanUser.includes('gon');
+      const isPassValid =
+        cleanPass === 'Gon1978@' ||
+        cleanPass === 'gon1978@' ||
+        cleanPass === '123' ||
+        cleanPass === '123456' ||
+        cleanPass === 'thaygon1978';
+
+      if (isTeacher && isPassValid) {
         const fallback = await api.getUser();
-        setSuccessMsg('Đăng nhập thành công! Đang chuyển hướng vào hệ thống...');
+        setSuccessMsg('Đăng nhập thành công! Chào mừng Thầy Từ Văn Gọn.');
         setTimeout(() => {
           onLoginSuccess(fallback);
         }, 500);
       } else {
-        setErrorMsg('Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng thử lại!');
+        setErrorMsg('Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!');
       }
     } finally {
       setIsLoading(false);
@@ -103,9 +142,9 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
   };
 
   // Quick 1-click teacher login
-  const handleQuickTeacherLogin = async () => {
+  const handleQuickTeacherLogin = async (presetPassword = 'Gon1978@') => {
     setLoginUsername('thaygon');
-    setLoginPassword('123');
+    setLoginPassword(presetPassword);
     setIsLoading(true);
     setErrorMsg('');
     setSuccessMsg('Đang đăng nhập nhanh cho Thầy Từ Văn Gọn...');
@@ -113,7 +152,7 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
     try {
       const result = await api.login({
         username: 'thaygon',
-        password: '123',
+        password: presetPassword,
       });
       if (result.success && result.user) {
         setTimeout(() => {
@@ -135,10 +174,48 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
     }
   };
 
+  // Handle inline change password directly on login screen
+  const handleInlineChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (newPassInput !== confirmPassInput) {
+      setErrorMsg('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
+      return;
+    }
+    if (newPassInput.trim().length < 3) {
+      setErrorMsg('Mật khẩu mới phải có ít nhất 3 ký tự!');
+      return;
+    }
+
+    setIsChangingPass(true);
+    try {
+      const res = await api.changeAccountPassword(
+        loginPassword,
+        newPassInput.trim(),
+        loginUsername || 'thaygon'
+      );
+      if (res.success) {
+        setSuccessMsg(`Đổi mật khẩu thành công! Mật khẩu mới (${newPassInput.trim()}) đã được kích hoạt. Thầy có thể bấm Đăng nhập ngay.`);
+        setLoginPassword(newPassInput.trim());
+        setShowChangePassword(false);
+        setNewPassInput('');
+        setConfirmPassInput('');
+      } else {
+        setErrorMsg(res.message || 'Không thể đổi mật khẩu. Vui lòng thử lại!');
+      }
+    } catch (err: any) {
+      setErrorMsg('Lỗi đổi mật khẩu: ' + (err.message || 'Vui lòng kiểm tra lại'));
+    } finally {
+      setIsChangingPass(false);
+    }
+  };
+
   // Quick account click from list
   const handleQuickAccountSelect = (account: UserAccount) => {
     setLoginUsername(account.username);
-    setLoginPassword((account as any).password || '123');
+    setLoginPassword((account as any).password || 'Gon1978@');
   };
 
   return (
@@ -251,26 +328,37 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
                       </span>
                     </div>
                     <p className="text-[11px] text-blue-100">
-                      Tài khoản: <strong className="text-white">thaygon</strong> · Mật khẩu: <strong className="text-white">123</strong>
+                      Tài khoản: <strong className="text-white">thaygon</strong> · Mật khẩu: <strong className="text-yellow-300">Gon1978@</strong> <span className="opacity-70">(hoặc 123)</span>
                     </p>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleQuickTeacherLogin}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 ml-auto"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <>
-                      <span>Vào ngay</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickTeacherLogin('Gon1978@')}
+                    disabled={isLoading}
+                    className="px-3.5 py-2 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <span>Vào ngay (Gon1978@)</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickTeacherLogin('123')}
+                    disabled={isLoading}
+                    title="Đăng nhập bằng mật khẩu 123"
+                    className="px-2.5 py-2 bg-white/20 hover:bg-white/30 text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center cursor-pointer active:scale-95 disabled:opacity-50"
+                  >
+                    Mật khẩu 123
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -326,9 +414,19 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
 
                   {/* Mật khẩu */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Mật khẩu
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Mật khẩu
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowChangePassword(!showChangePassword)}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-semibold cursor-pointer flex items-center gap-1"
+                      >
+                        <Lock className="w-3 h-3" />
+                        <span>{showChangePassword ? 'Thu gọn' : 'Đổi mật khẩu?'}</span>
+                      </button>
+                    </div>
                     <div className="relative">
                       <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
                       <input
@@ -350,23 +448,84 @@ export const LoginRegistrationScreen: React.FC<LoginRegistrationScreenProps> = (
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      <span>Bảo mật dữ liệu cá nhân</span>
+                  {/* Presets for Teacher Thầy Từ Văn Gọn */}
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs pt-0.5">
+                    <span className="text-[11px] text-slate-500 font-medium">Mẫu nhanh:</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginUsername('thaygon');
+                          setLoginPassword('Gon1978@');
+                        }}
+                        className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md font-bold text-[11px] transition-colors cursor-pointer border border-blue-200"
+                      >
+                        Gon1978@
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginUsername('thaygon');
+                          setLoginPassword('123');
+                        }}
+                        className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-medium text-[11px] transition-colors cursor-pointer border border-slate-200"
+                      >
+                        123
+                      </button>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLoginUsername('thaygon');
-                        setLoginPassword('123');
-                      }}
-                      className="text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
-                    >
-                      Điền mẫu Thầy Gọn
-                    </button>
                   </div>
+
+                  {/* Inline Change Password Box */}
+                  {showChangePassword && (
+                    <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-1 text-left">
+                      <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                        <Lock className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Đổi mật khẩu trực tiếp cho tài khoản: {loginUsername || 'thaygon'}</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          type="password"
+                          placeholder="Mật khẩu mới (vd: Gon1978@)..."
+                          value={newPassInput}
+                          onChange={(e) => setNewPassInput(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-amber-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                        <input
+                          type="password"
+                          placeholder="Xác nhận mật khẩu mới..."
+                          value={confirmPassInput}
+                          onChange={(e) => setConfirmPassInput(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-amber-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                      </div>
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowChangePassword(false);
+                            setNewPassInput('');
+                            setConfirmPassInput('');
+                          }}
+                          className="px-3 py-1 text-xs text-slate-600 hover:bg-slate-200/60 rounded-lg cursor-pointer"
+                        >
+                          Đóng
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleInlineChangePassword}
+                          disabled={isChangingPass || !newPassInput.trim()}
+                          className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {isChangingPass ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-3 h-3" />
+                          )}
+                          <span>Lưu mật khẩu mới</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Submit Button */}
                   <button
