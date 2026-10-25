@@ -24,6 +24,7 @@ import { SecuritySettings } from './components/SecuritySettings';
 import { MobileDeviceSimulator } from './components/MobileDeviceSimulator';
 import { SupabaseModal } from './components/SupabaseModal';
 import { AuthModal } from './components/AuthModal';
+import { LoginRegistrationScreen } from './components/LoginRegistrationScreen';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   FileText,
@@ -100,6 +101,11 @@ export default function App() {
   const [trashFiles, setTrashFiles] = useState<FileItem[]>(() => localStore.get('trash_files', []));
   const [isLoading, setIsLoading] = useState(false);
   const [includeSubfolderFiles, setIncludeSubfolderFiles] = useState(true);
+
+  // Authentication session gate: determines if user has logged in
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStore.get<boolean>('is_authenticated', false);
+  });
 
   // Layout & Responsive state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -555,6 +561,24 @@ export default function App() {
     setUser(newUser);
     localStore.set('user', newUser);
     showToast(`Đang làm việc với tài khoản: ${newUser.fullName} (@${newUser.username || 'user'})`);
+  };
+
+  const handleLoginSuccess = (loggedInUser: UserProfile) => {
+    setUser(loggedInUser);
+    localStore.set('user', loggedInUser);
+    localStore.set('is_authenticated', true);
+    setIsAuthenticated(true);
+    showToast(`Chào mừng ${loggedInUser.fullName}! Đăng nhập thành công.`);
+    loadData();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch {}
+    localStore.set('is_authenticated', false);
+    setIsAuthenticated(false);
+    showToast('Đã đăng xuất ra màn hình đăng nhập an toàn.');
   };
 
   // Render current tab content
@@ -1106,6 +1130,7 @@ export default function App() {
             }}
             onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
             onOpenAuthModal={handleOpenAuthModal}
+            onLogout={handleLogout}
           />
         );
 
@@ -1113,6 +1138,16 @@ export default function App() {
         return null;
     }
   };
+
+  // Màn hình đăng nhập & đăng ký hiện ra trước khi vào được giao diện web
+  if (!isAuthenticated) {
+    return (
+      <LoginRegistrationScreen
+        onLoginSuccess={handleLoginSuccess}
+        initialMode="login"
+      />
+    );
+  }
 
   return (
     <div translate="no" className="notranslate min-h-screen bg-[#F0F4FA] flex flex-col font-sans text-slate-800">
@@ -1133,6 +1168,7 @@ export default function App() {
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         onClearCacheAndRefresh={handleClearCacheAndRefresh}
         onOpenAuthModal={handleOpenAuthModal}
+        onLogout={handleLogout}
         toggleMobileSimulator={() => setIsMobileSimulatorActive(!isMobileSimulatorActive)}
         isMobileSimulatorActive={isMobileSimulatorActive}
         onToggleSidebarMobile={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}

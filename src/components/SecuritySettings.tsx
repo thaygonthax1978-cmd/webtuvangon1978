@@ -19,6 +19,7 @@ import {
   UserPlus,
   Users,
   AlertCircle,
+  LogOut,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { api } from '../services/api';
@@ -28,6 +29,7 @@ interface SecuritySettingsProps {
   onUpdateUser: (userData: Partial<UserProfile>) => Promise<void>;
   onOpenSupabaseModal?: () => void;
   onOpenAuthModal?: (tab?: 'register' | 'login' | 'users') => void;
+  onLogout?: () => void;
 }
 
 export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
@@ -35,6 +37,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   onUpdateUser,
   onOpenSupabaseModal,
   onOpenAuthModal,
+  onLogout,
 }) => {
   const [fullName, setFullName] = useState(user?.fullName || 'TỪ VĂN GỌN');
   const [role, setRole] = useState(user?.role || 'Giáo viên tiểu học');
@@ -285,6 +288,17 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 <span>Supabase Cloud</span>
               </div>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </button>
+          )}
+
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 text-rose-700 bg-rose-50 hover:bg-rose-100 transition-all border border-rose-200 mt-3 cursor-pointer active:scale-98 shadow-2xs"
+            >
+              <LogOut className="w-4 h-4 text-rose-600" />
+              <span>Đăng xuất ra màn hình chính</span>
             </button>
           )}
         </div>

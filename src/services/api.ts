@@ -61,6 +61,11 @@ export const localStore = {
       // quota or private browsing
     }
   },
+  remove(key: string): void {
+    try {
+      localStorage.removeItem(`thaygon_${key}`);
+    } catch (e) {}
+  },
 };
 
 export async function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {

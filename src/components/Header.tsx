@@ -30,6 +30,7 @@ interface HeaderProps {
   onOpenSupabaseModal?: () => void;
   onClearCacheAndRefresh?: () => void;
   onOpenAuthModal?: (tab?: 'register' | 'login' | 'users') => void;
+  onLogout?: () => void;
   toggleMobileSimulator: () => void;
   isMobileSimulatorActive: boolean;
   onToggleSidebarMobile: () => void;
@@ -43,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSupabaseModal,
   onClearCacheAndRefresh,
   onOpenAuthModal,
+  onLogout,
   toggleMobileSimulator,
   isMobileSimulatorActive,
   onToggleSidebarMobile,
@@ -523,12 +525,16 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     onClick={() => {
                       setShowUserDropdown(false);
-                      if (onOpenAuthModal) onOpenAuthModal('login');
+                      if (onLogout) {
+                        onLogout();
+                      } else if (onOpenAuthModal) {
+                        onOpenAuthModal('login');
+                      }
                     }}
                     className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-xs flex items-center gap-2 font-medium cursor-pointer"
                   >
                     <LogOut className="w-4 h-4 text-red-500" />
-                    <span>Đăng xuất / Chuyển người dùng</span>
+                    <span>Đăng xuất ra màn hình chính</span>
                   </button>
                 </div>
               </div>
