@@ -193,7 +193,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setErrorMsg(result.message || 'Tên đăng nhập hoặc mật khẩu không chính xác!');
       }
     } catch (err: any) {
-      setErrorMsg('Lỗi đăng nhập: ' + (err.message || 'Vui lòng thử lại'));
+      setErrorMsg('Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!');
     } finally {
       setIsLoading(false);
     }
