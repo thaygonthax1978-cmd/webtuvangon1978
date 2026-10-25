@@ -392,16 +392,16 @@ export const Header: React.FC<HeaderProps> = ({
             <Settings className="w-4 h-4" />
           </button>
 
-          {/* Nút Đăng ký tài khoản mới bằng tên đăng nhập và mật khẩu */}
+          {/* Nút Đăng nhập tài khoản bằng tên đăng nhập và mật khẩu */}
           {onOpenAuthModal && (
             <button
               type="button"
-              onClick={() => onOpenAuthModal('register')}
-              title="Đăng ký tài khoản mới bằng tên đăng nhập và mật khẩu"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-900 transition-all font-bold text-xs shadow-md cursor-pointer active:scale-95 shrink-0 hover:ring-2 hover:ring-amber-200"
+              onClick={() => onOpenAuthModal('login')}
+              title="Đăng nhập tài khoản bằng tên đăng nhập và mật khẩu"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white transition-all font-bold text-xs shadow-md cursor-pointer active:scale-95 shrink-0 hover:ring-2 hover:ring-emerald-200"
             >
-              <UserPlus className="w-3.5 h-3.5 text-slate-950 font-bold" />
-              <span className="font-extrabold tracking-wide">Đăng ký</span>
+              <LogIn className="w-3.5 h-3.5 text-white font-bold" />
+              <span className="font-extrabold tracking-wide">Đăng nhập</span>
             </button>
           )}
 
@@ -452,37 +452,12 @@ export const Header: React.FC<HeaderProps> = ({
                       <button
                         onClick={() => {
                           setShowUserDropdown(false);
-                          onOpenAuthModal('register');
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-amber-50 text-amber-800 flex items-center gap-2.5 font-bold transition-colors cursor-pointer"
-                      >
-                        <UserPlus className="w-4 h-4 text-amber-600" />
-                        <span>Đăng ký tài khoản mới</span>
-                        <span className="text-[10px] ml-auto bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
-                          Mới
-                        </span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setShowUserDropdown(false);
                           onOpenAuthModal('login');
                         }}
-                        className="w-full text-left px-4 py-2 hover:bg-blue-50 text-slate-700 flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
+                        className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-emerald-800 flex items-center gap-2.5 font-bold transition-colors cursor-pointer"
                       >
                         <LogIn className="w-4 h-4 text-emerald-600" />
-                        <span>Đăng nhập tài khoản khác</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setShowUserDropdown(false);
-                          onOpenAuthModal('users');
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-blue-50 text-slate-700 flex items-center gap-2.5 font-medium transition-colors cursor-pointer"
-                      >
-                        <Users className="w-4 h-4 text-indigo-600" />
-                        <span>Danh sách & Chuyển tài khoản</span>
+                        <span>Đăng nhập tài khoản</span>
                       </button>
 
                       <div className="border-t border-slate-100 my-1" />

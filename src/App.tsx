@@ -102,10 +102,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [includeSubfolderFiles, setIncludeSubfolderFiles] = useState(true);
 
-  // Authentication session gate: determines if user has logged in
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStore.get<boolean>('is_authenticated', false);
-  });
+  // Màn hình đăng nhập luôn hiện ra trước khi vào được giao diện web theo yêu cầu của Thầy Từ Văn Gọn
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // Layout & Responsive state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -121,7 +119,7 @@ export default function App() {
   const [uploadMode, setUploadMode] = useState<'file' | 'folder'>('file');
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalTab, setAuthModalTab] = useState<'register' | 'login' | 'users'>('register');
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'register' | 'users'>('login');
 
   // Create Folder Modal State
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
@@ -552,7 +550,7 @@ export default function App() {
     setCurrentTab('ai-assistant');
   };
 
-  const handleOpenAuthModal = (tab: 'register' | 'login' | 'users' = 'register') => {
+  const handleOpenAuthModal = (tab: 'login' | 'register' | 'users' = 'login') => {
     setAuthModalTab(tab);
     setIsAuthModalOpen(true);
   };
@@ -566,7 +564,6 @@ export default function App() {
   const handleLoginSuccess = (loggedInUser: UserProfile) => {
     setUser(loggedInUser);
     localStore.set('user', loggedInUser);
-    localStore.set('is_authenticated', true);
     setIsAuthenticated(true);
     showToast(`Chào mừng ${loggedInUser.fullName}! Đăng nhập thành công.`);
     loadData();
@@ -576,7 +573,7 @@ export default function App() {
     try {
       await api.logout();
     } catch {}
-    localStore.set('is_authenticated', false);
+    localStore.remove('is_authenticated');
     setIsAuthenticated(false);
     showToast('Đã đăng xuất ra màn hình đăng nhập an toàn.');
   };
@@ -1245,6 +1242,8 @@ export default function App() {
       {activeViewerFile && (
         <FileViewerModal
           file={activeViewerFile}
+          allFiles={files.filter((f) => !f.isDeleted)}
+          onNavigate={(nextFile) => setActiveViewerFile(nextFile)}
           onClose={() => setActiveViewerFile(null)}
           onShare={handleShareFile}
           onOpenVersions={(file) => {

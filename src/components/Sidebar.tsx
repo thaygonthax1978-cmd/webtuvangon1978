@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Database,
   UserPlus,
+  LogIn,
 } from 'lucide-react';
 import { ViewTab, StatsData } from '../types';
 import { formatBytes } from '../services/api';
@@ -135,30 +136,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
               );
             })}
 
-            {/* Nút Đăng ký tài khoản mới */}
+            {/* Nút Đăng nhập tài khoản */}
             {onOpenAuthModal && (
               <button
                 type="button"
                 onClick={() => {
-                  onOpenAuthModal('register');
+                  onOpenAuthModal('login');
                   if (isMobileOpen) onCloseMobile();
                 }}
-                title={isCollapsed ? 'Đăng ký tài khoản mới' : undefined}
+                title={isCollapsed ? 'Đăng nhập tài khoản' : undefined}
                 className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-bold transition-all duration-150 text-left text-slate-900 bg-amber-400 hover:bg-amber-300 border border-amber-300 mt-2 group cursor-pointer active:scale-98 shadow-sm"
               >
-                <UserPlus className="w-5 h-5 shrink-0 text-slate-950 group-hover:scale-110 transition-transform font-bold" />
+                <LogIn className="w-5 h-5 shrink-0 text-slate-950 group-hover:scale-110 transition-transform font-bold" />
                 {!isCollapsed && (
-                  <>
-                    <span
-                      translate="no"
-                      className="notranslate flex-1 truncate tracking-wide text-xs md:text-sm font-extrabold text-slate-950"
-                    >
-                      Đăng ký tài khoản
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-extrabold bg-amber-600 text-white flex items-center gap-1 shadow-xs">
-                      Mới
-                    </span>
-                  </>
+                  <span
+                    translate="no"
+                    className="notranslate flex-1 truncate tracking-wide text-xs md:text-sm font-extrabold text-slate-950"
+                  >
+                    Đăng nhập tài khoản
+                  </span>
                 )}
               </button>
             )}

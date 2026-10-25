@@ -2295,6 +2295,80 @@ app.post('/api/files/:id/share', (req, res) => {
   res.json({ success: true, shareConfig });
 });
 
+// 8b. View File Inline (Images, Videos, PDFs, Preview)
+app.get('/api/files/:id/view', async (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+  const file = db.files.find((f) => f.id === id);
+  if (!file) return res.status(404).send('Không tìm thấy tệp');
+
+  const ext = (file.extension || '').toLowerCase().replace('.', '');
+  const filePath = path.join(UPLOADS_DIR, file.filename);
+
+  // Determine MIME type
+  let mimeType = file.mimeType || 'application/octet-stream';
+  if (['jpg', 'jpeg'].includes(ext)) mimeType = 'image/jpeg';
+  else if (ext === 'png') mimeType = 'image/png';
+  else if (ext === 'webp') mimeType = 'image/webp';
+  else if (ext === 'gif') mimeType = 'image/gif';
+  else if (ext === 'svg') mimeType = 'image/svg+xml';
+  else if (ext === 'pdf') mimeType = 'application/pdf';
+  else if (ext === 'mp4') mimeType = 'video/mp4';
+
+  res.setHeader('Content-Type', mimeType);
+  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.name)}"`);
+
+  // 1. If physical file exists on disk, send it directly
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+
+  // 2. If it is an image
+  const isImage = file.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext);
+  if (isImage) {
+    const lowerName = (file.name || '').toLowerCase();
+    // Teacher portrait / ID photo (ảnh thẻ, 3x4, Thầy Gọn)
+    if (lowerName.includes('anh the') || lowerName.includes('ảnh thẻ') || lowerName.includes('3x4') || lowerName.includes('hinh the') || lowerName.includes('gon') || (file.folderName && file.folderName.includes('ẢNH CẢ NHÀ'))) {
+      const portraitPath = path.join(UPLOADS_DIR, 'anh_the_thay_gon.jpg');
+      if (fs.existsSync(portraitPath)) {
+        res.setHeader('Content-Type', 'image/jpeg');
+        return res.sendFile(portraitPath);
+      }
+      const avatarPath = path.resolve(process.cwd(), 'public', 'avatar_tu_van_gon.jpg');
+      if (fs.existsSync(avatarPath)) {
+        res.setHeader('Content-Type', 'image/jpeg');
+        return res.sendFile(avatarPath);
+      }
+    }
+
+    // Return a crisp SVG placeholder with teacher watermark
+    const safeTitle = (file.name || 'Ảnh').replace(/[<>&"]/g, '');
+    const safeFolder = (file.folderName || 'Tài liệu').replace(/[<>&"]/g, '');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1e293b"/>
+          <stop offset="50%" stop-color="#0f172a"/>
+          <stop offset="100%" stop-color="#0284c7"/>
+        </linearGradient>
+      </defs>
+      <rect width="800" height="600" fill="url(#bg)"/>
+      <circle cx="400" cy="220" r="80" fill="#38bdf8" opacity="0.2"/>
+      <rect x="340" y="160" width="120" height="120" rx="20" stroke="#38bdf8" stroke-width="5" fill="none"/>
+      <circle cx="380" cy="200" r="14" fill="#38bdf8"/>
+      <path d="M355 260 L395 215 L420 235 L445 205 L465 260 Z" fill="#38bdf8" opacity="0.8"/>
+      <text x="400" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">${safeTitle}</text>
+      <text x="400" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#94a3b8" text-anchor="middle">Thư mục: ${safeFolder} • Thầy Từ Văn Gọn</text>
+      <text x="400" y="435" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#38bdf8" text-anchor="middle">Trường Tiểu học Phường An Xuyên, TP. Cà Mau</text>
+    </svg>`;
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    return res.send(svg);
+  }
+
+  // 3. Fallback for other files
+  res.send(file.previewContent || `Tài liệu: ${file.name}`);
+});
+
 // 9. Download File
 app.get('/api/files/:id/download', async (req, res) => {
   const { id } = req.params;
@@ -2322,6 +2396,15 @@ app.get('/api/files/:id/download', async (req, res) => {
   // Nếu tệp vật lý đã có sẵn và hợp lệ
   if (fs.existsSync(filePath)) {
     return res.download(filePath, file.name);
+  }
+
+  // If it's portrait/ID photo and physical file is missing
+  const lowerName = (file.name || '').toLowerCase();
+  if (lowerName.includes('anh the') || lowerName.includes('ảnh thẻ') || lowerName.includes('3x4') || lowerName.includes('hinh the')) {
+    const portraitPath = path.join(UPLOADS_DIR, 'anh_the_thay_gon.jpg');
+    if (fs.existsSync(portraitPath)) {
+      return res.download(portraitPath, file.name);
+    }
   }
 
   // Fallback synthetic download if sample

@@ -1357,6 +1357,21 @@ export const api = {
     return data.analysis;
   },
 
+  getFileViewUrl(file: FileItem): string {
+    if (file.previewContent?.startsWith('http') || file.previewContent?.startsWith('data:image')) {
+      return file.previewContent;
+    }
+    const ext = (file.extension || '').toLowerCase().replace('.', '');
+    const isImage = file.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext);
+    if (isImage) {
+      const lower = (file.name || '').toLowerCase();
+      if (lower.includes('anh the') || lower.includes('ảnh thẻ') || lower.includes('3x4') || lower.includes('hinh the')) {
+        return '/uploads/anh_the_thay_gon.jpg';
+      }
+    }
+    return `/api/files/${file.id}/view`;
+  },
+
   getDownloadUrl(fileId: string): string {
     return `/api/files/${fileId}/download`;
   },

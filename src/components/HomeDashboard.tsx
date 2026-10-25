@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Layers,
   UserPlus,
+  LogIn,
 } from 'lucide-react';
 import { StatsData, FileItem, FolderItem } from '../types';
 import { formatBytes, formatDate, DEFAULT_FOLDERS, api } from '../services/api';
@@ -239,11 +240,11 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             </button>
             {onOpenAuthModal && (
               <button
-                onClick={() => onOpenAuthModal('register')}
-                className="bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold px-4 py-2 rounded-xl text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer border border-amber-200 active:scale-95"
+                onClick={() => onOpenAuthModal('login')}
+                className="bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer border border-emerald-300 active:scale-95"
               >
-                <UserPlus className="w-4 h-4 text-slate-900" />
-                Đăng ký tài khoản mới
+                <LogIn className="w-4 h-4 text-white" />
+                Đăng nhập tài khoản
               </button>
             )}
           </div>

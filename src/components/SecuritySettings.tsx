@@ -20,6 +20,7 @@ import {
   Users,
   AlertCircle,
   LogOut,
+  LogIn,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { api } from '../services/api';
@@ -252,28 +253,16 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
           </button>
 
           {onOpenAuthModal && (
-            <div className="pt-2 border-t border-slate-100 space-y-1">
+            <div className="pt-2 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => onOpenAuthModal('register')}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between text-blue-900 bg-amber-50 hover:bg-amber-100 transition-all border border-amber-300 shadow-2xs cursor-pointer active:scale-98"
+                onClick={() => onOpenAuthModal('login')}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between text-emerald-900 bg-emerald-50 hover:bg-emerald-100 transition-all border border-emerald-300 shadow-2xs cursor-pointer active:scale-98"
               >
                 <div className="flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-amber-600" />
-                  <span>Đăng ký tài khoản</span>
+                  <LogIn className="w-4 h-4 text-emerald-600" />
+                  <span>Đăng nhập tài khoản</span>
                 </div>
-                <span className="text-[10px] bg-amber-500 text-white font-bold px-1.5 py-0.2 rounded-full">
-                  Mới
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onOpenAuthModal('users')}
-                className="w-full text-left px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <Users className="w-4 h-4 text-indigo-600" />
-                <span>Danh sách tài khoản</span>
               </button>
             </div>
           )}

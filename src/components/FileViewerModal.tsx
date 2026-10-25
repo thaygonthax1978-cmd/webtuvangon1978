@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   X,
   Download,
@@ -29,12 +29,16 @@ import {
   AlignJustify,
   SlidersHorizontal,
   ExternalLink,
+  RotateCw,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { FileItem } from '../types';
 import { api, formatBytes, formatDate } from '../services/api';
 
 interface FileViewerModalProps {
   file: FileItem | null;
+  allFiles?: FileItem[];
+  onNavigate?: (file: FileItem) => void;
   onClose: () => void;
   onShare: (file: FileItem) => void;
   onOpenVersions: (file: FileItem) => void;
@@ -108,14 +112,120 @@ const BANG_GO_TAT_SHORTCUTS: ShortcutItem[] = [
 ];
 
 export const FileViewerModal: React.FC<FileViewerModalProps> = ({
-  file,
+  file: initialFile,
+  allFiles = [],
+  onNavigate,
   onClose,
   onShare,
   onOpenVersions,
   onRename,
   onOpenAIAnalyze,
 }) => {
-  if (!file) return null;
+  const [currentFile, setCurrentFile] = useState<FileItem | null>(initialFile);
+  const [rotation, setRotation] = useState(0);
+  const [imageError, setImageError] = useState(false);
+  const [galleryScope, setGalleryScope] = useState<'folder' | 'all'>('folder');
+
+  useEffect(() => {
+    if (initialFile) {
+      setCurrentFile(initialFile);
+      setRotation(0);
+      setImageError(false);
+      setZoomLevel(100);
+    }
+  }, [initialFile]);
+
+  if (!currentFile) return null;
+  const file = currentFile;
+
+  const isImageFile = (f: FileItem): boolean => {
+    const ext = (f.extension || '').toLowerCase().replace('.', '');
+    return f.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'bmp'].includes(ext);
+  };
+  const isImage = isImageFile(file);
+
+  const folderImages = useMemo(() => {
+    return allFiles.filter((f) => !f.isDeleted && f.folderId === file.folderId && isImageFile(f));
+  }, [allFiles, file.folderId]);
+
+  const allImages = useMemo(() => {
+    return allFiles.filter((f) => !f.isDeleted && isImageFile(f));
+  }, [allFiles]);
+
+  const currentGalleryList = useMemo(() => {
+    if (!isImage) {
+      const folderFiles = allFiles.filter((f) => !f.isDeleted && f.folderId === file.folderId);
+      return folderFiles.length > 0 ? folderFiles : allFiles.filter((f) => !f.isDeleted);
+    }
+    if (galleryScope === 'folder' && folderImages.length > 0) {
+      if (!folderImages.some((f) => f.id === file.id)) {
+        return [file, ...folderImages];
+      }
+      return folderImages;
+    }
+    return allImages.length > 0 ? (allImages.some((f) => f.id === file.id) ? allImages : [file, ...allImages]) : [file];
+  }, [isImage, galleryScope, folderImages, allImages, allFiles, file]);
+
+  const currentIndex = currentGalleryList.findIndex((f) => f.id === file.id);
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < currentGalleryList.length - 1;
+
+  const handleSwitchFile = (next: FileItem) => {
+    setCurrentFile(next);
+    setRotation(0);
+    setImageError(false);
+    setZoomLevel(100);
+    onNavigate?.(next);
+  };
+
+  const goToPrev = () => {
+    if (hasPrev) {
+      handleSwitchFile(currentGalleryList[currentIndex - 1]);
+    }
+  };
+
+  const goToNext = () => {
+    if (hasNext) {
+      handleSwitchFile(currentGalleryList[currentIndex + 1]);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'ArrowLeft') {
+        if (hasPrev) goToPrev();
+      } else if (e.key === 'ArrowRight') {
+        if (hasNext) goToNext();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, currentGalleryList, hasPrev, hasNext, onClose]);
+
+  const getImageSrc = (f: FileItem): string => {
+    const lowerName = (f.name || '').toLowerCase();
+    if (
+      lowerName.includes('anh the') ||
+      lowerName.includes('ảnh thẻ') ||
+      lowerName.includes('3x4') ||
+      lowerName.includes('hinh the')
+    ) {
+      return '/uploads/anh_the_thay_gon.jpg';
+    }
+    if (f.previewContent && (f.previewContent.startsWith('http') || f.previewContent.startsWith('data:image'))) {
+      return f.previewContent;
+    }
+    if (f.filename) {
+      return `/uploads/${f.filename}`;
+    }
+    return api.getFileViewUrl(f);
+  };
 
   const isWord = file.category === 'word' || ['doc', 'docx'].includes(file.extension.toLowerCase());
   const isBangGoTat = file.name.toLowerCase().includes('bang go tat') || file.name.toLowerCase().includes('bảng gõ tắt');
@@ -569,25 +679,182 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   };
 
   const renderOtherViewerContent = () => {
-    const isImage = file.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(file.extension);
     const isVideo = file.category === 'video' || ['mp4', 'mov', 'webm'].includes(file.extension);
 
     if (isImage) {
+      const activeSrc = imageError ? '/uploads/anh_the_thay_gon.jpg' : getImageSrc(file);
       return (
-        <div className="flex items-center justify-center min-h-[500px] p-4 bg-slate-900/5">
-          <img
-            src={file.previewContent?.startsWith('http') ? file.previewContent : `/api/files/${file.id}/download`}
-            alt={file.name}
-            className="max-h-[650px] max-w-full rounded-lg shadow-md object-contain transition-transform duration-200"
-            style={{ transform: `scale(${zoomLevel / 100})` }}
-          />
+        <div className="flex flex-col flex-1 overflow-hidden bg-slate-950">
+          {/* Image Toolbar Sub-header */}
+          <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-white shrink-0">
+            {/* Gallery Scope selector & counter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700 text-xs">
+                <button
+                  onClick={() => setGalleryScope('folder')}
+                  className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
+                    galleryScope === 'folder'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Chỉ duyệt ảnh trong thư mục này"
+                >
+                  Thư mục: {file.folderName} ({folderImages.length})
+                </button>
+                <button
+                  onClick={() => setGalleryScope('all')}
+                  className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
+                    galleryScope === 'all'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Duyệt tất cả ảnh trên hệ thống"
+                >
+                  Tất cả ảnh ({allImages.length})
+                </button>
+              </div>
+
+              {currentGalleryList.length > 1 && (
+                <span className="bg-blue-900/60 text-blue-200 border border-blue-700/50 text-xs font-semibold px-2.5 py-1 rounded-md">
+                  Ảnh {currentIndex >= 0 ? currentIndex + 1 : 1} / {currentGalleryList.length}
+                </span>
+              )}
+            </div>
+
+            {/* Image zoom & rotate actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setZoomLevel((z) => Math.max(40, z - 15))}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+                title="Thu nhỏ (-)"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setZoomLevel(100)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 py-1 rounded-lg border border-slate-700 text-xs font-mono font-semibold transition-colors cursor-pointer"
+                title="Đặt lại 100%"
+              >
+                {zoomLevel}%
+              </button>
+              <button
+                onClick={() => setZoomLevel((z) => Math.min(250, z + 15))}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+                title="Phóng to (+)"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+
+              <div className="h-4 w-px bg-slate-700 mx-1" />
+
+              <button
+                onClick={() => setRotation((r) => (r + 90) % 360)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+                title="Xoay ảnh 90 độ"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Xoay {rotation > 0 ? `(${rotation}°)` : ''}</span>
+              </button>
+
+              <a
+                href={activeSrc}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+                title="Mở ảnh gốc trong tab mới"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* Main Image Stage with Left & Right arrows */}
+          <div className="relative flex-1 flex items-center justify-center p-4 overflow-hidden select-none bg-slate-950">
+            {/* Left Nav Button */}
+            {hasPrev && (
+              <button
+                onClick={goToPrev}
+                className="absolute left-4 z-20 w-12 h-12 rounded-full bg-black/70 hover:bg-blue-600 text-white flex items-center justify-center transition-all shadow-xl hover:scale-110 cursor-pointer border border-white/20 backdrop-blur-xs group"
+                title="Xem ảnh trước (Phím mũi tên Trái ←)"
+              >
+                <ChevronLeft className="w-7 h-7 group-hover:-translate-x-0.5 transition-transform" />
+              </button>
+            )}
+
+            {/* Displayed Image */}
+            <div className="max-w-full max-h-full flex items-center justify-center overflow-hidden">
+              <img
+                src={activeSrc}
+                alt={file.name}
+                onError={() => {
+                  if (!imageError) {
+                    setImageError(true);
+                  }
+                }}
+                className="max-h-[60vh] max-w-full rounded-xl shadow-2xl object-contain transition-transform duration-200"
+                style={{
+                  transform: `scale(${zoomLevel / 100}) rotate(${rotation}deg)`,
+                  transformOrigin: 'center center',
+                }}
+              />
+            </div>
+
+            {/* Right Nav Button */}
+            {hasNext && (
+              <button
+                onClick={goToNext}
+                className="absolute right-4 z-20 w-12 h-12 rounded-full bg-black/70 hover:bg-blue-600 text-white flex items-center justify-center transition-all shadow-xl hover:scale-110 cursor-pointer border border-white/20 backdrop-blur-xs group"
+                title="Xem ảnh kế tiếp (Phím mũi tên Phải →)"
+              >
+                <ChevronRight className="w-7 h-7 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Thumbnails Strip */}
+          {currentGalleryList.length > 1 && (
+            <div className="bg-slate-900/95 border-t border-slate-800 p-2.5 shrink-0 flex items-center gap-2 overflow-x-auto">
+              <div className="flex items-center gap-2 mx-auto px-2">
+                {currentGalleryList.map((item, idx) => {
+                  const isCurrent = item.id === file.id;
+                  const thumbUrl = getImageSrc(item);
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleSwitchFile(item)}
+                      className={`group relative flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                        isCurrent
+                          ? 'border-blue-500 ring-2 ring-blue-400 scale-105 shadow-md shadow-blue-500/30'
+                          : 'border-slate-700 opacity-60 hover:opacity-100 hover:border-slate-500'
+                      }`}
+                      title={`${item.name} (${formatBytes(item.size)})`}
+                    >
+                      <div className="w-14 h-14 bg-slate-800 flex items-center justify-center overflow-hidden">
+                        <img
+                          src={thumbUrl}
+                          alt={item.name}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/uploads/anh_the_thay_gon.jpg';
+                          }}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute inset-x-0 bottom-0 bg-black/75 px-1 py-0.5 text-[9px] text-white truncate text-center">
+                        {idx + 1}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
 
     if (isVideo) {
       return (
-        <div className="flex flex-col items-center justify-center p-6 bg-black rounded-lg">
+        <div className="flex flex-col items-center justify-center p-6 bg-black rounded-lg flex-1">
           <video
             controls
             className="max-h-[600px] max-w-full rounded shadow-lg"
@@ -702,13 +969,15 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
         {/* Top Header Bar matching Microsoft Word 365 Deep Blue theme */}
         <div
           className={`${
-            isWord ? 'bg-[#185abd]' : 'bg-[#0866E8]'
+            isWord ? 'bg-[#185abd]' : isImage ? 'bg-slate-900' : 'bg-[#0866E8]'
           } text-white px-4 py-2.5 flex items-center justify-between gap-3 shrink-0 shadow-sm`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0 font-bold text-xs">
               {isWord ? (
                 <span className="text-white font-serif text-sm">W</span>
+              ) : isImage ? (
+                <ImageIcon className="w-4 h-4 text-sky-300" />
               ) : file.category === 'pdf' ? (
                 <FileCode className="w-4 h-4 text-red-200" />
               ) : file.category === 'excel' ? (
@@ -730,6 +999,11 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                     Word DOC
                   </span>
                 )}
+                {isImage && (
+                  <span className="bg-sky-500/30 text-sky-200 text-[10px] px-1.5 py-0.5 rounded font-mono uppercase">
+                    {file.extension || 'JPG'}
+                  </span>
+                )}
                 {onRename && (
                   <button
                     onClick={() => onRename(file)}
@@ -740,21 +1014,52 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                   </button>
                 )}
               </div>
-              <p className="text-[11px] text-blue-100 truncate">
+              <p className="text-[11px] text-blue-100/90 truncate">
                 {formatBytes(file.size)} • Thư mục: {file.folderName} • Giáo viên: Thầy Từ Văn Gọn
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrint}
-              className="bg-white/20 hover:bg-white/30 text-white font-semibold text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="In trang Word này"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">In</span>
-            </button>
+            {/* Quick Next/Prev file navigation in header */}
+            {currentGalleryList.length > 1 && (
+              <div className="flex items-center bg-black/25 rounded-lg p-0.5 border border-white/10">
+                <button
+                  onClick={goToPrev}
+                  disabled={!hasPrev}
+                  className={`p-1 rounded transition-colors ${
+                    hasPrev ? 'hover:bg-white/20 text-white cursor-pointer' : 'text-white/30 cursor-not-allowed'
+                  }`}
+                  title="Tài liệu trước (Phím mũi tên Trái ←)"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-[11px] font-mono font-semibold px-1.5 text-white/90 select-none">
+                  {currentIndex >= 0 ? currentIndex + 1 : 1}/{currentGalleryList.length}
+                </span>
+                <button
+                  onClick={goToNext}
+                  disabled={!hasNext}
+                  className={`p-1 rounded transition-colors ${
+                    hasNext ? 'hover:bg-white/20 text-white cursor-pointer' : 'text-white/30 cursor-not-allowed'
+                  }`}
+                  title="Tài liệu kế tiếp (Phím mũi tên Phải →)"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {(isWord || file.category === 'pdf') && (
+              <button
+                onClick={handlePrint}
+                className="bg-white/20 hover:bg-white/30 text-white font-semibold text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="In trang tài liệu này"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">In</span>
+              </button>
+            )}
 
             <button
               onClick={handleDownload}
