@@ -1385,7 +1385,7 @@ export const api = {
         return '/uploads/anh_the_thay_gon.jpg';
       }
     }
-    return `/api/files/${file.id}/view`;
+    return `/api/files/${file.id}/view?v=${encodeURIComponent(file.updatedDate || file.filename || '')}`;
   },
 
   getDownloadUrl(fileId: string): string {

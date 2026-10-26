@@ -31,6 +31,9 @@ import {
   ExternalLink,
   RotateCw,
   Image as ImageIcon,
+  UploadCloud,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { FileItem } from '../types';
 import { api, formatBytes, formatDate } from '../services/api';
@@ -126,6 +129,31 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   const [rotation, setRotation] = useState(0);
   const [imageError, setImageError] = useState(false);
   const [galleryScope, setGalleryScope] = useState<'folder' | 'all'>('folder');
+  const replaceInputRef = React.useRef<HTMLInputElement>(null);
+  const [isUploadingRealImage, setIsUploadingRealImage] = useState(false);
+  const [uploadToast, setUploadToast] = useState<string | null>(null);
+
+  const handleUploadRealImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const selectedFile = e.target.files[0];
+    setIsUploadingRealImage(true);
+    try {
+      const updated = await api.uploadNewVersion(file.id, selectedFile);
+      setCurrentFile(updated);
+      setImageError(false);
+      setUploadToast(`Đã tải lên ảnh "${selectedFile.name}" thành công!`);
+      setTimeout(() => setUploadToast(null), 5000);
+      onNavigate?.(updated);
+    } catch (err: any) {
+      console.error('Lỗi tải ảnh:', err);
+      alert('Không thể tải ảnh: ' + (err.message || 'Lỗi kết nối'));
+    } finally {
+      setIsUploadingRealImage(false);
+      if (replaceInputRef.current) {
+        replaceInputRef.current.value = '';
+      }
+    }
+  };
 
   useEffect(() => {
     if (initialFile) {
@@ -777,6 +805,16 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
               >
                 <ExternalLink className="w-4 h-4" />
               </a>
+
+              <button
+                onClick={() => replaceInputRef.current?.click()}
+                disabled={isUploadingRealImage}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-lg border border-emerald-500 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+                title="Tải ảnh thật từ máy tính/điện thoại để thay thế cho tệp này"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>{isUploadingRealImage ? 'Đang tải...' : 'Tải ảnh thật'}</span>
+              </button>
             </div>
           </div>
 
@@ -1103,6 +1141,20 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
               </button>
             )}
 
+            {isImage && (
+              <button
+                onClick={() => replaceInputRef.current?.click()}
+                disabled={isUploadingRealImage}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                title="Tải ảnh thật từ máy tính/điện thoại để thay thế cho tệp này"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">
+                  {isUploadingRealImage ? 'Đang tải...' : 'Tải ảnh thật lên'}
+                </span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="p-1.5 rounded-lg hover:bg-white/20 text-white transition-colors cursor-pointer"
@@ -1120,6 +1172,23 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Hidden File Input for uploading real photo */}
+        <input
+          type="file"
+          ref={replaceInputRef}
+          accept="image/*"
+          onChange={handleUploadRealImage}
+          className="hidden"
+        />
+
+        {/* Upload Success Toast */}
+        {uploadToast && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-semibold animate-pulse">
+            <CheckCircle className="w-4 h-4 shrink-0" />
+            <span>{uploadToast}</span>
+          </div>
+        )}
 
         {/* Content Section */}
         {isWord ? renderWordViewer() : renderOtherViewerContent()}

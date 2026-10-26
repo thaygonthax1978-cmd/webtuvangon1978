@@ -1243,7 +1243,10 @@ export default function App() {
         <FileViewerModal
           file={activeViewerFile}
           allFiles={files.filter((f) => !f.isDeleted)}
-          onNavigate={(nextFile) => setActiveViewerFile(nextFile)}
+          onNavigate={(nextFile) => {
+            setActiveViewerFile(nextFile);
+            setFiles((prev) => prev.map((f) => (f.id === nextFile.id ? nextFile : f)));
+          }}
           onClose={() => setActiveViewerFile(null)}
           onShare={handleShareFile}
           onOpenVersions={(file) => {
