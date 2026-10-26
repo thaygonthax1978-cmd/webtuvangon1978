@@ -1850,6 +1850,35 @@ app.post('/api/upload', upload.array('files', 20), (req, res) => {
       const ext = path.extname(cleanOriginalName).toLowerCase().replace('.', '');
       const category = categorizeFile(cleanOriginalName);
 
+      // Check if file with same name already exists in target folder or db
+      const existingIdx = db.files.findIndex(
+        (f) =>
+          !f.isDeleted &&
+          f.name.trim().toLowerCase() === cleanOriginalName.trim().toLowerCase() &&
+          (f.folderId === targetFolder.id || !folderId)
+      );
+
+      if (existingIdx !== -1) {
+        const existing = db.files[existingIdx];
+        existing.filename = file.filename;
+        existing.size = file.size;
+        existing.mimeType = file.mimetype || existing.mimeType;
+        existing.updatedDate = new Date().toISOString();
+        const nextVer = (existing.versions?.length || 0) + 1;
+        if (!existing.versions) existing.versions = [];
+        existing.versions.unshift({
+          version: nextVer,
+          name: cleanOriginalName,
+          size: file.size,
+          uploadDate: new Date().toISOString().split('T')[0],
+          updatedBy: db.user.fullName,
+          filename: file.filename,
+        });
+        addedFiles.push(existing);
+        syncFileToSupabase(existing, 'upsert');
+        continue;
+      }
+
       const previewContent = extractDocumentPreview(file.path, cleanOriginalName, ext, file.size);
 
       const newFile: FileRecord = {
@@ -2441,6 +2470,26 @@ app.get('/api/files/:id/view', async (req, res) => {
   if (fs.existsSync(filePath)) {
     return res.sendFile(filePath);
   }
+
+  // 1b. Smart physical file resolution in uploads folder
+  try {
+    const uploadFiles = fs.readdirSync(UPLOADS_DIR);
+    const matchedByProp = uploadFiles.find((u) => {
+      try {
+        const stat = fs.statSync(path.join(UPLOADS_DIR, u));
+        const uext = path.extname(u).toLowerCase().replace('.', '');
+        return stat.size === file.size && uext === ext && stat.size > 0;
+      } catch {
+        return false;
+      }
+    });
+
+    if (matchedByProp) {
+      file.filename = matchedByProp;
+      saveDB(db);
+      return res.sendFile(path.join(UPLOADS_DIR, matchedByProp));
+    }
+  } catch (e) {}
 
   // 2. If it is an image
   const isImage = file.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext);

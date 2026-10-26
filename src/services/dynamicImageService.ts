@@ -66,7 +66,14 @@ export function generateDynamicFileSvg(meta: ImageMeta): string {
   }
 
   // 5. NĂM HỌC / HOẠT ĐỘNG TRƯỜNG LỚP (NH 2020-2021, Lớp 1, Lớp 2, Thời khoá biểu, v.v.)
-  if (folderUpper.includes('NH ') || folderUpper.includes('NĂM HỌC') || nameUpper.includes('THỜI KHOÁ BIỂU') || nameUpper.includes('HỘI THI') || nameUpper.includes('LỚP')) {
+  if (
+    folderUpper.startsWith('NH ') ||
+    folderUpper.includes('NĂM HỌC') ||
+    folderUpper.includes('NH 20') ||
+    nameUpper.includes('THỜI KHOÁ BIỂU') ||
+    nameUpper.includes('THỜI KHÓA BIỂU') ||
+    nameUpper.includes('HỘI THI')
+  ) {
     return generateSchoolActivitySvg(cleanBaseName, cleanFolder, seed);
   }
 
