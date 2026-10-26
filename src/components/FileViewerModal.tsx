@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { FileItem } from '../types';
 import { api, formatBytes, formatDate } from '../services/api';
+import { generateDynamicFileSvg } from '../services/dynamicImageService';
 
 interface FileViewerModalProps {
   file: FileItem | null;
@@ -208,22 +209,33 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, currentGalleryList, hasPrev, hasNext, onClose]);
 
-  const getImageSrc = (f: FileItem): string => {
-    const lowerName = (f.name || '').toLowerCase();
-    if (
-      lowerName.includes('anh the') ||
-      lowerName.includes('ảnh thẻ') ||
-      lowerName.includes('3x4') ||
-      lowerName.includes('hinh the')
-    ) {
-      return '/uploads/anh_the_thay_gon.jpg';
+  const getFallbackSvgDataUrl = (item: FileItem): string => {
+    try {
+      const svg = generateDynamicFileSvg(item);
+      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    } catch {
+      return '';
     }
+  };
+
+  const getImageSrc = (f: FileItem): string => {
+    // 1. Data URLs or direct http links
     if (f.previewContent && (f.previewContent.startsWith('http') || f.previewContent.startsWith('data:image'))) {
       return f.previewContent;
     }
-    if (f.filename) {
-      return `/uploads/${f.filename}`;
+    // 2. Specific teacher 3x4 ID photo only
+    const lowerName = (f.name || '').toLowerCase();
+    const isTeacherID =
+      f.filename === '1792641189275-237375993.jpg' ||
+      f.name === 'anh_the_thay_gon.jpg' ||
+      f.name === 'avatar_tu_van_gon.jpg' ||
+      lowerName === 'hinh the 3x4cm.jpg' ||
+      lowerName === 'ảnh thẻ thầy gọn.jpg' ||
+      lowerName === 'anh the thay gon.jpg';
+    if (isTeacherID) {
+      return '/uploads/anh_the_thay_gon.jpg';
     }
+    // 3. For all other files, route through the API view URL which serves physical file or distinct SVG
     return api.getFileViewUrl(f);
   };
 
@@ -682,7 +694,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
     const isVideo = file.category === 'video' || ['mp4', 'mov', 'webm'].includes(file.extension);
 
     if (isImage) {
-      const activeSrc = imageError ? '/uploads/anh_the_thay_gon.jpg' : getImageSrc(file);
+      const activeSrc = imageError ? getFallbackSvgDataUrl(file) : getImageSrc(file);
       return (
         <div className="flex flex-col flex-1 overflow-hidden bg-slate-950">
           {/* Image Toolbar Sub-header */}
@@ -834,7 +846,10 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                           src={thumbUrl}
                           alt={item.name}
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/uploads/anh_the_thay_gon.jpg';
+                            const fallback = getFallbackSvgDataUrl(item);
+                            if (fallback) {
+                              (e.target as HTMLImageElement).src = fallback;
+                            }
                           }}
                           className="w-full h-full object-cover"
                         />

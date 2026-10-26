@@ -1374,7 +1374,14 @@ export const api = {
     const isImage = file.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext);
     if (isImage) {
       const lower = (file.name || '').toLowerCase();
-      if (lower.includes('anh the') || lower.includes('ảnh thẻ') || lower.includes('3x4') || lower.includes('hinh the')) {
+      const isTeacherID =
+        file.filename === '1792641189275-237375993.jpg' ||
+        file.name === 'anh_the_thay_gon.jpg' ||
+        file.name === 'avatar_tu_van_gon.jpg' ||
+        lower === 'hinh the 3x4cm.jpg' ||
+        lower === 'ảnh thẻ thầy gọn.jpg' ||
+        lower === 'anh the thay gon.jpg';
+      if (isTeacherID) {
         return '/uploads/anh_the_thay_gon.jpg';
       }
     }

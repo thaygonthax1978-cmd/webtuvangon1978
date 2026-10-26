@@ -8,6 +8,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import { isRealDocx, generateValidDocx } from './src/services/docxHelper';
 import JSZip from 'jszip';
+import { generateDynamicFileSvg } from './src/services/dynamicImageService';
 
 dotenv.config({ override: true });
 
@@ -2398,6 +2399,21 @@ app.post('/api/files/:id/share', (req, res) => {
   res.json({ success: true, shareConfig });
 });
 
+// 8a. Fallback for /uploads/:filename when file is not physically on disk
+app.get('/uploads/:filename', (req, res, next) => {
+  const { filename } = req.params;
+  const filePath = path.join(UPLOADS_DIR, filename);
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+  const db = getDB();
+  const file = db.files.find((f) => f.filename === filename);
+  if (file) {
+    return res.redirect(`/api/files/${file.id}/view`);
+  }
+  next();
+});
+
 // 8b. View File Inline (Images, Videos, PDFs, Preview)
 app.get('/api/files/:id/view', async (req, res) => {
   const { id } = req.params;
@@ -2427,11 +2443,19 @@ app.get('/api/files/:id/view', async (req, res) => {
   }
 
   // 2. If it is an image
-  const isImage = file.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext);
+  const isImage = file.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext);
   if (isImage) {
     const lowerName = (file.name || '').toLowerCase();
-    // Teacher portrait / ID photo (ảnh thẻ, 3x4, Thầy Gọn)
-    if (lowerName.includes('anh the') || lowerName.includes('ảnh thẻ') || lowerName.includes('3x4') || lowerName.includes('hinh the') || lowerName.includes('gon') || (file.folderName && file.folderName.includes('ẢNH CẢ NHÀ'))) {
+    // Only return teacher portrait for Thầy Gọn's specific 3x4 ID card photo
+    const isTeacherIDPhoto =
+      file.filename === '1792641189275-237375993.jpg' ||
+      file.name === 'anh_the_thay_gon.jpg' ||
+      file.name === 'avatar_tu_van_gon.jpg' ||
+      lowerName === 'hinh the 3x4cm.jpg' ||
+      lowerName === 'ảnh thẻ thầy gọn.jpg' ||
+      lowerName === 'anh the thay gon.jpg';
+
+    if (isTeacherIDPhoto) {
       const portraitPath = path.join(UPLOADS_DIR, 'anh_the_thay_gon.jpg');
       if (fs.existsSync(portraitPath)) {
         res.setHeader('Content-Type', 'image/jpeg');
@@ -2444,27 +2468,10 @@ app.get('/api/files/:id/view', async (req, res) => {
       }
     }
 
-    // Return a crisp SVG placeholder with teacher watermark
-    const safeTitle = (file.name || 'Ảnh').replace(/[<>&"]/g, '');
-    const safeFolder = (file.folderName || 'Tài liệu').replace(/[<>&"]/g, '');
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
-      <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#1e293b"/>
-          <stop offset="50%" stop-color="#0f172a"/>
-          <stop offset="100%" stop-color="#0284c7"/>
-        </linearGradient>
-      </defs>
-      <rect width="800" height="600" fill="url(#bg)"/>
-      <circle cx="400" cy="220" r="80" fill="#38bdf8" opacity="0.2"/>
-      <rect x="340" y="160" width="120" height="120" rx="20" stroke="#38bdf8" stroke-width="5" fill="none"/>
-      <circle cx="380" cy="200" r="14" fill="#38bdf8"/>
-      <path d="M355 260 L395 215 L420 235 L445 205 L465 260 Z" fill="#38bdf8" opacity="0.8"/>
-      <text x="400" y="360" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">${safeTitle}</text>
-      <text x="400" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#94a3b8" text-anchor="middle">Thư mục: ${safeFolder} • Thầy Từ Văn Gọn</text>
-      <text x="400" y="435" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#38bdf8" text-anchor="middle">Trường Tiểu học Phường An Xuyên, TP. Cà Mau</text>
-    </svg>`;
+    // Return a distinct, high-fidelity dynamic SVG tailored uniquely to this specific image file
+    const svg = generateDynamicFileSvg(file);
     res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
     return res.send(svg);
   }
 
@@ -2502,12 +2509,29 @@ app.get('/api/files/:id/download', async (req, res) => {
   }
 
   // If it's portrait/ID photo and physical file is missing
+  const isImageFile = file.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes((file.extension || '').toLowerCase());
   const lowerName = (file.name || '').toLowerCase();
-  if (lowerName.includes('anh the') || lowerName.includes('ảnh thẻ') || lowerName.includes('3x4') || lowerName.includes('hinh the')) {
+  const isTeacherIDPhoto =
+    file.filename === '1792641189275-237375993.jpg' ||
+    file.name === 'anh_the_thay_gon.jpg' ||
+    file.name === 'avatar_tu_van_gon.jpg' ||
+    lowerName === 'hinh the 3x4cm.jpg' ||
+    lowerName === 'ảnh thẻ thầy gọn.jpg' ||
+    lowerName === 'anh the thay gon.jpg';
+
+  if (isTeacherIDPhoto) {
     const portraitPath = path.join(UPLOADS_DIR, 'anh_the_thay_gon.jpg');
     if (fs.existsSync(portraitPath)) {
       return res.download(portraitPath, file.name);
     }
+  }
+
+  if (isImageFile) {
+    const svg = generateDynamicFileSvg(file);
+    const downloadFilename = file.name.endsWith('.svg') ? file.name : `${file.name}.svg`;
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    return res.send(svg);
   }
 
   // Fallback synthetic download if sample
