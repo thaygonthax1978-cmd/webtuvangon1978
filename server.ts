@@ -1858,12 +1858,24 @@ app.post('/api/upload', upload.array('files', 20), (req, res) => {
           (f.folderId === targetFolder.id || !folderId)
       );
 
+      let previewContent = extractDocumentPreview(file.path, cleanOriginalName, ext, file.size);
+      if (category === 'image' && file.size < 12 * 1024 * 1024 && fs.existsSync(file.path)) {
+        try {
+          const imgBuf = fs.readFileSync(file.path);
+          const mime = file.mimetype || (ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg');
+          previewContent = `data:${mime};base64,${imgBuf.toString('base64')}`;
+        } catch (e) {}
+      }
+
       if (existingIdx !== -1) {
         const existing = db.files[existingIdx];
         existing.filename = file.filename;
         existing.size = file.size;
         existing.mimeType = file.mimetype || existing.mimeType;
         existing.updatedDate = new Date().toISOString();
+        if (category === 'image' && previewContent && previewContent.startsWith('data:image')) {
+          existing.previewContent = previewContent;
+        }
         const nextVer = (existing.versions?.length || 0) + 1;
         if (!existing.versions) existing.versions = [];
         existing.versions.unshift({
@@ -1878,8 +1890,6 @@ app.post('/api/upload', upload.array('files', 20), (req, res) => {
         syncFileToSupabase(existing, 'upsert');
         continue;
       }
-
-      const previewContent = extractDocumentPreview(file.path, cleanOriginalName, ext, file.size);
 
       const newFile: FileRecord = {
         id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -1944,12 +1954,16 @@ app.post('/api/upload-json', (req, res) => {
     const physicalFilename = `${uniqueSuffix}.${ext || 'dat'}`;
     const filePath = path.join(UPLOADS_DIR, physicalFilename);
 
+    const category = categorizeFile(name);
     let previewContent = '';
     if (base64Content) {
       const buffer = Buffer.from(base64Content.replace(/^data:.*?;base64,/, ''), 'base64');
       fs.writeFileSync(filePath, buffer);
 
-      if (['txt', 'md', 'csv', 'json'].includes(ext)) {
+      if (category === 'image') {
+        const mime = mimeType || (ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg');
+        previewContent = base64Content.startsWith('data:') ? base64Content : `data:${mime};base64,${base64Content}`;
+      } else if (['txt', 'md', 'csv', 'json'].includes(ext)) {
         try {
           previewContent = buffer.toString('utf-8').slice(0, 5000);
         } catch (e) {}
@@ -1961,8 +1975,6 @@ app.post('/api/upload-json', (req, res) => {
     if (!previewContent) {
       previewContent = `Tài liệu: ${name}\nĐịnh dạng: ${ext.toUpperCase()}\nKích thước: ${(size ? size / (1024 * 1024) : 0).toFixed(2)} MB\nChủ sở hữu: Thầy Từ Văn Gọn - Trường Tiểu học Phường An Xuyên, tỉnh Cà Mau.`;
     }
-
-    const category = categorizeFile(name);
     const newFile: FileRecord = {
       id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       name,
@@ -2093,9 +2105,16 @@ app.post('/api/upload-chunk', chunkUpload.single('chunk'), async (req, res) => {
       (db.folders && db.folders[0]) || { id: 'f_01', name: 'Tài liệu' };
 
     const parsedSize = parseInt(fileSize, 10) || (fs.existsSync(finalFilePath) ? fs.statSync(finalFilePath).size : 0);
-    const previewContent = extractDocumentPreview(finalFilePath, filename, ext, parsedSize);
-
     const category = categorizeFile(filename);
+    let previewContent = extractDocumentPreview(finalFilePath, filename, ext, parsedSize);
+    if (category === 'image' && parsedSize < 12 * 1024 * 1024 && fs.existsSync(finalFilePath)) {
+      try {
+        const imgBuf = fs.readFileSync(finalFilePath);
+        const mime = mimeType || (ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg');
+        previewContent = `data:${mime};base64,${imgBuf.toString('base64')}`;
+      } catch (e) {}
+    }
+
     const newFile: FileRecord = {
       id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       name: filename,
@@ -2399,7 +2418,18 @@ app.post('/api/files/:id/version', upload.single('file'), (req, res) => {
   currentFile.filename = newUploaded.filename;
   currentFile.updatedDate = new Date().toISOString();
 
+  const ext = path.extname(currentFile.name).toLowerCase().replace('.', '');
+  const isImg = currentFile.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext);
+  if (isImg && newUploaded.size < 12 * 1024 * 1024 && fs.existsSync(newUploaded.path)) {
+    try {
+      const imgBuf = fs.readFileSync(newUploaded.path);
+      const mime = newUploaded.mimetype || (ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg');
+      currentFile.previewContent = `data:${mime};base64,${imgBuf.toString('base64')}`;
+    } catch (e) {}
+  }
+
   saveDB(db);
+  syncFileToSupabase(currentFile, 'upsert');
   res.json({ success: true, message: `Đã cập nhật lên phiên bản v${nextVer}`, file: currentFile });
 });
 
@@ -2471,7 +2501,17 @@ app.get('/api/files/:id/view', async (req, res) => {
     return res.sendFile(filePath);
   }
 
-  // 1b. Smart physical file resolution in uploads folder
+  // 1b. Check in public uploads or public folder
+  const pubUploadPath = path.resolve(process.cwd(), 'public', 'uploads', file.filename);
+  if (fs.existsSync(pubUploadPath)) {
+    return res.sendFile(pubUploadPath);
+  }
+  const pubFilePath = path.resolve(process.cwd(), 'public', file.filename);
+  if (fs.existsSync(pubFilePath)) {
+    return res.sendFile(pubFilePath);
+  }
+
+  // 1c. Smart physical file resolution in uploads folder by exact size & extension
   try {
     const uploadFiles = fs.readdirSync(UPLOADS_DIR);
     const matchedByProp = uploadFiles.find((u) => {
@@ -2491,11 +2531,35 @@ app.get('/api/files/:id/view', async (req, res) => {
     }
   } catch (e) {}
 
-  // 2. If it is an image
+  // 1d. Restore and serve real image directly from Base64 previewContent
+  if (file.previewContent && file.previewContent.startsWith('data:image/')) {
+    try {
+      const commaIdx = file.previewContent.indexOf(',');
+      if (commaIdx !== -1) {
+        const header = file.previewContent.slice(0, commaIdx);
+        const base64Data = file.previewContent.slice(commaIdx + 1);
+        const mimeMatch = header.match(/:(.*?);/);
+        const realMime = mimeMatch ? mimeMatch[1] : mimeType;
+        const imgBuffer = Buffer.from(base64Data, 'base64');
+
+        // Self-heal local disk cache so next requests are instant
+        try {
+          fs.writeFileSync(filePath, imgBuffer);
+        } catch (writeErr) {}
+
+        res.setHeader('Content-Type', realMime);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(imgBuffer);
+      }
+    } catch (base64Err) {
+      console.warn('Lỗi đọc ảnh base64 từ previewContent:', base64Err);
+    }
+  }
+
+  // 2. Specific Teacher 3x4 Portrait ID photo
   const isImage = file.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext);
   if (isImage) {
     const lowerName = (file.name || '').toLowerCase();
-    // Only return teacher portrait for Thầy Gọn's specific 3x4 ID card photo
     const isTeacherIDPhoto =
       file.filename === '1792641189275-237375993.jpg' ||
       file.name === 'anh_the_thay_gon.jpg' ||
@@ -2517,11 +2581,8 @@ app.get('/api/files/:id/view', async (req, res) => {
       }
     }
 
-    // Return a distinct, high-fidelity dynamic SVG tailored uniquely to this specific image file
-    const svg = generateDynamicFileSvg(file);
-    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.send(svg);
+    // Do NOT show fake SVG drawings or mockups! Return 404 so UI prompts to pick the real photo
+    return res.status(404).send('Tệp ảnh gốc chưa có sẵn trên máy chủ');
   }
 
   // 3. Fallback for other files
@@ -2557,6 +2618,34 @@ app.get('/api/files/:id/download', async (req, res) => {
     return res.download(filePath, file.name);
   }
 
+  // Check in public uploads or public folder
+  const pubUploadPath = path.resolve(process.cwd(), 'public', 'uploads', file.filename);
+  if (fs.existsSync(pubUploadPath)) {
+    return res.download(pubUploadPath, file.name);
+  }
+
+  // If real image is in Base64 previewContent, download real image binary
+  if (file.previewContent && file.previewContent.startsWith('data:image/')) {
+    try {
+      const commaIdx = file.previewContent.indexOf(',');
+      if (commaIdx !== -1) {
+        const header = file.previewContent.slice(0, commaIdx);
+        const base64Data = file.previewContent.slice(commaIdx + 1);
+        const mimeMatch = header.match(/:(.*?);/);
+        const realMime = mimeMatch ? mimeMatch[1] : (file.mimeType || 'image/jpeg');
+        const imgBuffer = Buffer.from(base64Data, 'base64');
+
+        try { fs.writeFileSync(filePath, imgBuffer); } catch (e) {}
+
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.name)}"`);
+        res.setHeader('Content-Type', realMime);
+        return res.send(imgBuffer);
+      }
+    } catch (base64Err) {
+      console.warn('Lỗi tải tệp ảnh từ previewContent:', base64Err);
+    }
+  }
+
   // If it's portrait/ID photo and physical file is missing
   const isImageFile = file.category === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes((file.extension || '').toLowerCase());
   const lowerName = (file.name || '').toLowerCase();
@@ -2573,14 +2662,14 @@ app.get('/api/files/:id/download', async (req, res) => {
     if (fs.existsSync(portraitPath)) {
       return res.download(portraitPath, file.name);
     }
+    const avatarPath = path.resolve(process.cwd(), 'public', 'avatar_tu_van_gon.jpg');
+    if (fs.existsSync(avatarPath)) {
+      return res.download(avatarPath, file.name);
+    }
   }
 
   if (isImageFile) {
-    const svg = generateDynamicFileSvg(file);
-    const downloadFilename = file.name.endsWith('.svg') ? file.name : `${file.name}.svg`;
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
-    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
-    return res.send(svg);
+    return res.status(404).send('Tệp ảnh thật chưa có sẵn để tải về. Vui lòng tải ảnh thật lên trước.');
   }
 
   // Fallback synthetic download if sample

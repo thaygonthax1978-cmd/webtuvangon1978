@@ -12,6 +12,7 @@ import {
 import { DEFAULT_FILES } from './defaultFiles';
 import { DEFAULT_FOLDERS } from './defaultFolders';
 import { supabase, updateClientSupabaseConfig, SUPABASE_CONFIG } from './supabaseClient';
+import { saveImageToCache } from './imageStorage';
 
 export { DEFAULT_FILES, DEFAULT_FOLDERS };
 
@@ -1326,14 +1327,107 @@ export const api = {
   },
 
   async uploadNewVersion(fileId: string, file: File): Promise<FileItem> {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await authFetch(`/api/files/${fileId}/version`, {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-    return data.file;
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'].includes(ext);
+
+    let dataUrl: string | null = null;
+    if (isImage) {
+      try {
+        dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        if (dataUrl) {
+          await saveImageToCache(fileId, dataUrl, file.name);
+        }
+      } catch (readErr) {
+        console.warn('Lỗi đọc Data URL cho ảnh:', readErr);
+      }
+    }
+
+    let updatedFile: FileItem | null = null;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await authFetch(`/api/files/${fileId}/version`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.file) {
+          updatedFile = data.file;
+        }
+      }
+    } catch (e) {
+      console.warn('Lỗi gọi /api/files/:id/version:', e);
+    }
+
+    // Update in localStore
+    const allFiles = localStore.get<FileItem[]>('files_all', []);
+    const existing = allFiles.find((f) => f.id === fileId);
+
+    const now = new Date().toISOString();
+    const cleanVerName = `${file.name}`;
+    const result: FileItem = updatedFile || {
+      id: fileId,
+      name: existing ? existing.name : file.name,
+      originalName: file.name,
+      mimeType: file.type || (isImage ? 'image/jpeg' : 'application/octet-stream'),
+      extension: ext,
+      category: isImage ? 'image' : (existing?.category || 'other'),
+      size: file.size,
+      folderId: existing?.folderId || 'f_01',
+      folderName: existing?.folderName || 'Tài liệu',
+      filename: existing?.filename || file.name,
+      uploadDate: existing?.uploadDate || now,
+      updatedDate: now,
+      isFavorite: existing?.isFavorite || false,
+      isDeleted: false,
+      versions: [
+        {
+          version: (existing?.versions?.length || 0) + 1,
+          name: cleanVerName,
+          size: file.size,
+          uploadDate: now.split('T')[0],
+          updatedBy: 'Thầy Từ Văn Gọn',
+          filename: file.name,
+        },
+        ...(existing?.versions || []),
+      ],
+      previewContent: dataUrl || existing?.previewContent,
+    };
+
+    if (dataUrl) {
+      result.previewContent = dataUrl;
+    }
+
+    // Save back to localStore
+    const updatedList = allFiles.map((f) => (f.id === fileId ? result : f));
+    if (!allFiles.some((f) => f.id === fileId)) {
+      updatedList.unshift(result);
+    }
+    localStore.set('files_all', updatedList);
+
+    // Sync to Supabase
+    try {
+      await supabase.from('files').update({
+        size: result.size,
+        updated_date: now,
+        preview_content: result.previewContent || null,
+        versions: result.versions,
+      }).eq('id', fileId);
+    } catch (sbErr) {
+      console.warn('Lỗi đồng bộ Supabase cho phiên bản mới:', sbErr);
+    }
+
+    if (dataUrl) {
+      await saveImageToCache(result.id, dataUrl, result.name, result.filename);
+    }
+
+    return result;
   },
 
   async shareFile(fileId: string, shareData: Partial<SharedConfig>): Promise<SharedConfig> {

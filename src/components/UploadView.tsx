@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { FolderItem, UploadQueueItem, FileItem } from '../types';
 import { api, formatBytes, buildFolderTreeOptions } from '../services/api';
+import { saveImageToCache } from '../services/imageStorage';
 
 interface UploadViewProps {
   folders: FolderItem[];
@@ -470,12 +471,37 @@ export const UploadView: React.FC<UploadViewProps> = ({
       throw new Error('Tệp không hợp lệ');
     }
 
+    const ext = (item.name.split('.').pop() || '').toLowerCase();
+    const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'].includes(ext);
+
+    // Pre-cache real image Data URL in IndexedDB if it's an image
+    let localDataUrl: string | null = null;
+    if (isImage && file.size < 15 * 1024 * 1024) {
+      try {
+        localDataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(file);
+        });
+        if (localDataUrl) {
+          await saveImageToCache(item.id, localDataUrl, item.name);
+        }
+      } catch (e) {}
+    }
+
     // For large files (> 20MB), chunk upload is REQUIRED to stay under the 32MB proxy limit
     if (file.size > 20 * 1024 * 1024) {
       try {
-        return await new Promise<FileItem[]>((resolve, reject) => {
+        const files = await new Promise<FileItem[]>((resolve, reject) => {
           uploadViaChunks(item, targetFolderId, resolve, reject);
         });
+        if (localDataUrl && files.length > 0) {
+          for (const f of files) {
+            await saveImageToCache(f.id, localDataUrl, f.name, f.filename);
+          }
+        }
+        return files;
       } catch (err: any) {
         let msg = err.message || 'Lỗi tải tệp lớn';
         if (msg === 'Failed to fetch' || msg.includes('kết nối') || msg.includes('Mạng')) {
@@ -488,12 +514,31 @@ export const UploadView: React.FC<UploadViewProps> = ({
       }
     }
 
-    // For files <= 20MB (Word, Excel, PDF, Images...):
-    // Strategy 1: Direct multipart upload with real-time XHR progress tracking
-    // Strategy 2: Base64 JSON (immune to multipart stream drops)
-    // Strategy 3: Chunk upload (fallback)
+    // For images <= 15MB, Base64 JSON preserves the full image Data URL in previewContent
+    if (isImage && localDataUrl) {
+      try {
+        const files = await uploadViaBase64(item, targetFolderId);
+        setQueue((prev) =>
+          prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
+        );
+        for (const f of files) {
+          await saveImageToCache(f.id, localDataUrl, f.name, f.filename);
+        }
+        return files;
+      } catch (base64Err) {
+        console.warn(`[Tải tệp] Kênh Base64 thử sang trực tiếp cho ${item.name}:`, base64Err);
+      }
+    }
+
+    // Standard Direct upload
     try {
-      return await uploadViaDirect(item, targetFolderId);
+      const files = await uploadViaDirect(item, targetFolderId);
+      if (localDataUrl && files.length > 0) {
+        for (const f of files) {
+          await saveImageToCache(f.id, localDataUrl, f.name, f.filename);
+        }
+      }
+      return files;
     } catch (directErr) {
       console.warn(`[Tải tệp] Kênh trực tiếp thất bại cho ${item.name}, thử kênh Base64 JSON:`, directErr);
       try {
@@ -501,13 +546,24 @@ export const UploadView: React.FC<UploadViewProps> = ({
         setQueue((prev) =>
           prev.map((q) => (q.id === item.id ? { ...q, progress: 100, status: 'completed' } : q))
         );
+        if (localDataUrl && files.length > 0) {
+          for (const f of files) {
+            await saveImageToCache(f.id, localDataUrl, f.name, f.filename);
+          }
+        }
         return files;
       } catch (base64Err) {
         console.warn(`[Tải tệp] Kênh Base64 thất bại cho ${item.name}, chuyển sang phân đoạn chunks:`, base64Err);
         try {
-          return await new Promise<FileItem[]>((resolve, reject) => {
+          const files = await new Promise<FileItem[]>((resolve, reject) => {
             uploadViaChunks(item, targetFolderId, resolve, reject);
           });
+          if (localDataUrl && files.length > 0) {
+            for (const f of files) {
+              await saveImageToCache(f.id, localDataUrl, f.name, f.filename);
+            }
+          }
+          return files;
         } catch (chunkErr: any) {
           let finalMsg = chunkErr.message || 'Lỗi đường truyền tải tệp';
           if (finalMsg === 'Failed to fetch' || finalMsg.includes('kết nối') || finalMsg.includes('Mạng')) {

@@ -21401,15 +21401,23 @@
       "mimeType": "image/jpeg",
       "extension": "jpg",
       "category": "image",
-      "size": 233200,
+      "size": 70,
       "folderId": "f_1792641868660",
       "folderName": "ẢNH THỜ MẸ",
-      "filename": "1793012027445-197729181.jpg",
+      "filename": "1793175438174-863356609.png",
       "uploadDate": "2026-10-22T04:05:03.747+00:00",
-      "updatedDate": "2026-10-22T04:05:03.747+00:00",
+      "updatedDate": "2026-10-28T08:17:18.197Z",
       "isFavorite": false,
       "isDeleted": false,
       "versions": [
+        {
+          "version": 2,
+          "name": "Đào Thị Thuý_24_25_9_AL năm 1989 (v2).jpg",
+          "size": 70,
+          "uploadDate": "2026-10-28",
+          "updatedBy": "TỪ VĂN GỌN",
+          "filename": "1793175438174-863356609.png"
+        },
         {
           "name": "Đào Thị Thuý_24_25_9_AL năm 1989.jpg",
           "size": 233200,

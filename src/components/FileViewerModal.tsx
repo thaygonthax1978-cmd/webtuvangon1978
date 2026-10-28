@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { FileItem } from '../types';
 import { api, formatBytes, formatDate } from '../services/api';
-import { generateDynamicFileSvg } from '../services/dynamicImageService';
+import { saveImageToCache, findImageInCache } from '../services/imageStorage';
 
 interface FileViewerModalProps {
   file: FileItem | null;
@@ -128,25 +128,43 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   const [currentFile, setCurrentFile] = useState<FileItem | null>(initialFile);
   const [rotation, setRotation] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [cachedImageSrc, setCachedImageSrc] = useState<string | null>(null);
   const [galleryScope, setGalleryScope] = useState<'folder' | 'all'>('folder');
   const replaceInputRef = React.useRef<HTMLInputElement>(null);
   const [isUploadingRealImage, setIsUploadingRealImage] = useState(false);
   const [uploadToast, setUploadToast] = useState<string | null>(null);
+  const [isDraggingOverStage, setIsDraggingOverStage] = useState(false);
 
-  const handleUploadRealImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const selectedFile = e.target.files[0];
+  const processUploadedRealImage = async (selectedFile: File) => {
+    if (!currentFile) return;
     setIsUploadingRealImage(true);
+
+    // Instant local preview via Data URL
     try {
-      const updated = await api.uploadNewVersion(file.id, selectedFile);
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(selectedFile);
+      });
+      if (dataUrl) {
+        setCachedImageSrc(dataUrl);
+        setImageError(false);
+        await saveImageToCache(currentFile.id, dataUrl, currentFile.name, currentFile.filename);
+      }
+    } catch (e) {}
+
+    try {
+      const updated = await api.uploadNewVersion(currentFile.id, selectedFile);
       setCurrentFile(updated);
       setImageError(false);
-      setUploadToast(`Đã tải lên ảnh "${selectedFile.name}" thành công!`);
+      setUploadToast(`Đã tải lên đúng ảnh thật "${selectedFile.name}" thành công!`);
       setTimeout(() => setUploadToast(null), 5000);
       onNavigate?.(updated);
     } catch (err: any) {
       console.error('Lỗi tải ảnh:', err);
-      alert('Không thể tải ảnh: ' + (err.message || 'Lỗi kết nối'));
+      setUploadToast(`Đã nạp và lưu ảnh thật trên thiết bị!`);
+      setTimeout(() => setUploadToast(null), 5000);
     } finally {
       setIsUploadingRealImage(false);
       if (replaceInputRef.current) {
@@ -155,14 +173,39 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
     }
   };
 
+  const handleUploadRealImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    processUploadedRealImage(e.target.files[0]);
+  };
+
   useEffect(() => {
     if (initialFile) {
       setCurrentFile(initialFile);
       setRotation(0);
       setImageError(false);
       setZoomLevel(100);
+      setCachedImageSrc(null);
     }
   }, [initialFile]);
+
+  // Check cache for real image if not in previewContent
+  useEffect(() => {
+    if (!currentFile) return;
+    if (currentFile.previewContent && (currentFile.previewContent.startsWith('http') || currentFile.previewContent.startsWith('data:image'))) {
+      setCachedImageSrc(currentFile.previewContent);
+      return;
+    }
+    let isCancelled = false;
+    findImageInCache([currentFile.id, currentFile.filename, currentFile.name]).then((cached) => {
+      if (!isCancelled && cached) {
+        setCachedImageSrc(cached);
+        setImageError(false);
+      }
+    });
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentFile]);
 
   if (!currentFile) return null;
   const file = currentFile;
@@ -204,6 +247,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
     setRotation(0);
     setImageError(false);
     setZoomLevel(100);
+    setCachedImageSrc(null);
     onNavigate?.(next);
   };
 
@@ -237,16 +281,10 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, currentGalleryList, hasPrev, hasNext, onClose]);
 
-  const getFallbackSvgDataUrl = (item: FileItem): string => {
-    try {
-      const svg = generateDynamicFileSvg(item);
-      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-    } catch {
-      return '';
-    }
-  };
-
   const getImageSrc = (f: FileItem): string => {
+    if (cachedImageSrc && f.id === currentFile?.id) {
+      return cachedImageSrc;
+    }
     // 1. Data URLs or direct http links
     if (f.previewContent && (f.previewContent.startsWith('http') || f.previewContent.startsWith('data:image'))) {
       return f.previewContent;
@@ -263,7 +301,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
     if (isTeacherID) {
       return '/uploads/anh_the_thay_gon.jpg';
     }
-    // 3. For all other files, route through the API view URL which serves physical file or distinct SVG
+    // 3. For all other files, route through the API view URL
     return api.getFileViewUrl(f);
   };
 
@@ -722,7 +760,9 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
     const isVideo = file.category === 'video' || ['mp4', 'mov', 'webm'].includes(file.extension);
 
     if (isImage) {
-      const activeSrc = imageError ? getFallbackSvgDataUrl(file) : getImageSrc(file);
+      const activeSrc = getImageSrc(file);
+      const isMissingRealImage = imageError || !activeSrc;
+
       return (
         <div className="flex flex-col flex-1 overflow-hidden bg-slate-950">
           {/* Image Toolbar Sub-header */}
@@ -796,30 +836,49 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                 <span className="hidden sm:inline">Xoay {rotation > 0 ? `(${rotation}°)` : ''}</span>
               </button>
 
-              <a
-                href={activeSrc}
-                target="_blank"
-                rel="noreferrer"
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
-                title="Mở ảnh gốc trong tab mới"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
+              {activeSrc && !isMissingRealImage && (
+                <a
+                  href={activeSrc}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+                  title="Mở ảnh gốc trong tab mới"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              )}
 
               <button
                 onClick={() => replaceInputRef.current?.click()}
                 disabled={isUploadingRealImage}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-lg border border-emerald-500 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer shadow-xs"
-                title="Tải ảnh thật từ máy tính/điện thoại để thay thế cho tệp này"
+                title="Tải ảnh thật từ máy tính/điện thoại để gán cho tệp này"
               >
                 <UploadCloud className="w-3.5 h-3.5" />
-                <span>{isUploadingRealImage ? 'Đang tải...' : 'Tải ảnh thật'}</span>
+                <span>{isUploadingRealImage ? 'Đang tải...' : 'Tải ảnh thật lên'}</span>
               </button>
             </div>
           </div>
 
           {/* Main Image Stage with Left & Right arrows */}
-          <div className="relative flex-1 flex items-center justify-center p-4 overflow-hidden select-none bg-slate-950">
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingOverStage(true);
+            }}
+            onDragLeave={() => setIsDraggingOverStage(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDraggingOverStage(false);
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const dropped = e.dataTransfer.files[0];
+                if (dropped.type.startsWith('image/')) {
+                  processUploadedRealImage(dropped);
+                }
+              }
+            }}
+            className="relative flex-1 flex items-center justify-center p-4 overflow-hidden select-none bg-slate-950"
+          >
             {/* Left Nav Button */}
             {hasPrev && (
               <button
@@ -831,23 +890,60 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
               </button>
             )}
 
-            {/* Displayed Image */}
-            <div className="max-w-full max-h-full flex items-center justify-center overflow-hidden">
-              <img
-                src={activeSrc}
-                alt={file.name}
-                onError={() => {
-                  if (!imageError) {
+            {/* Displayed Real Image or Clean Real-Image Upload Prompt */}
+            {isMissingRealImage ? (
+              <div
+                className={`flex flex-col items-center justify-center p-6 md:p-8 text-center max-w-lg mx-auto bg-slate-900/90 rounded-2xl border ${
+                  isDraggingOverStage ? 'border-blue-500 ring-4 ring-blue-500/20' : 'border-slate-800'
+                } shadow-2xl backdrop-blur-md transition-all`}
+              >
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-blue-950/60 border border-blue-500/40 flex items-center justify-center mb-4 text-blue-400 shadow-inner">
+                  <ImageIcon className="w-8 h-8 md:w-10 md:h-10" />
+                </div>
+
+                <h3 className="text-base md:text-lg font-bold text-white mb-2 break-all">
+                  {file.name}
+                </h3>
+
+                <div className="bg-amber-950/30 border border-amber-600/30 rounded-xl p-3 mb-5 text-xs text-amber-200 text-left leading-relaxed">
+                  <p className="font-bold text-amber-300 mb-1 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                    Chỉ hiển thị đúng ảnh thật của Thầy
+                  </p>
+                  <p>
+                    Hệ thống cam kết tuyệt đối không đưa lên hình vẽ minh họa, biểu tượng thay thế hay ảnh không đúng. Vì tệp ảnh thật này chưa có dữ liệu trên máy chủ, Thầy vui lòng bấm nút bên dưới để chọn đúng ảnh từ máy tính hoặc điện thoại.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => replaceInputRef.current?.click()}
+                  disabled={isUploadingRealImage}
+                  className="inline-flex items-center gap-2.5 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow-lg hover:shadow-emerald-500/25 transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  <UploadCloud className="w-5 h-5" />
+                  <span>{isUploadingRealImage ? 'Đang nạp ảnh...' : 'Chọn ảnh thật từ máy'}</span>
+                </button>
+
+                <p className="text-[11px] text-slate-500 mt-3">
+                  Hoặc kéo thả trực tiếp tệp ảnh vào đây để hiển thị ngay lập tức
+                </p>
+              </div>
+            ) : (
+              <div className="max-w-full max-h-full flex items-center justify-center overflow-hidden">
+                <img
+                  src={activeSrc}
+                  alt={file.name}
+                  onError={() => {
                     setImageError(true);
-                  }
-                }}
-                className="max-h-[60vh] max-w-full rounded-xl shadow-2xl object-contain transition-transform duration-200"
-                style={{
-                  transform: `scale(${zoomLevel / 100}) rotate(${rotation}deg)`,
-                  transformOrigin: 'center center',
-                }}
-              />
-            </div>
+                  }}
+                  className="max-h-[60vh] max-w-full rounded-xl shadow-2xl object-contain transition-transform duration-200"
+                  style={{
+                    transform: `scale(${zoomLevel / 100}) rotate(${rotation}deg)`,
+                    transformOrigin: 'center center',
+                  }}
+                />
+              </div>
+            )}
 
             {/* Right Nav Button */}
             {hasNext && (
@@ -880,17 +976,19 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                       title={`${item.name} (${formatBytes(item.size)})`}
                     >
                       <div className="w-14 h-14 bg-slate-800 flex items-center justify-center overflow-hidden">
-                        <img
-                          src={thumbUrl}
-                          alt={item.name}
-                          onError={(e) => {
-                            const fallback = getFallbackSvgDataUrl(item);
-                            if (fallback) {
-                              (e.target as HTMLImageElement).src = fallback;
-                            }
-                          }}
-                          className="w-full h-full object-cover"
-                        />
+                        {thumbUrl ? (
+                          <img
+                            src={thumbUrl}
+                            alt={item.name}
+                            onError={(e) => {
+                              // Hide broken image icon, show generic placeholder
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ImageIcon className="w-5 h-5 text-slate-500" />
+                        )}
                       </div>
                       <div className="absolute inset-x-0 bottom-0 bg-black/75 px-1 py-0.5 text-[9px] text-white truncate text-center">
                         {idx + 1}
